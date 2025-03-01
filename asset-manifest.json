@@ -1,0 +1,33 @@
+{
+  "files": {
+    "main.css": "/khgpco/static/css/main.ffc58392.css",
+    "main.js": "/khgpco/static/js/main.dce6b113.js",
+    "static/media/landingcity.jpg": "/khgpco/static/media/landingcity.19cb6e8c4214ad3b4975.jpg",
+    "static/media/instagram.png": "/khgpco/static/media/instagram.6f676173b2c88dfb635a.png",
+    "static/media/fa-solid-900.ttf": "/khgpco/static/media/fa-solid-900.2582b0e4bcf85eceead0.ttf",
+    "static/media/about-bg.jpg": "/khgpco/static/media/about-bg.10d2f8682a8c6d2d912f.jpg",
+    "static/media/fa-brands-400.ttf": "/khgpco/static/media/fa-brands-400.1815e00441357e01619e.ttf",
+    "static/media/fa-solid-900.woff2": "/khgpco/static/media/fa-solid-900.2463b90d9a316e4e5294.woff2",
+    "static/media/fa-brands-400.woff2": "/khgpco/static/media/fa-brands-400.c210719e60948b211a12.woff2",
+    "static/media/fa-regular-400.ttf": "/khgpco/static/media/fa-regular-400.914997e1bdfc990d0897.ttf",
+    "static/media/line.png": "/khgpco/static/media/line.6edc7fd604e58b8025eb.png",
+    "static/media/fa-regular-400.woff2": "/khgpco/static/media/fa-regular-400.89999bdf5d835c012025.woff2",
+    "static/media/KH_Logo.png": "/khgpco/static/media/KH_Logo.4a49cfceaf26fb317246.png",
+    "static/media/logo2.png": "/khgpco/static/media/logo2.eb629ede86adecc3932c.png",
+    "static/media/KHGreen.png": "/khgpco/static/media/KHGreen.d9404bdbf1a3b33c6bce.png",
+    "static/media/logo-white.png": "/khgpco/static/media/logo-white.935e1578f6ba1d827490.png",
+    "static/media/partner3.jpg": "/khgpco/static/media/partner3.420f4d0e019a82ad5da2.jpg",
+    "static/media/partner5.jpg": "/khgpco/static/media/partner5.267dfcc4e32377e01c82.jpg",
+    "static/media/partner1.jpg": "/khgpco/static/media/partner1.56c41181bb6bdcde3985.jpg",
+    "static/media/fa-v4compatibility.ttf": "/khgpco/static/media/fa-v4compatibility.da94ef451f4969af06e6.ttf",
+    "static/media/facebook.webp": "/khgpco/static/media/facebook.1fcd513e8c8b3274cb68.webp",
+    "static/media/fa-v4compatibility.woff2": "/khgpco/static/media/fa-v4compatibility.ea8f94e1d22e0d35ccd4.woff2",
+    "index.html": "/khgpco/index.html",
+    "main.ffc58392.css.map": "/khgpco/static/css/main.ffc58392.css.map",
+    "main.dce6b113.js.map": "/khgpco/static/js/main.dce6b113.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.ffc58392.css",
+    "static/js/main.dce6b113.js"
+  ]
+}
