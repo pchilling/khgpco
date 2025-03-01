@@ -1,0 +1,101 @@
+/* 全局樣式 */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+/* 導航欄 */
+/* header {
+  background-color: #0078D7;
+  padding: 10px 20px;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+} */
+
+header nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 15px;
+}
+
+header nav ul li a {
+  color: white;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* Hero Banner */
+.banner {
+  position: relative;
+  background: url('https://via.placeholder.com/1200x400') no-repeat center center;
+  background-size: cover;
+  height: 400px;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.banner h2 {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px 20px;
+  border-radius: 5px;
+}
+
+/* 內容區域 */
+.content {
+  padding: 20px;
+  text-align: center;
+}
+
+.content h1 {
+  font-size: 28px;
+  margin-bottom: 15px;
+}
+
+.content p {
+  font-size: 18px;
+  line-height: 1.5;
+  color: #555;
+}
+
+/* 底部區域 */
+footer {
+  background-color: #333;
+  color: white;
+  text-align: center;
+  padding: 10px 0;
+  position: relative;
+  bottom: 0;
+  width: 100%;
+}
+
+.App {
+  min-height: 100vh;
+  position: relative;
+}
+
+.main-content {
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* 特殊頁面可以覆蓋 padding-top */
+/* .main-content .hero-section,
+.main-content .login-container {
+  margin-top: -5.5rem;
+  padding-top: 0;
+} */
+
+/* 移除任何可能造成額外空間的樣式 */
+/* header, main, footer {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+} */

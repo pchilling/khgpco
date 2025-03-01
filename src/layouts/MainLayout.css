@@ -1,0 +1,11 @@
+/* 如果有的話，確保這些樣式不會影響到頁面內容 */
+.layout-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.content-wrapper {
+    flex: 1;
+    width: 100%;
+} 

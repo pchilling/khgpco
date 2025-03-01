@@ -1,0 +1,59 @@
+.mission-section {
+    position: relative;
+    padding: 360px 0;
+    background-color: #fff;
+    text-align: center;
+}
+
+.mission-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 40px;
+}
+
+.mission-title {
+    font-size: 2.5rem;
+    color: #C5A664;  /* 金色 */
+    margin-bottom: 40px;
+    font-weight: 600;
+}
+
+.mission-text {
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: #142613;  /* 深綠色 */
+    max-width: 800px;
+    margin: 0 auto;
+    font-weight: 1000;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .mission-section {
+        padding: 120px 0;
+    }
+
+    .mission-title {
+        font-size: 2rem;
+        margin-bottom: 30px;
+    }
+
+    .mission-text {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .mission-section {
+        padding: 80px 0;
+    }
+
+    .mission-title {
+        font-size: 1.8rem;
+        margin-bottom: 25px;
+    }
+
+    .mission-text {
+        font-size: 1rem;
+    }
+} 

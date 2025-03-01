@@ -1,0 +1,357 @@
+.project-detail-page {
+    background-color: #f5f5f5;
+    min-height: 100vh;
+    padding-top: 60px;
+}
+
+.project-gallery {
+    width: 100%;
+    height: 400px;
+    position: relative;
+    overflow: hidden;
+}
+
+.gallery-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.main-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.image-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 10%;
+    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    color: white;
+}
+
+.image-overlay h1 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.project-status {
+    display: inline-block;
+    padding: 5px 15px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+
+.info-container {
+    max-width: 1200px;
+    margin: -50px auto 0;
+    padding: 0 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.info-card {
+    background: white;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.info-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-item.highlight {
+    color: #e53935;
+}
+
+.label {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.value {
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+.features-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.feature-tag {
+    padding: 8px 15px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.buildings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.building-card {
+    padding: 15px;
+    background: #f8f8f8;
+    border-radius: 6px;
+}
+
+.building-specs {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+    color: #666;
+}
+
+@media (max-width: 768px) {
+    .project-gallery {
+        height: 300px;
+    }
+
+    .image-overlay h1 {
+        font-size: 1.5rem;
+    }
+
+    .info-container {
+        margin-top: -30px;
+        padding: 0 15px;
+    }
+
+    .info-card {
+        padding: 20px;
+    }
+}
+
+/* Hero Section */
+.hero-section {
+    width: 100%;
+    height: 35vh; /* 進一步降低高度 */
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.hero-image {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden; /* 防止圖片溢出 */
+    max-height: 400px; /* 限制最大高度 */
+}
+
+.hero-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center; /* 確保圖片居中 */
+}
+
+.hero-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem 10%;
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, transparent 100%);
+    color: white;
+}
+
+.hero-overlay h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.hero-location {
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+/* Quick Info Section */
+.quick-info {
+    width: 80%;
+    margin: -25px auto 0; /* 減少負邊距 */
+    padding: 1.5rem;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    position: relative;
+    z-index: 2;
+}
+
+.info-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.info-icon {
+    font-size: 1.8rem;
+}
+
+.info-content h3 {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0;
+}
+
+.info-content p {
+    font-size: 1.1rem;
+    color: #333;
+    margin: 0.2rem 0 0;
+}
+
+/* Content Grid */
+.content-grid {
+    width: 80%;
+    margin: 2rem auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+}
+
+/* Content Sections */
+.content-section {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.section-icon {
+    margin-right: 0.5rem;
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.status-badge.presale {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.status-badge.selling {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-badge.sold {
+    background: #ffebee;
+    color: #c62828;
+}
+
+/* 響應式設計 */
+@media (max-width: 1200px) {
+    .quick-info,
+    .content-grid {
+        width: 90%;
+    }
+}
+
+@media (max-width: 992px) {
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-info {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        height: 30vh;
+        min-height: 200px; /* 設置最小高度 */
+    }
+    
+    .hero-image {
+        max-height: 300px;
+    }
+
+    .hero-overlay {
+        padding: 1rem 5%;
+    }
+
+    .hero-overlay h1 {
+        font-size: 1.3rem;
+    }
+
+    .quick-info {
+        grid-template-columns: 1fr;
+        margin-top: -15px;
+    }
+}
+
+/* 添加更大螢幕的響應式設計 */
+@media (min-width: 1600px) {
+    .hero-section {
+        height: 30vh;
+    }
+    
+    .hero-image {
+        max-height: 450px;
+    }
+}
+
+.project-gallery {
+    height: 450px;
+    overflow: hidden;
+}
+
+.project-info {
+    max-width: 1200px;
+    margin: -60px auto 0;
+    padding: 30px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.feature-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.tag {
+    padding: 6px 12px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    font-size: 14px;
+} 

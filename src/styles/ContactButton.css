@@ -1,0 +1,70 @@
+.contact-button-wrapper {
+    position: fixed;
+    right: 40px;
+    bottom: 40px;
+    z-index: 1000;
+}
+
+.contact-button {
+    width: 90px;
+    height: 90px;
+    background: #1a2e22;
+    border-radius: 50%;
+    box-shadow: 0 6px 20px rgba(43, 92, 75, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-decoration: none;
+}
+
+.contact-button i {
+    font-size: 40px;
+    color: white;
+    transition: transform 0.3s ease;
+}
+
+/* 懸停效果 */
+.contact-button:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(43, 92, 75, 0.35);
+}
+
+.contact-button:hover i {
+    transform: scale(1.1);
+}
+
+/* 點擊效果 */
+.contact-button:active {
+    transform: translateY(0) scale(0.95);
+    box-shadow: 0 4px 15px rgba(43, 92, 75, 0.2);
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .contact-button {
+        width: 75px;
+        height: 75px;
+    }
+    
+    .contact-button i {
+        font-size: 32px;
+    }
+}
+
+@media (max-width: 480px) {
+    .contact-button-wrapper {
+        right: 20px;
+        bottom: 20px;
+    }
+
+    .contact-button {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .contact-button i {
+        font-size: 26px;
+    }
+} 

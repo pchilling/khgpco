@@ -1,0 +1,7 @@
+html {
+    scroll-behavior: smooth;
+}
+
+#contact-section {
+    scroll-margin-top: 60px; /* 配合 navbar 高度 */
+} 

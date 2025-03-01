@@ -1,0 +1,90 @@
+.partners-section {
+    padding: 80px 0;
+    background-color: #fff;
+}
+
+.partners-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.partners-title {
+    text-align: center;
+    font-size: 2.5rem;
+    color: #2B5C4B;
+    margin-bottom: 50px;
+    font-weight: 600;
+}
+
+.partners-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 40px;
+    justify-items: center;
+    align-items: center;
+}
+
+.partner-item {
+    width: 100%;
+    max-width: 200px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+}
+
+.partner-item:hover {
+    transform: translateY(-8px);
+}
+
+.partner-logo {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transition: all 0.3s ease;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .partners-section {
+        padding: 60px 0;
+    }
+
+    .partners-title {
+        font-size: 2rem;
+        margin-bottom: 40px;
+    }
+
+    .partners-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 30px;
+    }
+
+    .partner-item {
+        max-width: 150px;
+        height: 80px;
+    }
+}
+
+@media (max-width: 480px) {
+    .partners-section {
+        padding: 40px 0;
+    }
+
+    .partners-title {
+        font-size: 1.8rem;
+        margin-bottom: 30px;
+    }
+
+    .partners-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 20px;
+    }
+
+    .partner-item {
+        max-width: 120px;
+        height: 60px;
+    }
+} 

@@ -1,0 +1,134 @@
+/* 重置樣式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    overflow-x: hidden;
+}
+
+html {
+    width: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: 'Noto Sans TC', sans-serif;
+    overflow-x: hidden;
+    position: relative;
+    background-color: #ffffff;
+    color: #333;
+    min-height: 100vh;
+}
+
+#root {
+    position: relative;
+    width: 100%;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.App {
+    position: relative;
+    width: 100%;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    position: relative;
+    width: 100%;
+    overflow-x: hidden;
+    flex: 1;
+}
+
+/* 頁面整體佈局 */
+/* .container {
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 20px;
+} */
+
+/* 標題樣式 */
+h1, h2, h3, h4, h5, h6 {
+    margin: 0;
+    font-weight: bold;
+    color: #222;
+}
+
+/* 段落樣式 */
+p {
+    margin: 0;
+    font-size: 1rem;
+    color: #555;
+}
+
+/* 連結樣式 */
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* 按鈕樣式 */
+button {
+    cursor: pointer;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+/* 頁面背景 */
+.page-background {
+    background-color: #ffffff;
+}
+
+/* 頁面內距 */
+/* .page-container {
+    padding: 40px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+} */
+
+.page-container {
+    padding-top: 80px;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* 特殊頁面的例外處理 */
+.home-page,
+.login-container {
+    padding-top: 0;
+    margin-top: 0;
+}
+
+/* 為所有主要內容添加上邊距 */
+.page-container {
+  padding-top: 80px; /* 與 navbar 高度相同 */
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* 首頁特殊處理，因為通常想要全屏展示 */
+.home-page {
+  padding-top: 0;
+}
+
+/* 隐藏弃用警告 */
+[data-css-hint*="deprecated"] {
+  display: none !important;
+}

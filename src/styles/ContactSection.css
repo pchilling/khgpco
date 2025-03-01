@@ -1,0 +1,226 @@
+.contact-section {
+    background-color: #1a2e22;
+    padding: 60px 0 0;
+    color: white;
+}
+
+.contact-container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 0;
+    padding: 0 40px;
+}
+
+.contact-left {
+    grid-column: 2 / 6;
+    padding-right: 40px;
+}
+
+.contact-left h2 {
+    font-size: 3.5rem;
+    margin-bottom: 50px;
+    font-weight: normal;
+}
+
+.contact-right {
+    grid-column: 7 / 12;
+}
+
+.form-group {
+    margin-bottom: 30px;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px 0;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-size: 1rem;
+}
+
+.phone-group {
+    display: flex;
+    gap: 15px;
+}
+
+.phone-group select {
+    width: 120px;
+    background: transparent;
+    color: white;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 12px 0;
+}
+
+.phone-group input {
+    flex: 1;
+}
+
+.form-group textarea {
+    height: 100px;
+    resize: none;
+    background-color: transparent !important;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.form-group textarea::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.form-group textarea:focus {
+    background-color: transparent !important;
+    outline: none;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 15px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+    margin-bottom: 30px;
+}
+
+.submit-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.company-info {
+    margin-bottom: 30px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    background: none;
+    border: none !important;
+    box-shadow: none !important;
+    margin-top: 10px;
+    gap: 50px;
+    padding-left: 0;
+}
+
+.company-logo {
+    width: 300px;
+    height: auto;
+    object-fit: contain;
+    max-width: 100%;
+    display: block;
+    border: none !important;
+    background: none !important;
+    box-shadow: none !important;
+}
+
+.address-info {
+    margin-bottom: 30px;
+    margin-top: 60px;
+}
+
+.address-info p {
+    color: #fff;
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.address-info i {
+    color: #fff;
+    font-size: 1.3rem;
+    width: 20px;
+}
+
+.social-section {
+    width: 100%;
+    margin-top: 40px;
+}
+
+.social-section p {
+    margin-bottom: 30px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.1rem;
+}
+
+.social-links {
+    display: flex;
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.social-icon img {
+    width: 45px;
+    height: 45px;
+    transition: opacity 0.3s ease;
+}
+
+.social-icon:hover img {
+    opacity: 0.8;
+}
+
+@media (max-width: 1200px) {
+    .contact-container {
+        max-width: 960px;
+    }
+}
+
+@media (max-width: 768px) {
+    .contact-container {
+        display: flex;
+        flex-direction: column;
+        padding: 0 20px;
+    }
+    
+    .contact-left,
+    .contact-right {
+        width: 100%;
+        padding: 0;
+    }
+    
+    .contact-left h2 {
+        font-size: 2.8rem;
+        margin-bottom: 40px;
+    }
+
+    .company-info {
+        flex-direction: column;
+        text-align: center;
+        align-items: center;
+        gap: 30px;
+        justify-content: center;
+    }
+
+    .company-logo {
+        width: 250px;
+    }
+
+    .address-info,
+    .social-section {
+        text-align: center;
+        align-items: center;
+    }
+
+    .address-info p {
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .social-links {
+        justify-content: center;
+    }
+}
+
+/* 移除 select 的默認箭頭 */
+.phone-group select::-ms-expand {
+    display: none;
+} 
