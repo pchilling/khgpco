@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/khgpco/static/css/main.193c0206.css",
-    "main.js": "/khgpco/static/js/main.0c4b21cf.js",
+    "main.css": "/khgpco/static/css/main.7e5668b8.css",
+    "main.js": "/khgpco/static/js/main.9ad3b5d2.js",
     "static/media/landingcity.jpg": "/khgpco/static/media/landingcity.19cb6e8c4214ad3b4975.jpg",
     "static/media/placeholder.jpg": "/khgpco/static/media/placeholder.0e19f5422b84c11769b0.jpg",
     "static/media/instagram.png": "/khgpco/static/media/instagram.6f676173b2c88dfb635a.png",
@@ -24,11 +24,11 @@
     "static/media/facebook.webp": "/khgpco/static/media/facebook.1fcd513e8c8b3274cb68.webp",
     "static/media/fa-v4compatibility.woff2": "/khgpco/static/media/fa-v4compatibility.ea8f94e1d22e0d35ccd4.woff2",
     "index.html": "/khgpco/index.html",
-    "main.193c0206.css.map": "/khgpco/static/css/main.193c0206.css.map",
-    "main.0c4b21cf.js.map": "/khgpco/static/js/main.0c4b21cf.js.map"
+    "main.7e5668b8.css.map": "/khgpco/static/css/main.7e5668b8.css.map",
+    "main.9ad3b5d2.js.map": "/khgpco/static/js/main.9ad3b5d2.js.map"
   },
   "entrypoints": [
-    "static/css/main.193c0206.css",
-    "static/js/main.0c4b21cf.js"
+    "static/css/main.7e5668b8.css",
+    "static/js/main.9ad3b5d2.js"
   ]
 }
