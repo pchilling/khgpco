@@ -1,0 +1,208 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal-content {
+    background: white;
+    padding: 32px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-content h2 {
+    color: #1a1a1a;
+    font-size: 1.75rem;
+    margin-bottom: 24px;
+    font-weight: 600;
+}
+
+/* 成功和錯誤訊息 */
+.success-message,
+.error-message {
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.success-message {
+    background-color: rgba(46, 125, 50, 0.1);
+    color: #2e7d32;
+}
+
+.error-message {
+    background-color: rgba(211, 47, 47, 0.1);
+    color: #d32f2f;
+}
+
+.success-message i,
+.error-message i {
+    font-size: 24px;
+}
+
+.success-message p,
+.error-message p {
+    margin: 0;
+    font-size: 1rem;
+}
+
+/* 載入中狀態 */
+.loading-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.loading-text i {
+    font-size: 1rem;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #374151;
+    font-weight: 500;
+}
+
+/* 全局重置表單元素樣式 */
+.modal-content input,
+.modal-content textarea,
+.modal-content select {
+    color: #000 !important; /* 純黑色文字 */
+    background-color: #fff !important;
+    border: 1px solid #e5e7eb !important;
+    font-size: 1rem !important;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    color: #000 !important; /* 純黑色文字 */
+    background-color: #fff !important;
+    -webkit-text-fill-color: #000 !important; /* 針對 Safari */
+    opacity: 1 !important; /* 確保不透明 */
+}
+
+.form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+    color: #000 !important; /* 純黑色文字 */
+    background-color: #fff !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: #aaaaaa !important;
+    opacity: 0.7 !important;
+    font-style: italic;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #142613 !important;
+    box-shadow: 0 0 0 2px rgba(20, 38, 19, 0.1);
+    color: #000 !important; /* 純黑色文字 */
+    background-color: #fff !important;
+}
+
+.error {
+    color: #dc2626;
+    font-size: 0.875rem;
+    margin-top: 4px;
+    display: block;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.cancel-button,
+.submit-button {
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cancel-button {
+    background: transparent;
+    border: 1px solid #e5e7eb;
+    color: #4b5563;
+}
+
+.submit-button {
+    background: #142613;
+    border: none;
+    color: white;
+}
+
+.cancel-button:hover {
+    background: #f3f4f6;
+}
+
+.submit-button:hover {
+    background: #1d3a1d;
+}
+
+.cancel-button:disabled,
+.submit-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+    .modal-content {
+        padding: 24px;
+    }
+
+    .modal-content h2 {
+        font-size: 1.5rem;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .modal-actions {
+        flex-direction: column;
+    }
+
+    .cancel-button,
+    .submit-button {
+        width: 100%;
+    }
+} 

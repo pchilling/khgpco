@@ -1,15 +1,16 @@
 import React, { useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useLocation } from 'react-router-dom';
 import '../styles/Home.css';  // We'll create this next
-import Banner from '../components/Banner';
-import Footer from '../components/Footer';
 import ContactSection from '../components/ContactSection';
 import Partners from '../components/Partners';
 import Mission from '../components/Mission';
-import { Link } from 'react-router-dom';
+import LatestProjects from '../components/LatestProjects';
+import Testimonials from '../components/Testimonials';
 
 const Home = () => {
     const { language } = useLanguage();
+    const location = useLocation();
 
     const translations = {
         'zh-TW': {
@@ -30,26 +31,86 @@ const Home = () => {
 
     const t = translations[language];
 
-    useEffect(() => {
-        document.body.classList.add('no-padding');
+    // 滾動到聯繫我們部分的函數
+    const scrollToContact = () => {
+        console.log("執行滾動到聯繫我們部分的函數");
         
-        // 處理 URL hash 跳轉
-        const hash = window.location.hash;
-        if (hash === '#contact-section') {
+        // 立即檢查一次
+        const attemptScroll = () => {
             const contactSection = document.getElementById('contact-section');
             if (contactSection) {
-                setTimeout(() => {
-                    contactSection.scrollIntoView({ behavior: 'smooth' });
-                }, 100);
+                console.log("找到聯繫我們部分，滾動到該元素");
+                
+                // 滾動到元素
+                contactSection.scrollIntoView({ behavior: 'smooth' });
+                return true;
             }
+            return false;
+        };
+        
+        // 立即嘗試滾動
+        if (attemptScroll()) return;
+        
+        // 如果立即滾動失敗，嘗試多次滾動（可能元素尚未渲染）
+        let attempts = 0;
+        const maxAttempts = 5;
+        const intervalId = setInterval(() => {
+            console.log(`嘗試滾動到聯繫我們部分，嘗試次數: ${attempts + 1}`);
+            
+            if (attemptScroll() || ++attempts >= maxAttempts) {
+                clearInterval(intervalId);
+            }
+        }, 300);
+    };
+
+    useEffect(() => {
+        console.log("Home 組件加載，當前 URL hash:", window.location.hash);
+        document.body.classList.add('no-padding');
+        
+        // 檢查是否需要滾動到聯繫部分
+        const shouldScrollToContact = () => {
+            // 檢查 URL hash
+            if (window.location.hash === '#contact-section') {
+                return true;
+            }
+            
+            // 檢查導航狀態
+            if (location.state && location.state.scrollToContact) {
+                return true;
+            }
+            
+            return false;
+        };
+        
+        if (shouldScrollToContact()) {
+            console.log("需要滾動到聯繫我們部分");
+            // 延遲執行滾動，確保頁面完全加載
+            setTimeout(scrollToContact, 500);
+        } else {
+            // 如果不需要滾動到聯繫部分，則滾動到頂部
+            setTimeout(() => {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'instant'
+                });
+            }, 0);
         }
         
-        window.scrollTo({ top: 0, behavior: 'instant' });
+        // 監聽 hashchange 事件
+        const handleHashChange = () => {
+            console.log("URL hash 變化:", window.location.hash);
+            if (window.location.hash === '#contact-section') {
+                scrollToContact();
+            }
+        };
+        
+        window.addEventListener('hashchange', handleHashChange);
         
         return () => {
             document.body.classList.remove('no-padding');
+            window.removeEventListener('hashchange', handleHashChange);
         };
-    }, []);
+    }, [location]);  // 添加 location 作為依賴項
 
     return (
         <div className="page-container home-page">
@@ -65,10 +126,14 @@ const Home = () => {
                     </div>
                 </div>
             </section>
-            <Mission />
-            <Partners />
-            <ContactSection />
             
+            <div className="content-container"> {/* 確保所有內容在同一個容器中 */}
+                <Mission />
+                <LatestProjects />
+                <Testimonials />
+                <Partners />
+                <ContactSection />
+            </div>
         </div>
     );
 };

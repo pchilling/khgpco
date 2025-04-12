@@ -1,0 +1,62 @@
+.dashboardLayout {
+  min-height: 100vh;
+}
+
+.sider {
+  background: #001529;
+}
+
+.logo {
+  height: 64px;
+  padding: 16px;
+  color: white;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.logo h2 {
+  color: white;
+  margin: 0;
+  font-size: 18px;
+}
+
+.header {
+  background: white;
+  padding: 0 24px;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.content {
+  margin: 24px;
+  padding: 24px;
+  background: white;
+  border-radius: 4px;
+}
+
+.contentWrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .sider {
+    position: fixed;
+    height: 100vh;
+    z-index: 100;
+  }
+  
+  .content {
+    margin: 12px;
+    padding: 16px;
+  }
+} 

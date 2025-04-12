@@ -381,9 +381,8 @@
 }
 
 @media screen and (max-width: 930px) {
-    .hero-content {
-        left: 0%;  /* 調整左邊距，讓文字往左一點 */
-        width: 90%;  /* 確保有足夠的寬度 */
+    .home-hero {
+        padding-left: 5%;  /* 在較小螢幕上減少左邊距 */
     }
 }
 
@@ -423,6 +422,10 @@
 
 /* 響應式設計 */
 @media (max-width: 768px) {
+    .home-hero {
+        padding-left: 20px;  /* 在手機上使用更小的左邊距 */
+    }
+    
     .hero-text-large {
         font-size: 6rem;
     }
@@ -435,3 +438,304 @@
         font-size: 2rem;
     }
 } 
+
+/* 統一所有區塊的基本樣式 */
+.mission-section,
+.partners-section,
+.disclaimer-section {
+    padding: 40px 0; /* 統一上下間距 */
+    margin: 0; /* 移除所有 margin */
+    background-color: #fff;
+    border: none; /* 確保沒有邊框 */
+}
+
+/* Partners 區塊樣式調整 */
+.partners-section {
+    padding: 40px 0; /* 與其他區塊統一 */
+}
+
+/* 免責聲明區塊樣式 */
+.disclaimer-section {
+    padding: 40px 0; /* 與其他區塊統一 */
+}
+
+.disclaimer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px; /* 只保留左右 padding */
+}
+
+/* 移除所有可能造成額外間距的樣式 */
+.partners-section + .disclaimer-section,
+.mission-section + .partners-section {
+    margin-top: 0;
+    padding-top: 40px;
+}
+
+/* 響應式設計調整 */
+@media (max-width: 768px) {
+    .mission-section,
+    .partners-section,
+    .disclaimer-section {
+        padding: 30px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .mission-section,
+    .partners-section,
+    .disclaimer-section {
+        padding: 20px 0;
+    }
+}
+
+.disclaimer-section h3 {
+    text-align: center;
+    font-size: 2.5rem;
+    color: #1B3C35;
+    margin: 20px 0 40px;
+    font-weight: 600;
+    position: relative;
+    display: inline-block;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* 移除之前的分隔線效果 */
+.disclaimer-section h3::after {
+    display: none;
+}
+
+/* 確保內容區域沒有額外的邊框或背景 */
+.disclaimer-content {
+    color: #666;
+    line-height: 1.8;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.main-disclaimer {
+    font-size: 0.95rem;
+    margin-bottom: 25px;
+    text-align: justify;
+    letter-spacing: 0.5px;
+}
+
+.risk-warnings {
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 1px solid rgba(43, 92, 75, 0.1);  /* 使用主色調但透明度降低 */
+}
+
+.risk-warnings p {
+    font-size: 0.95rem;
+    margin-bottom: 15px;
+    padding-left: 25px;
+    position: relative;
+    line-height: 1.6;
+}
+
+/* 添加項目符號樣式 */
+.risk-warnings p::before {
+    content: '●';
+    position: absolute;
+    left: 0;
+    color: #2B5C4B;
+    opacity: 0.7;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .disclaimer-section {
+        margin-top: -30px;
+    }
+
+    .disclaimer-container {
+        padding: 0 15px 40px;
+    }
+
+    .disclaimer-section h3 {
+        font-size: 2rem;
+        margin-bottom: 30px;
+    }
+
+    .disclaimer-content {
+        padding: 0 15px;
+    }
+
+    .main-disclaimer,
+    .risk-warnings p {
+        font-size: 0.9rem;
+        letter-spacing: 0.3px;
+    }
+}
+
+@media (max-width: 480px) {
+    .disclaimer-section {
+        margin-top: -20px;
+    }
+
+    .disclaimer-container {
+        padding: 0 10px 30px;
+    }
+
+    .disclaimer-section h3 {
+        font-size: 1.8rem;
+        margin-bottom: 25px;
+    }
+
+    .disclaimer-content {
+        padding: 0 10px;
+    }
+
+    .main-disclaimer,
+    .risk-warnings p {
+        font-size: 0.85rem;
+        letter-spacing: 0.2px;
+    }
+}
+
+/* 統一所有區塊標題的樣式 */
+.mission-title,
+.partners-title,
+.disclaimer-section h3 {
+    font-size: 2.5rem;
+    margin-bottom: 40px;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* 特殊顏色處理 */
+.mission-title {
+    color: #C5A664;  /* 保持使命的金色 */
+}
+
+.contact-left h2 {
+    color: #fff;  /* 保持聯繫我們的白色 */
+    text-align: left;  /* 保持左對齊 */
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .mission-title,
+    .partners-title,
+    .disclaimer-section h3,
+    .contact-left h2 {
+        font-size: 2rem;
+        margin-bottom: 30px;
+    }
+}
+
+@media (max-width: 480px) {
+    .mission-title,
+    .partners-title,
+    .disclaimer-section h3,
+    .contact-left h2 {
+        font-size: 1.8rem;
+        margin-bottom: 25px;
+    }
+}
+
+/* 修正 Partners 和 ContactSection 之間的間距 */
+.partners-section + .contact-section {
+    margin-top: 0 !important;
+    padding-top: 60px;
+    border-top: none;
+    position: relative;
+    z-index: 3;
+}
+
+/* 確保 body 沒有默認邊距或內邊距 */
+body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+/* 確保所有區塊之間沒有間隙 */
+.mission-section,
+.partners-section,
+.contact-section,
+.testimonials-section {
+    margin: 0;
+    border: none;
+}
+
+/* 移除波浪線間隙 */
+.partners-section::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #fff;
+    z-index: 2;
+}
+
+/* 添加一個特定的樣式來處理 Partners 和 ContactSection 之間的連接 */
+.home-container .partners-section {
+    border-bottom: none !important;
+    margin-bottom: 0 !important;
+}
+
+.home-container .contact-section {
+    border-top: none !important;
+    margin-top: 0 !important;
+}
+
+@media (max-width: 768px) {
+    .partners-section + .contact-section {
+        margin-top: 0 !important;
+        padding-top: 40px;
+        border-top: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .partners-section + .contact-section {
+        margin-top: 0 !important;
+        padding-top: 30px;
+        border-top: none;
+    }
+}
+
+/* 強制覆蓋任何可能的波浪線或分隔符 */
+.partners-section::after,
+.partners-section::before,
+.partners-section + *::before,
+.partners-section + *::after,
+.partners-section + * > *::before,
+.partners-section + * > *::after,
+.content-container > *::after,
+.content-container > *::before,
+.content-container > * + *::before,
+.content-container > * + *::after {
+    display: none !important;
+}
+
+/* 添加一個直接的連接元素 */
+.partners-section + .contact-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #142613;
+    z-index: 10;
+}
+
+/* 確保 Partners 和 ContactSection 之間沒有間隙 */
+.partners-section {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    border-bottom: none !important;
+}
+
+.contact-section {
+    margin-top: 0 !important;
+    border-top: none !important;
+}

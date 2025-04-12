@@ -1,5 +1,20 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import Partners from '../components/Partners';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+    faUsers, 
+    faGlobe, 
+    faPuzzlePiece, 
+    faBuilding, 
+    faHandshake, 
+    faKey,
+    faQuoteLeft,
+    faCompass,
+    faChartLine,
+    faShieldAlt,
+    faLandmark
+} from '@fortawesome/free-solid-svg-icons';
 import '../styles/About.css';
 
 const About = () => {
@@ -8,65 +23,97 @@ const About = () => {
     const translations = {
         'zh-TW': {
             title: '關於',
-            companyDesc1: '寬鑫國際置產，追求完善科技與全球制度，讓物業交易更高效，加速在世界各地輕鬆快速理想居所。',
-            companyDesc2: '寬鑫國際置產有限公司是一家香港持牌的房地產代理，專注於本地及海外的房地產銷售和市場營銷服務。我們的項目來自中國、台灣、泰國、日本、馬來西亞、菲律賓、新加坡、美國、英國、澳門、加拿大、澳洲、大灣區等地區的房地產項目。',
-            companyDesc3: '寬鑫國際是一家以客戶為中心的房地產代理公司，我們致力於為客戶提供最優質的房地產諮詢服務。我們的團隊由經驗豐富的房地產專業人士組成，我們在房地產市場擁有豐富的經驗和專業知識。我們相信通過提供優質的服務，我們可以幫助客戶實現他們的房地產目標。',
-            ceoTitle: '執行長 CEO',
-            ceoName: '蔣致永 Eric Chiang',
-            education: {
-                title1: '台灣東海大學經濟系',
-                title2: '英國杜倫大學 MBA 主修市場行銷策略',
-                title3: '美國華盛頓州不動產經理人執照',
-                title4: '台灣不動產業專員執照'
+            slogan: {
+                line1: '寬鑫領航，開啟世界',
+                line2: '專業引領全球置產，量身打造資產配置，穩健增長跨越國界，開創無限未來版圖。'
             },
-            features: {
-                feature1: {
+            companyDesc: {
+                subtitle: '全球視野，專業領航',
+                text: '寬鑫國際置業有限公司致力於成為全球華人最值得信賴的海外房地產專家。我們專注於海外房地產代銷、資產配置、國際產權代辦、專業貸款規劃、高端租賃管理、私人資產顧問與法規社區指引，提供一站式專業服務，確保每位客戶在全球市場中安心布局，掌握財富增值機會。'
+            },
+            philosophy: {
+                title: '企業理念',
+                text1: '我們以「專業、誠信、創新、共贏」為核心價值，透過精準的市場分析與透明化的服務機制，為客戶打造穩健且具前瞻性的國際資產配置策略。我們深知海外置產不僅是購買房產，更是一場跨國資產管理的旅程，因此我們致力於提供安全、合規、穩健的解決方案，讓投資變得更簡單、更值得信賴。',
+                text2: '未來，寬鑫國際將持續拓展全球版圖，深化跨國產權服務，打造華人專屬的國際不動產生態圈，建立安全、透明、專業的全球投資橋樑，讓每位客戶都能放心進入國際市場，享受穩健增值的長遠回報。',
+                text3: '寬鑫領航，開啟世界，讓您的財富與視野無限延伸！'
+            },
+            vision: {
+                title: '寬鑫領航，開啟世界',
+                subtitle: '讓您的財富與視野無限延伸！'
+            },
+            services: {
+                title: '六大核心服務',
+                service1: {
                     title: '頂級業務團隊',
-                    desc: '我們擁有專業的團隊，提供一對一專業的諮詢服務，為您打造最佳投資組合。'
+                    desc: '我們擁有專業的團隊，提供一對一專業的諮詢服務。'
                 },
-                feature2: {
+                service2: {
                     title: '全球網絡',
-                    desc: '連結國內外市場，廣納多元房地產資源，為您找尋最佳投資機會。'
+                    desc: '連結國內外市場，廣納多元房地產資源。'
                 },
-                feature3: {
-                    title: '量身定制方案',
-                    desc: '根據您的需求，提供個性化的房地產解決方案，實現您的資產配置目標。'
+                service3: {
+                    title: '量身定制解決方案',
+                    desc: '根據您的需求，提供個性化的房地產解決方案。'
                 },
-                feature4: {
+                service4: {
                     title: '高級建築',
-                    desc: '精選全球高端建案，嚴選優質物件，滿足您對理想房產的期待。'
+                    desc: '精選全球高端建案，嚴選優質物件。'
+                },
+                service5: {
+                    title: '售後服務',
+                    desc: '提供完整的售後支援，確保您的資產權益與管理無虞。'
+                },
+                service6: {
+                    title: '待租管服務',
+                    desc: '專業租賃管理與維護，為您的資產創造穩定收益。'
                 }
             }
         },
         'en': {
             title: 'About',
-            companyDesc1: 'KH Global Property pursues perfect technology and global systems to make property transactions more efficient and accelerate the process of finding ideal homes around the world.',
-            companyDesc2: 'KH Global Property Company Limited is a licensed real estate agency in Hong Kong, focusing on local and overseas real estate sales and marketing services. Our projects come from real estate developments in China, Taiwan, Thailand, Japan, Malaysia, Philippines, Singapore, USA, UK, Macau, Canada, Australia, Greater Bay Area, and other regions.',
-            companyDesc3: 'KH Global is a customer-centric real estate agency committed to providing the highest quality real estate consulting services. Our team consists of experienced real estate professionals with extensive experience and expertise in the real estate market. We believe that through providing quality service, we can help our clients achieve their real estate goals.',
-            ceoTitle: 'CEO',
-            ceoName: 'Eric Chiang',
-            education: {
-                title1: 'Bachelor of Economics, Tunghai University, Taiwan',
-                title2: 'MBA in Marketing Strategy, Durham University, UK',
-                title3: 'Real Estate Manager License, Washington State, USA',
-                title4: 'Real Estate Specialist License, Taiwan'
+            slogan: {
+                line1: 'KH Global, Opening New Horizons',
+                line2: 'Professional guidance in global property investment, tailored asset allocation, steady growth across borders, creating unlimited future territory.'
             },
-            features: {
-                feature1: {
+            companyDesc: {
+                subtitle: 'Global Vision, Professional Leadership',
+                text: 'KH Global Properties is committed to becoming the most trusted overseas real estate expert for global Chinese. We focus on overseas real estate sales, asset allocation, international property rights processing, professional loan planning, high-end leasing management, private asset consulting and regulatory community guidance, providing one-stop professional services to ensure each client can confidently deploy their investments in the global market and capture wealth appreciation opportunities.'
+            },
+            philosophy: {
+                title: 'Corporate Philosophy',
+                text1: 'We take "honesty, integrity, innovation, and win-win" as our core values, through precise professional market analysis and quality service and consulting, to create stable and competitive international asset allocation strategies for clients. We remain steadfast regardless of external environmental changes, and are a good partner for asset managers, including our investment advice, all created for clients.',
+                text2: 'In the future, KH Global will continue to expand globally, deepen cross-strait industry chain services, create a Chinese-renowned international real estate ecosystem, establish safe, transparent, and professional global investment modules, allowing you to confidently enter the international market from anywhere in the world and enjoy the best fundamental value in the housing market.',
+                text3: 'KH Spirit, opening the world, let your wealth grow with us!'
+            },
+            vision: {
+                title: 'KH Global Leads, Opening the World',
+                subtitle: 'Extending Your Wealth and Vision Infinitely!'
+            },
+            services: {
+                title: 'Six Core Services',
+                service1: {
                     title: 'Elite Business Team',
-                    desc: 'Our professional team provides one-on-one consulting services to create the best investment portfolio for you.'
+                    desc: 'We have a professional team providing one-on-one consulting services.'
                 },
-                feature2: {
+                service2: {
                     title: 'Global Network',
-                    desc: 'Connecting domestic and international markets, gathering diverse real estate resources to find the best investment opportunities for you.'
+                    desc: 'Connecting domestic and international markets, gathering diverse real estate resources.'
                 },
-                feature3: {
+                service3: {
                     title: 'Customized Solutions',
-                    desc: 'Providing personalized real estate solutions based on your needs to achieve your asset allocation goals.'
+                    desc: 'Providing personalized real estate solutions based on your needs.'
                 },
-                feature4: {
+                service4: {
                     title: 'Premium Properties',
-                    desc: 'Carefully selected high-end properties worldwide to meet your expectations for ideal real estate.'
+                    desc: 'Carefully selected high-end properties worldwide.'
+                },
+                service5: {
+                    title: 'After-Sales Service',
+                    desc: 'Providing comprehensive after-sales support to ensure your asset rights and management.'
+                },
+                service6: {
+                    title: 'Property Management Service',
+                    desc: 'Professional leasing management and maintenance, creating stable returns for your assets.'
                 }
             }
         }
@@ -76,42 +123,84 @@ const About = () => {
 
     return (
         <div className="about-page">
-            <section className="about-header">
+            <div className="about-header">
                 <h1>{t.title}</h1>
-            </section>
+            </div>
             
             <div className="about-content">
-                <div className="intro-text">
-                    {t.companyDesc1}
+                <div className="slogan-section">
+                    <FontAwesomeIcon icon={faCompass} className="section-icon pulse" />
+                    <h2>{t.slogan.line1}</h2>
+                    <p>{t.slogan.line2}</p>
                 </div>
 
-                <div className="detail-content">
-                    <p>{t.companyDesc2}</p>
-                    <p>{t.companyDesc3}</p>
-                </div>
-
-                <div className="ceo-section">
-                    <div className="ceo-info">
-                        <h2>{t.ceoName}</h2>
-                        <p className="ceo-title">{t.ceoTitle}</p>
-                        <ul className="education-list">
-                            {Object.values(t.education).map((edu, index) => (
-                                <li key={index}>{edu}</li>
-                            ))}
-                        </ul>
+                <div className="company-intro">
+                    <div className="intro-header">
+                        <FontAwesomeIcon icon={faShieldAlt} className="section-icon shield-icon" />
+                        <h2>{t.companyDesc.subtitle}</h2>
+                    </div>
+                    <div className="intro-box">
+                        <p>{t.companyDesc.text}</p>
                     </div>
                 </div>
 
-                <div className="features-section">
-                    <div className="features-grid">
-                        {Object.values(t.features).map((feature, index) => (
-                            <div key={index} className="feature-card">
-                                <h3>{feature.title}</h3>
-                                <p>{feature.desc}</p>
-                            </div>
-                        ))}
+                <div className="philosophy-section">
+                    <div className="intro-header">
+                        <FontAwesomeIcon icon={faLandmark} className="section-icon" />
+                        <h2>{t.philosophy.title}</h2>
+                    </div>
+                    <div className="philosophy-content">
+                        <div className="philosophy-card">
+                            <p>{t.philosophy.text1}</p>
+                        </div>
+                        <div className="philosophy-card">
+                            <p>{t.philosophy.text2}</p>
+                        </div>
                     </div>
                 </div>
+
+                <div className="vision-statement">
+                    <h2>{t.vision.title}</h2>
+                    <p>{t.vision.subtitle}</p>
+                </div>
+
+                <div className="services-section">
+                    <h2>{t.services.title}</h2>
+                    <div className="services-grid">
+                        <div className="service-card">
+                            <FontAwesomeIcon icon={faUsers} className="service-icon" />
+                            <h3>{t.services.service1.title}</h3>
+                            <p>{t.services.service1.desc}</p>
+                        </div>
+                        <div className="service-card">
+                            <FontAwesomeIcon icon={faGlobe} className="service-icon" />
+                            <h3>{t.services.service2.title}</h3>
+                            <p>{t.services.service2.desc}</p>
+                        </div>
+                        <div className="service-card">
+                            <FontAwesomeIcon icon={faPuzzlePiece} className="service-icon" />
+                            <h3>{t.services.service3.title}</h3>
+                            <p>{t.services.service3.desc}</p>
+                        </div>
+                        <div className="service-card">
+                            <FontAwesomeIcon icon={faBuilding} className="service-icon" />
+                            <h3>{t.services.service4.title}</h3>
+                            <p>{t.services.service4.desc}</p>
+                        </div>
+                        <div className="service-card">
+                            <FontAwesomeIcon icon={faHandshake} className="service-icon" />
+                            <h3>{t.services.service5.title}</h3>
+                            <p>{t.services.service5.desc}</p>
+                        </div>
+                        <div className="service-card">
+                            <FontAwesomeIcon icon={faKey} className="service-icon" />
+                            <h3>{t.services.service6.title}</h3>
+                            <p>{t.services.service6.desc}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <Partners />
             </div>
         </div>
     );

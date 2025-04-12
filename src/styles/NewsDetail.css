@@ -1,7 +1,7 @@
 .news-detail-page {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 60px 20px 80px;
+    padding: 120px 20px 80px;
 }
 
 .news-detail-header {
@@ -202,7 +202,7 @@
 
 @media (max-width: 768px) {
     .news-detail-page {
-        padding: 80px 15px 40px;
+        padding: 100px 15px 40px;
     }
 
     .news-detail-header {

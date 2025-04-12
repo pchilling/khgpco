@@ -1,0 +1,33 @@
+.customerManagement {
+  padding: 24px;
+}
+
+.customerManagement :global(.ant-card) {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.customerManagement :global(.ant-table-wrapper) {
+  background: white;
+  border-radius: 8px;
+}
+
+.customerManagement :global(.ant-card-head) {
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 0;
+}
+
+.customerManagement :global(.ant-card-head-title) {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.customerManagement :global(.ant-table) {
+  margin: 16px 0;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .customerManagement {
+    padding: 16px;
+  }
+} 

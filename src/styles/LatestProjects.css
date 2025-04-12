@@ -1,0 +1,247 @@
+.latest-projects-section {
+    padding: 4rem 0;
+    background-color: #fff;
+}
+
+.section-header {
+    max-width: 1200px;
+    margin: 0 auto 3rem;
+    padding: 0 1.5rem;
+    position: relative;
+    text-align: center;
+}
+
+.header-content {
+    max-width: 600px;
+}
+
+.section-header h2 {
+    font-size: 2.5rem;
+    color: #1B3C35;
+    margin: 0;
+    font-weight: 600;
+}
+
+.section-description {
+    color: #666;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.view-all-button {
+    position: absolute;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 0.75rem 1.5rem;
+    background-color: #1B3C35;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.view-all-button:hover {
+    background-color: #2a5b52;
+}
+
+.latest-projects-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+}
+
+.project-card {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 1px solid #eee;
+    position: relative;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.project-card:hover {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.project-image {
+    position: relative;
+    width: 100%;
+    padding-top: 55%;
+    overflow: hidden;
+}
+
+.project-image img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+}
+
+.project-card:hover .project-image img {
+    transform: scale(1.05);
+}
+
+.property-tags {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    z-index: 1;
+}
+
+.tag {
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.tag.status {
+    background-color: #1B3C35;
+    color: white;
+}
+
+.tag.category {
+    background-color: #1B3C35;
+    opacity: 0.85;
+    color: white;
+}
+
+.project-content {
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.project-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1B3C35;
+    margin: 0;
+}
+
+.project-location {
+    color: #333333;
+    font-size: 0.9rem;
+    margin: 0;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.project-address {
+    color: #333333;
+    font-size: 0.85rem;
+    margin: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
+.project-type {
+    display: none;
+}
+
+.project-info-icon {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    color: #333333;
+    opacity: 0.8;
+}
+
+.project-location .project-info-icon {
+    width: 14px;
+    height: 14px;
+}
+
+.project-price {
+    color: #1B3C35;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+@media (max-width: 1024px) {
+    .section-header h2 {
+        font-size: 2.25rem;
+    }
+    
+    .projects-grid {
+        gap: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .section-header {
+        padding-top: 3rem;
+    }
+    
+    .view-all-button {
+        top: 0;
+        transform: none;
+    }
+    
+    .section-header h2 {
+        font-size: 2rem;
+    }
+    
+    .projects-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
+    }
+    
+    .project-content {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .project-name {
+        font-size: 1rem;
+    }
+    
+    .project-location {
+        font-size: 0.8rem;
+    }
+    
+    .project-address {
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .section-header h2 {
+        font-size: 1.75rem;
+    }
+    
+    .projects-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .project-name {
+        font-size: 1.25rem;
+    }
+} 

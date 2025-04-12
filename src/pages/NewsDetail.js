@@ -3,6 +3,9 @@ import { useParams } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import '../styles/NewsDetail.css';
 import KHGreen from '../assets/KHGreen.png';  // 導入 logo
+import { API_BASE_URL } from '../utils/api';
+import { getImageUrl, PLACEHOLDER_IMAGE } from '../utils/imageUtils';  // 添加 PLACEHOLDER_IMAGE 導入
+import CompanyInfo from '../components/CompanyInfo';
 
 const NewsDetail = () => {
     const { id } = useParams();
@@ -21,11 +24,6 @@ const NewsDetail = () => {
                 market_news: '市場新聞',
                 company_news: '公司新聞',
                 market_analysis: '市場分析'
-            },
-            companyInfo: {
-                name: '寬鑫國際置業有限公司',
-                phone: '04-3702-1316',
-                address: '台中市西區台灣大道二段489號31F3106'
             }
         },
         'en': {
@@ -37,11 +35,6 @@ const NewsDetail = () => {
                 market_news: 'Market News',
                 company_news: 'Company News',
                 market_analysis: 'Market Analysis'
-            },
-            companyInfo: {
-                name: 'KH Global International Property Ltd.',
-                phone: '04-3702-1316',
-                address: '31F-3106, No.489, Sec. 2, Taiwan Blvd., West Dist., Taichung City'
             }
         }
     };
@@ -50,10 +43,17 @@ const NewsDetail = () => {
 
     useEffect(() => {
         const fetchNewsDetail = async () => {
+            setLoading(true);
             try {
-                const response = await fetch(`http://localhost:1339/api/news/${id}?populate=*`);
+                const locale = language === 'zh-TW' ? 'zh-Hant-TW' : language;
+                console.log(`Fetching news with ID: ${id} and language: ${locale}`);
+                console.log(`API URL: ${API_BASE_URL}/api/news/${id}?populate=*&locale=${locale}`);
+                
+                const response = await fetch(`${API_BASE_URL}/api/news/${id}?populate=*&locale=${locale}`);
                 const data = await response.json();
                 console.log('News detail data:', data.data);
+                console.log('Current language:', language);
+                
                 setNews(data.data);
                 setLoading(false);
             } catch (error) {
@@ -64,7 +64,7 @@ const NewsDetail = () => {
         };
 
         fetchNewsDetail();
-    }, [id]);
+    }, [id, language]);
 
     const renderBlocks = (blocks) => {
         if (!blocks) return null;
@@ -117,6 +117,20 @@ const NewsDetail = () => {
         });
     };
 
+    // 添加日期格式化函數
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString(
+            language === 'zh-TW' ? 'zh-TW' : 'en-US',
+            { 
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: language === 'zh-TW' ? undefined : 'long' // 英文顯示星期
+            }
+        );
+    };
+
     if (loading) return <div className="loading">{t.loading}</div>;
     if (error) return <div className="error">{t.error}</div>;
     if (!news) return null;
@@ -131,7 +145,7 @@ const NewsDetail = () => {
                     </div>
                     <span className="news-date">
                         <i className="far fa-calendar-alt"></i>
-                        {t.publishedOn} {new Date(news.attributes.publishDate).toLocaleDateString()}
+                        {t.publishedOn} {formatDate(news.attributes.publishDate)}
                     </span>
                     <span className="news-author">
                         <i className="far fa-user"></i>
@@ -143,8 +157,12 @@ const NewsDetail = () => {
             {news.attributes.coverImage?.data?.[0]?.attributes?.url && (
                 <div className="news-detail-image">
                     <img 
-                        src={`http://localhost:1339${news.attributes.coverImage.data[0].attributes.url}`}
+                        src={getImageUrl(news.attributes.coverImage)}
                         alt={news.attributes.title}
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = PLACEHOLDER_IMAGE;
+                        }}
                     />
                 </div>
             )}
@@ -154,13 +172,9 @@ const NewsDetail = () => {
                     {renderBlocks(news.attributes.content)}
                 </div>
             </div>
-            <div className="company-info">
-                <img src={KHGreen} alt="Company Logo" className="company-info-logo" />
-                <div className="company-info-content">
-                    <p><i className="fas fa-building"></i>{t.companyInfo.name}</p>
-                    <p><i className="fas fa-phone"></i>Tel: {t.companyInfo.phone}</p>
-                    <p><i className="fas fa-map-marker-alt"></i>{t.companyInfo.address}</p>
-                </div>
+            
+            <div className="news-detail-container">
+                <CompanyInfo />
             </div>
         </div>
     );

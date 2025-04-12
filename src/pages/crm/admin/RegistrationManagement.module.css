@@ -1,0 +1,51 @@
+.registrationManagement {
+  padding: 24px;
+}
+
+.registrationManagement :global(.ant-card) {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.registrationManagement :global(.ant-table-wrapper) {
+  background: white;
+  border-radius: 8px;
+}
+
+.registrationManagement :global(.ant-card-head) {
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 0;
+}
+
+.registrationManagement :global(.ant-card-head-title) {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.registrationManagement :global(.ant-table) {
+  margin: 16px 0;
+}
+
+/* 篩選表單樣式 */
+.filterForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filterItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filterItem label {
+  font-weight: 500;
+  color: #333;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .registrationManagement {
+    padding: 16px;
+  }
+} 

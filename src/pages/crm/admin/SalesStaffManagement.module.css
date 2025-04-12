@@ -1,0 +1,77 @@
+.salesStaffManagement {
+  padding: 24px;
+}
+
+.salesStaffManagement :global(.ant-card) {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.salesStaffManagement :global(.ant-table-wrapper) {
+  background: white;
+  border-radius: 8px;
+}
+
+.salesStaffManagement :global(.ant-card-head) {
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 0;
+}
+
+.salesStaffManagement :global(.ant-card-head-title) {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.salesStaffManagement :global(.ant-table) {
+  margin: 16px 0;
+}
+
+.salesStaffManagement :global(.ant-btn) {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.salesStaffManagement :global(.ant-tag) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  text-align: center;
+}
+
+.errorAlert {
+  background-color: #fff2f0;
+  border: 1px solid #ffccc7;
+  color: #ff4d4f;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+/* Modal 表單樣式 */
+.formRow {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.formCol {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .salesStaffManagement {
+    padding: 16px;
+  }
+  
+  .formRow {
+    flex-direction: column;
+    gap: 0;
+  }
+  
+  .formCol {
+    width: 100%;
+  }
+} 

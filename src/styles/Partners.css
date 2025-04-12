@@ -1,6 +1,16 @@
-.partners-section {
-    padding: 80px 0;
+.partners-wrapper {
     background-color: #fff;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.partners-section {
+    padding: 80px 0 0;
+    background-color: #fff;
+    margin-bottom: 0;
+    position: relative;
 }
 
 .partners-container {
@@ -9,10 +19,14 @@
     padding: 0 20px;
 }
 
+.partners-section::after {
+    display: none;
+}
+
 .partners-title {
     text-align: center;
     font-size: 2.5rem;
-    color: #2B5C4B;
+    color: #1B3C35;
     margin-bottom: 50px;
     font-weight: 600;
 }
@@ -23,6 +37,8 @@
     gap: 40px;
     justify-items: center;
     align-items: center;
+    margin-bottom: 0;
+    padding-bottom: 120px;
 }
 
 .partner-item {
@@ -49,7 +65,12 @@
 /* 響應式設計 */
 @media (max-width: 768px) {
     .partners-section {
-        padding: 60px 0;
+        padding: 60px 0 0;
+        margin-bottom: 0;
+    }
+
+    .partners-container {
+        padding: 0 20px 40px;
     }
 
     .partners-title {
@@ -60,6 +81,7 @@
     .partners-grid {
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         gap: 30px;
+        padding-bottom: 80px;
     }
 
     .partner-item {
@@ -70,7 +92,12 @@
 
 @media (max-width: 480px) {
     .partners-section {
-        padding: 40px 0;
+        padding: 40px 0 0;
+        margin-bottom: 0;
+    }
+
+    .partners-container {
+        padding: 0 20px 30px;
     }
 
     .partners-title {
@@ -81,10 +108,18 @@
     .partners-grid {
         grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         gap: 20px;
+        padding-bottom: 60px;
     }
 
     .partner-item {
         max-width: 120px;
         height: 60px;
     }
+}
+
+.section-header h2 {
+    font-size: 2.5rem;
+    color: #1B3C35;
+    margin: 0;
+    font-weight: 600;
 } 

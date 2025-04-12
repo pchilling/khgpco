@@ -1,0 +1,142 @@
+.company-info {
+    border-top: none;
+    margin-top: 60px;
+    margin-bottom: 40px;
+    text-align: left;
+    color: #666;
+    font-size: 1rem;
+    line-height: 1.6;
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    border-radius: 12px;
+    padding: 30px;
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 30px;
+    align-items: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    border: 1px solid rgba(20, 38, 19, 0.1);
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+}
+
+.company-info::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to bottom, #142613, #1d3a1d);
+}
+
+.company-info-logo {
+    width: 150px;
+    height: auto;
+    filter: brightness(0.95);
+    object-fit: contain;
+}
+
+.company-info-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-left: 10px;
+}
+
+.company-info p {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.company-info p:first-child {
+    color: #142613;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+}
+
+.company-info p i {
+    width: 20px;
+    color: #142613;
+    font-size: 1.1rem;
+}
+
+/* 社交媒體部分樣式 */
+.company-social-section {
+    margin-top: 15px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    padding-top: 15px;
+}
+
+.company-social-section .social-text {
+    margin-bottom: 10px;
+    color: #142613;
+    font-weight: 500;
+}
+
+.company-social-links {
+    display: flex;
+    gap: 15px;
+}
+
+.company-social-icon img {
+    width: 30px;
+    height: 30px;
+    transition: opacity 0.3s ease, transform 0.2s ease;
+    border-radius: 6px;
+}
+
+.company-social-icon:hover img {
+    opacity: 0.8;
+    transform: translateY(-2px);
+}
+
+/* 在 EventDetail 頁面中的樣式 */
+.event-detail-page .company-info {
+    padding: 30px;
+    width: calc(100% - 40px);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* 在 ProjectDetail 頁面中的樣式 */
+.project-detail-page .company-info {
+    padding: 30px;
+    width: calc(100% - 40px);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+@media (max-width: 768px) {
+    .company-info {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 25px;
+        padding: 25px;
+    }
+
+    .company-info-logo {
+        margin: 0 auto;
+        width: 120px;
+    }
+
+    .company-info-content {
+        padding-left: 0;
+    }
+
+    .company-info p {
+        justify-content: center;
+    }
+    
+    .company-social-links {
+        justify-content: center;
+    }
+    
+    .company-social-section {
+        margin-top: 20px;
+    }
+} 

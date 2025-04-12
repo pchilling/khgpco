@@ -1,0 +1,250 @@
+.salesAnalytics {
+  padding: 20px 0;
+}
+
+.mainCard {
+  margin-bottom: 20px;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.mainCard :global(.ant-card-head) {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.mainCard :global(.ant-card-head-title) {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.alert {
+  margin-bottom: 16px;
+}
+
+.filterCard {
+  margin-bottom: 20px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  border: none;
+}
+
+.filterButtonFormItem {
+  margin-bottom: 12px;
+  width: 100%;
+  padding: 0 5px;
+}
+
+.filterButtonFormItem :global(.ant-form-item-label) {
+  margin-bottom: 4px;
+}
+
+.filterButtonCol {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 4px;
+  justify-content: flex-end;
+  padding-right: 10px;
+}
+
+.filterButton {
+  height: 38px;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.dateFormItem {
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+.dateFormItem :global(.ant-form-item-label) {
+  margin-bottom: 4px;
+}
+
+.dateInputWrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* 美化日期選擇器的原生樣式 */
+.dateInput::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  opacity: 0.7;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  background-color: transparent;
+}
+
+.dateInput::-webkit-datetime-edit {
+  padding: 0;
+  line-height: 30px;
+  width: calc(100% - 30px);
+  overflow: visible;
+}
+
+.dateInput::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+
+/* 修改日曆式日期選擇器樣式 */
+.dateInput::-webkit-inner-spin-button,
+.dateInput::-webkit-clear-button {
+  display: none;
+}
+
+/* 確保日期輸入框的空間足夠寬敞 */
+.dateInput {
+  width: 100%;
+  height: 38px;
+  padding: 4px 14px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  transition: all 0.3s;
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: visible;
+  text-align: left;
+  box-sizing: border-box;
+  color: rgba(0, 0, 0, 0.85);
+  padding-right: 30px;
+  letter-spacing: 0.5px;
+  min-width: 180px;
+}
+
+.dateInput:hover {
+  border-color: #40a9ff;
+}
+
+.dateInput:focus {
+  border-color: #40a9ff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.statsRow {
+  margin-bottom: 16px;
+}
+
+.statCard {
+  text-align: center;
+  margin-bottom: 16px;
+  height: 100%;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-5px);
+}
+
+.statValue {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #007bff;
+}
+
+.statLabel {
+  font-size: 1rem;
+  color: #6c757d;
+  margin-top: 5px;
+}
+
+.chartCard {
+  margin-bottom: 16px;
+  height: 100%;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border: none;
+  border-radius: 8px;
+}
+
+.chartRow {
+  margin-bottom: 16px;
+}
+
+.noDataMessage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  color: #999;
+  font-size: 16px;
+}
+
+/* 響應式調整 */
+@media (max-width: 1200px) {
+  .filterButtonCol {
+    padding-right: 8px;
+  }
+}
+
+@media (max-width: 992px) {
+  .filterButtonCol {
+    justify-content: flex-start;
+    margin-top: 0;
+    padding-right: 0;
+  }
+  
+  .filterButton {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .salesAnalytics {
+    padding: 10px 0;
+  }
+  
+  .mainCard, .filterCard, .statCard, .chartCard {
+    margin-bottom: 12px;
+  }
+  
+  .filterCard {
+    padding: 12px;
+  }
+  
+  .filterButtonCol {
+    margin-top: 16px;
+  }
+  
+  .pageTitle {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+  }
+  
+  .statValue {
+    font-size: 2rem;
+  }
+  
+  .statLabel {
+    font-size: 0.9rem;
+  }
+
+  .chartCard :global(.card-body) {
+    height: 250px;
+  }
+}
+
+@media (max-width: 992px) {
+  .filterButtonCol {
+    justify-content: flex-start;
+    margin-top: 0;
+  }
+  
+  .filterButton {
+    width: 100%;
+  }
+} 

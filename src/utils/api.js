@@ -1,6 +1,15 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+// 新建一個 api.js 文件來集中管理 API URL
+// 使用 Strapi Cloud URL 作為生產環境 API 基礎 URL
+export const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? process.env.REACT_APP_API_BASE_URL || 'https://eloquent-splendor-a265f51ba3.strapiapp.com'  // 使用正確的 Strapi Cloud URL
+  : 'http://localhost:1339';
+
+// 如果是生產環境，檢查是否有設置環境變量
+if (process.env.NODE_ENV === 'production') {
+  console.log('使用 Strapi Cloud URL:', API_BASE_URL);
+}
 
 // 設置請求攔截器
 axios.interceptors.request.use(
@@ -33,31 +42,48 @@ const api = {
   auth: {
     login: async (credentials) => {
       try {
-        console.log('Sending login request with:', {
-          url: `${API_BASE_URL}/auth/login`,
-          data: { ...credentials, password: '***' }
-        });
+        console.log('Sending login request to:', `${API_BASE_URL}/api/auth/local`);
         
         const response = await axios.post(
-          `${API_BASE_URL}/auth/login`, 
-          credentials,
+          `${API_BASE_URL}/api/auth/local`, 
           {
-            headers: {
-              'Content-Type': 'application/json'
-            }
+            identifier: credentials.username,
+            password: credentials.password
           }
         );
-        
-        return response.data;
+
+        console.log('Login response:', {
+          status: response.status,
+          hasJwt: !!response.data.jwt,
+          hasUser: !!response.data.user
+        });
+
+        if (response.data.jwt) {
+          localStorage.setItem('token', response.data.jwt);
+          localStorage.setItem('user', JSON.stringify({
+            ...response.data.user,
+            jwt: response.data.jwt
+          }));
+          return {
+            success: true,
+            user: response.data.user
+          };
+        } else {
+          console.error('No JWT token in response');
+          return {
+            success: false,
+            error: '登入失敗：未收到授權令牌'
+          };
+        }
       } catch (error) {
-        console.error('Login API error:', {
+        console.error('Login error:', {
           status: error.response?.status,
           data: error.response?.data,
           message: error.message
         });
         return {
           success: false,
-          error: error.response?.data?.message || '服務器錯誤'
+          error: error.response?.data?.error?.message || '服務器錯誤'
         };
       }
     },
@@ -72,9 +98,15 @@ const api = {
       if (!token) return { success: false };
       
       try {
-        const response = await axios.get(`${API_BASE_URL}/auth/verify`);
-        return response.data;
+        const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        return { success: true, user: response.data };
       } catch (error) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         return { success: false };
       }
     }

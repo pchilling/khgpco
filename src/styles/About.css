@@ -1,15 +1,28 @@
+/* 主色調定義 */
+:root {
+    --primary-color: #1a2e22;
+    --secondary-color: #2B5C4B;
+    --accent-color: #E8B87D;
+    --bg-light: #f8f9fa;
+    --text-dark: #2c3e50;
+    --gradient: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+}
+
 .about-page {
     padding: 0 0 40px;
     background-color: #f8f9fa;
     min-height: 100vh;
 }
 
+/* Header 樣式修改，與 Events 頁面保持一致 */
 .about-header {
     position: relative;
-    width: 100%;
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
     height: 400px;
     background-color: #000;
-    margin-bottom: 0;
+    margin-bottom: 40px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -42,200 +55,387 @@
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.about-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 8%;
-}
-
-.intro-text {
-    font-size: 1.6rem;
-    line-height: 1.8;
-    color: #1a1a1a;
+/* 修改 slogan-section 樣式 */
+.slogan-section {
     text-align: center;
-    margin: 100px auto;
-    max-width: 900px;
-    opacity: 0;
-    transform: translateY(20px);
-    animation: fadeInUp 0.8s ease forwards;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-}
-
-.detail-content {
-    margin: 80px auto;
-    max-width: 900px;
-    opacity: 0;
-    animation: fadeInUp 0.8s ease 0.2s forwards;
-    background: #fff;
-    padding: 50px;
+    margin: -80px auto 80px;
+    padding: 80px 60px;
+    background: white;
     border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.03);
-}
-
-.detail-content p {
-    color: #333;
-    line-height: 1.9;
-    margin-bottom: 30px;
-    font-size: 1.1rem;
-    letter-spacing: 0.02em;
-}
-
-.ceo-section {
-    text-align: center;
-    padding: 120px 0;
-    background-color: #f9f9f9;
-    margin: 100px 0;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+    animation: fadeInUp 0.6s ease-out forwards;
     opacity: 0;
-    animation: fadeInUp 0.8s ease 0.4s forwards;
+    max-width: 1200px;
     position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-.ceo-info {
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.ceo-info h2 {
-    font-size: 3.2rem;
-    color: #1a2e22;
-    margin-bottom: 15px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    background: linear-gradient(120deg, #1a2e22, #2B5C4B);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.ceo-title {
-    font-size: 1.4rem;
-    color: #2B5C4B;
-    margin-bottom: 60px;
-    letter-spacing: 0.05em;
-    font-weight: 500;
+.slogan-section .section-icon {
+    font-size: 2.8rem;
+    color: var(--accent-color);
+    margin-bottom: 25px;  /* 增加與標題的間距 */
+    display: block;
     position: relative;
+    top: 5px;  /* 微調圖標位置，讓它稍微上移 */
 }
 
-.ceo-title::after {
+.slogan-section h2 {
+    font-size: 2.8rem;
+    color: var(--primary-color);
+    margin-bottom: 30px;
+    font-weight: 700;
+    position: relative;
+    display: inline-block;
+}
+
+.slogan-section h2::after {   /* 添加裝飾線 */
     content: '';
     position: absolute;
-    bottom: -20px;
+    bottom: -10px;
     left: 50%;
     transform: translateX(-50%);
-    width: 40px;
-    height: 2px;
-    background: #2B5C4B;
+    width: 80px;
+    height: 3px;
+    background: var(--accent-color);
 }
 
-.education-list {
-    list-style: none;
-    padding: 0;
-    display: grid;
-    gap: 15px;
-    max-width: 700px;
-    margin: 50px auto;
+.slogan-section p {
+    font-size: 1.4rem;
+    line-height: 1.8;
+    color: var(--text-dark);
+    max-width: 1000px;  /* 增加寬度以適應單行文字 */
+    margin: 0 auto;
+    padding: 0 20px;
+    letter-spacing: 1px;  /* 增加字距提高可讀性 */
 }
 
-.education-list li {
-    color: #333;
-    font-size: 1.15rem;
-    padding: 20px 30px;
+/* 內容區域優化 */
+.about-content {
+    max-width: 1400px;  /* 從1200px增加到1400px */
+    margin: -60px auto 0;
+    padding: 0 4%;      /* 從8%減少到4%，讓兩側留白更合理 */
+    position: relative;
+    z-index: 3;
+}
+
+/* 公司簡介區塊 */
+.company-intro {
+    margin: 0 auto 80px;
+    padding: 60px;
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 3px 15px rgba(0,0,0,0.05);
-    transition: all 0.3s ease;
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+}
+
+/* 統一標題樣式 */
+.intro-header {
+    display: flex;
+    align-items: flex-start;  /* 改為頂部對齊，方便微調 */
+    margin-bottom: 30px;
+    padding-left: 20px;
+    justify-content: flex-start;
+    gap: 15px;
+}
+
+.intro-header h2,
+.philosophy-section .intro-header h2 {
+    font-size: 2.2rem;
+    color: var(--primary-color);
+    font-weight: 600;
+    margin: 0;
+    text-align: left;
+    line-height: 1;  /* 改回1，更容易控制 */
+    padding-top: 5px;  /* 微調向下的距離 */
+}
+
+.intro-header .section-icon {
+    color: var(--accent-color);
+    font-size: 2.2rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    height: 2.2rem;
+    line-height: 1;
+}
+
+.intro-box {
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: var(--text-dark);
+    border-left: 4px solid var(--accent-color);
+    padding-left: 25px;
+    margin-left: 20px;  /* 保持與標題對齊 */
+}
+
+/* 新增動畫效果 */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes glow {
+    0% { filter: drop-shadow(0 0 2px var(--accent-color)); }
+    50% { filter: drop-shadow(0 0 8px var(--accent-color)); }
+    100% { filter: drop-shadow(0 0 2px var(--accent-color)); }
+}
+
+/* 圖標動畫 */
+.pulse {
+    animation: pulse 2s infinite ease-in-out;
+}
+
+.glow {
+    animation: glow 2s infinite ease-in-out;
+}
+
+/* 修改企業理念區塊 */
+.philosophy-section {
+    margin-bottom: 80px;
+    padding: 80px 60px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.08);
     position: relative;
     overflow: hidden;
 }
 
-.education-list li::before {
+/* 移除重複的樣式定義 */
+.philosophy-section .intro-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-left: 20px;
+    justify-content: flex-start;
+}
+
+/* 移除其他衝突的樣式 */
+.section-icon {
+    color: var(--accent-color);
+    font-size: 2.2rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    height: 2.2rem;
+}
+
+/* 標題文字設計 */
+.philosophy-section h2 {
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: var(--accent-color);
+    margin: 0;
+    padding: 0;
+    text-align: left;
+}
+
+/* 內容卡片設計 */
+.philosophy-card {
+    background: white;
+    padding: 50px 40px;
+    border-radius: 20px;
+    position: relative;
+    transition: all 0.4s ease;
+    border: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 30px;
+}
+
+.philosophy-card:last-child {
+    margin-bottom: 0;
+}
+
+.philosophy-card::before {
     content: '';
     position: absolute;
-    left: 0;
     top: 0;
-    height: 100%;
+    left: 0;
     width: 4px;
-    background: #2B5C4B;
-    opacity: 0;
+    height: 100%;
+    background: linear-gradient(to bottom, var(--accent-color), transparent);
+    border-radius: 4px 0 0 4px;
+}
+
+.philosophy-card p {
+    font-size: 1.3rem;
+    line-height: 2;
+    color: var(--text-dark);
+    margin-bottom: 20px;
+    text-align: justify;
+    padding-left: 20px;
+}
+
+/* 優化圖標樣式 */
+.section-icon {
+    font-size: 3rem;
+    color: var(--accent-color);
+    margin-bottom: 30px;
+    transition: all 0.3s ease;
+}
+
+/* 服務區塊優化 */
+.services-section {
+    padding: 80px 60px;
+    background: white;
+    border-radius: 20px;
+    margin-bottom: 80px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+}
+
+.services-section h2 {
+    text-align: center;
+    font-size: 2.6rem;
+    color: var(--primary-color);
+    margin-bottom: 60px;
+    font-weight: 700;
+}
+
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.service-card {
+    background: #f8f9fa;
+    padding: 35px 25px;
+    border-radius: 15px;
+    text-align: center;
+    position: relative;
+    border: 1px solid rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 240px;
+}
+
+.service-icon {
+    font-size: 2.8rem;
+    color: var(--accent-color);
+    margin-bottom: 25px;
+    transition: all 0.3s ease;
+}
+
+.service-card h3 {
+    color: var(--primary-color);
+    font-size: 1.4rem;
+    margin-bottom: 15px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.service-card p {
+    color: var(--text-dark);
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0 10px;
+}
+
+@media (max-width: 1200px) {
+    .services-section {
+        padding: 60px 40px;
+    }
+    
+    .services-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 25px;
+    }
+
+    .service-card {
+        min-height: 220px;
+    }
+}
+
+@media (max-width: 768px) {
+    .services-section {
+        padding: 50px 30px;
+    }
+    
+    .services-grid {
+        grid-template-columns: 1fr;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .service-card {
+        min-height: auto;
+        padding: 30px 20px;
+    }
+
+    .service-icon {
+        font-size: 2.4rem;
+        margin-bottom: 20px;
+    }
+
+    .service-card h3 {
+        font-size: 1.3rem;
+        margin-bottom: 12px;
+    }
+
+    .service-card p {
+        font-size: 1rem;
+    }
+}
+
+/* 合作夥伴區塊優化 */
+.partners-section {
+    padding: 60px 40px;
+    background: white;
+    border-radius: 20px;
+    margin-bottom: 80px;
+}
+
+.partners-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.partners-title {
+    text-align: center;
+    font-size: 2.6rem;
+    color: #1B3C35;
+    margin-bottom: 60px;
+    font-weight: 700;
+}
+
+.partners-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 50px 30px;
+    align-items: center;
+    justify-items: center;
+    padding: 0 20px;
+}
+
+.partner-item {
+    width: 100%;
+    max-width: 180px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    padding: 10px;
+}
+
+.partner-logo {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    opacity: 0.9;
     transition: opacity 0.3s ease;
 }
 
-.education-list li:hover {
-    transform: translateX(5px);
-    box-shadow: 0 5px 20px rgba(43, 92, 75, 0.1);
-}
-
-.education-list li:hover::before {
+.partner-item:hover .partner-logo {
     opacity: 1;
 }
 
-.features-section {
-    padding: 100px 0;
-    opacity: 0;
-    animation: fadeInUp 0.8s ease 0.6s forwards;
-}
-
-.features-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 40px;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.feature-card {
-    background: #fff;
-    padding: 45px 40px;
-    border-radius: 20px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.06);
-    transition: all 0.4s ease;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    min-height: 250px;
-}
-
-.feature-card::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 4px;
-    background: linear-gradient(90deg, #1a2e22, #2B5C4B);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.4s ease;
-}
-
-.feature-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(43, 92, 75, 0.12);
-}
-
-.feature-card:hover::after {
-    transform: scaleX(1);
-}
-
-.feature-card h3 {
-    color: #1a2e22;
-    font-size: 1.5rem;
-    margin-bottom: 25px;
-    font-weight: 600;
-    position: relative;
-}
-
-.feature-card p {
-    color: #333;
-    line-height: 1.8;
-    font-size: 1.1rem;
-    letter-spacing: 0.02em;
-    margin: 0;
-}
-
+/* 動畫效果 */
 @keyframes fadeInUp {
     from {
         opacity: 0;
@@ -247,47 +447,422 @@
     }
 }
 
-@media (max-width: 1024px) {
-    .features-grid {
-        gap: 30px;
-        padding: 0 20px;
+.company-intro,
+.philosophy-section,
+.service-card,
+.partner-item {
+    animation: fadeInUp 0.6s ease-out forwards;
+    opacity: 0;
+}
+
+.service-card,
+.partner-item {
+    animation-delay: calc(0.1s * var(--index, 0));
+}
+
+/* 響應式設計 */
+@media (max-width: 1200px) {
+    .about-content {
+        padding: 0 5%;
     }
     
-    .feature-card {
-        min-height: 220px;
+    .services-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+    }
+
+    .partners-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 40px 20px;
     }
 }
 
 @media (max-width: 768px) {
     .about-content {
-        padding: 0 5%;
+        padding: 0 4%;
+    }
+    
+    .philosophy-section,
+    .services-section,
+    .partners-section {
+        padding: 60px 30px;
+    }
+    
+    .services-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .service-card {
+        padding: 40px 30px;
     }
 
-    .intro-text {
-        font-size: 1.3rem;
-        margin: 60px auto;
+    .about-header {
+        padding: 80px 20px 60px;
+    }
+
+    .about-header h1 {
+        font-size: 2.2rem;
+    }
+
+    .slogan-section {
+        margin: -60px 20px 60px;
+        padding: 40px 20px;
+    }
+
+    .slogan-section h2 {
+        font-size: 2.2rem;
+    }
+
+    .slogan-section p {
+        font-size: 1.2rem;
+    }
+
+    .section-icon {
+        font-size: 2rem;
+    }
+    
+    .service-icon {
+        font-size: 2.2rem;
+    }
+    
+    .quote-icon {
+        font-size: 1.8rem;
+    }
+
+    .philosophy-section {
+        padding: 60px 30px;
+    }
+
+    .philosophy-section h2 {
+        font-size: 2.4rem;
+    }
+
+    .philosophy-header {
+        gap: 15px;
+    }
+
+    .philosophy-header .section-icon {
+        font-size: 2.4rem;
+    }
+
+    .philosophy-card {
+        padding: 40px 25px;
+    }
+
+    .philosophy-card p {
+        font-size: 1.2rem;
+        line-height: 1.8;
+    }
+
+    .philosophy-highlight {
+        padding: 30px 20px !important;
+    }
+
+    .philosophy-highlight span:first-child {
+        font-size: 2rem !important;
+    }
+    
+    .philosophy-highlight span:last-child {
+        font-size: 1.3rem !important;
+        letter-spacing: 1px;
+    }
+
+    .intro-header h2,
+    .philosophy-section .intro-header h2 {
+        font-size: 1.6rem;
+        padding-top: 3px;  /* 手機版微調 */
+    }
+
+    .intro-header .section-icon,
+    .section-icon {
+        font-size: 1.6rem;
+        height: 1.6rem;
+    }
+
+    .intro-header {
+        gap: 10px;
+    }
+
+    .partners-section {
+        padding: 40px 20px;
+    }
+
+    .partners-title {
+        font-size: 2.2rem;
+        margin-bottom: 40px;
+    }
+
+    .partners-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px 20px;
+    }
+
+    .partner-item {
+        max-width: 150px;
+        height: 90px;
+    }
+}
+
+@media (max-width: 480px) {
+    .partners-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 25px 15px;
+    }
+
+    .partner-item {
+        max-width: 130px;
+        height: 80px;
+    }
+
+    .slogan-section {
+        margin: -40px 15px 40px;
+        padding: 30px 15px;
+    }
+
+    .slogan-section h2 {
+        font-size: 1.8rem;
+    }
+
+    .slogan-section p {
+        font-size: 1.1rem;
+    }
+}
+
+/* 統一區塊樣式 */
+.slogan-section,
+.company-intro,
+.philosophy-section,
+.services-section,
+.partners-section {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    margin-bottom: 60px;
+    padding: 50px 40px;
+}
+
+/* 特殊樣式覆蓋 - 只針對需要置中的標題 */
+.slogan-section h2,
+.services-section h2,
+.partners-section h2 {
+    text-align: center;
+    color: #1B3C35;
+    font-weight: 700;
+    font-size: 2.6rem;
+}
+
+/* 移除多餘的漸變和特效 */
+.philosophy-section {
+    background: white;
+}
+
+.philosophy-header .section-icon {
+    margin-bottom: 0;  /* 移除之前設置的底部邊距 */
+}
+
+.section-icon {
+    margin-bottom: 0;  /* 移除通用圖標的底部邊距 */
+}
+
+/* 統一卡片樣式 */
+.philosophy-card,
+.service-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 35px 30px;
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+
+.philosophy-card::before {
+    display: none;
+}
+
+.philosophy-card p,
+.service-card p {
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: var(--text-dark);
+}
+
+/* 移除多餘動畫 */
+.service-card:hover,
+.philosophy-card:hover {
+    transform: none;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+
+.service-card:hover::before {
+    transform: none;
+}
+
+.service-card:hover .service-icon {
+    transform: none;
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+    .slogan-section h2,
+    .company-intro h2,
+    .philosophy-section h2,
+    .services-section h2,
+    .partners-section h2 {
+        font-size: 2.2rem;
+        letter-spacing: 1px;
+    }
+
+    .slogan-section,
+    .company-intro,
+    .philosophy-section,
+    .services-section,
+    .partners-section {
+        padding: 40px 25px;
+        margin-bottom: 40px;
+    }
+}
+
+/* 標語區塊樣式 */
+.vision-statement {
+    width: 100%;
+    padding: 80px 20px;
+    margin: 40px 0 100px;  /* 增加一點下方間距 */
+    position: relative;
+    text-align: center;
+}
+
+/* 主標題 */
+.vision-statement h2 {
+    font-size: 4.8rem;  /* 放大字體 */
+    font-weight: 900;   /* 加粗 */
+    color: #142613;        /* 改為深綠色 */
+    letter-spacing: 8px;
+    margin-bottom: 35px;
+    position: relative;
+    display: inline-block;
+    text-transform: uppercase;  /* 增加設計感 */
+    padding: 0 30px;
+}
+
+/* 左側裝飾 */
+.vision-statement h2::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 3px;
+    height: 60px;
+    background: #142613;    /* 改為深綠色 */
+    transform: translateY(-50%);
+}
+
+/* 右側裝飾 */
+.vision-statement h2::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    width: 3px;
+    height: 60px;
+    background: #142613;    /* 改為深綠色 */
+    transform: translateY(-50%);
+}
+
+/* 副標題 */
+.vision-statement p {
+    font-size: 2rem;
+    color: #142613;    /* 改為深綠色 */
+    font-weight: 600;
+    letter-spacing: 4px;
+    margin-top: 20px;
+    position: relative;
+    display: inline-block;
+    padding: 0 40px;
+}
+
+/* 副標題裝飾 */
+.vision-statement p::before,
+.vision-statement p::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 30px;
+    height: 1px;
+    background: #142613;    /* 改為深綠色 */
+}
+
+.vision-statement p::before {
+    left: 0;
+}
+
+.vision-statement p::after {
+    right: 0;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .vision-statement {
+        padding: 60px 20px;
+        margin: 30px 0 80px;
+    }
+
+    .vision-statement h2 {
+        font-size: 3.2rem;
+        letter-spacing: 6px;
+        margin-bottom: 25px;
         padding: 0 20px;
     }
 
-    .ceo-section {
-        padding: 80px 0;
+    .vision-statement h2::before,
+    .vision-statement h2::after {
+        height: 40px;
     }
 
-    .ceo-info h2 {
-        font-size: 2.5rem;
+    .vision-statement p {
+        font-size: 1.6rem;
+        letter-spacing: 3px;
+        padding: 0 30px;
     }
 
-    .features-grid {
-        grid-template-columns: 1fr;
+    .vision-statement p::before,
+    .vision-statement p::after {
+        width: 20px;
     }
+}
 
-    .feature-card {
-        padding: 35px;
-        min-height: auto;
+/* 動畫效果 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
     }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 
-    .education-list li {
-        font-size: 1rem;
-        padding: 15px 20px;
+.vision-statement h2,
+.vision-statement p {
+    animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.vision-statement p {
+    animation-delay: 0.2s;
+}
+
+@media (max-width: 768px) {
+    .intro-header h2,
+    .philosophy-section .intro-header h2 {
+        font-size: 1.6rem;
+    }
+    
+    .intro-header .section-icon,
+    .section-icon {
+        font-size: 1.6rem;
+        height: 1.6rem;  /* 手機版圖標高度也跟著調整 */
+    }
+    
+    .intro-header {
+        gap: 10px;  /* 手機版減少間距 */
     }
 } 

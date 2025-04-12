@@ -5,6 +5,9 @@
     padding: 12px 0;
     font-weight: 600;
     letter-spacing: 0.5px;
+    margin-top: 0;
+    position: relative;
+    z-index: 2;
 }
 
 .footer p {

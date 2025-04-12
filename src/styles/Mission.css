@@ -1,8 +1,27 @@
 .mission-section {
     position: relative;
-    padding: 360px 0;
+    padding: 200px 0;
     background-color: #fff;
     text-align: center;
+}
+
+/* 添加裝飾元素樣式 */
+.mission-top-decor, .mission-bottom-decor {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 80px; /* 減少裝飾元素的高度 */
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+
+.mission-top-decor {
+    top: 60px; /* 調整頂部裝飾元素的位置 */
+}
+
+.mission-bottom-decor {
+    bottom: 60px; /* 調整底部裝飾元素的位置 */
 }
 
 .mission-content {
@@ -12,15 +31,15 @@
 }
 
 .mission-title {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     color: #C5A664;  /* 金色 */
-    margin-bottom: 40px;
+    margin-bottom: 30px;
     font-weight: 600;
 }
 
 .mission-text {
-    font-size: 1.2rem;
-    line-height: 1.8;
+    font-size: 1.1rem;
+    line-height: 1.6;
     color: #142613;  /* 深綠色 */
     max-width: 800px;
     margin: 0 auto;
@@ -30,22 +49,19 @@
 /* 響應式設計 */
 @media (max-width: 768px) {
     .mission-section {
-        padding: 120px 0;
-    }
-
-    .mission-title {
-        font-size: 2rem;
-        margin-bottom: 30px;
-    }
-
-    .mission-text {
-        font-size: 1.1rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .mission-section {
         padding: 80px 0;
+    }
+
+    .mission-top-decor, .mission-bottom-decor {
+        height: 60px; /* 在平板上減少裝飾元素的高度 */
+    }
+
+    .mission-top-decor {
+        top: 30px; /* 調整頂部裝飾元素的位置 */
+    }
+
+    .mission-bottom-decor {
+        bottom: 30px; /* 調整底部裝飾元素的位置 */
     }
 
     .mission-title {
@@ -55,5 +71,32 @@
 
     .mission-text {
         font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .mission-section {
+        padding: 60px 0;
+    }
+
+    .mission-top-decor, .mission-bottom-decor {
+        height: 40px; /* 在手機上減少裝飾元素的高度 */
+    }
+
+    .mission-top-decor {
+        top: 20px; /* 調整頂部裝飾元素的位置 */
+    }
+
+    .mission-bottom-decor {
+        bottom: 20px; /* 調整底部裝飾元素的位置 */
+    }
+
+    .mission-title {
+        font-size: 1.6rem;
+        margin-bottom: 20px;
+    }
+
+    .mission-text {
+        font-size: 0.95rem;
     }
 } 

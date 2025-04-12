@@ -1,0 +1,67 @@
+.dashboardLayout {
+  min-height: 100vh;
+}
+
+.sider {
+  background-color: #001529;
+}
+
+.logo {
+  height: 64px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  background-color: #002140;
+}
+
+.logo h2 {
+  color: #fff;
+  margin: 0;
+  font-size: 18px;
+}
+
+.header {
+  background-color: #fff;
+  padding: 0 20px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  z-index: 1;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+}
+
+.userInfo span {
+  margin-right: 20px;
+}
+
+.content {
+  padding: 0;
+  background-color: #f0f2f5;
+}
+
+.contentWrapper {
+  margin: 0;
+  padding: 0;
+  background-color: #f0f2f5;
+  min-height: 100%;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .sider {
+    position: fixed;
+    height: 100vh;
+    z-index: 100;
+  }
+  
+  .content {
+    margin: 12px;
+    padding: 16px;
+  }
+} 

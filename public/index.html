@@ -1,45 +1,45 @@
 <!DOCTYPE html>
-<html lang="{currentLanguage}">
+<html lang="zh-TW">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="icon" type="image/x-icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="shortcut icon" type="image/x-icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/favicon-16x16.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#142613" />
     <meta
       name="description"
-      content="Web site created using create-react-app"
+      content="寬鑫國際置業有限公司 - 專業房地產服務，為客戶提供專業、誠信良質的服務，幫助實現家園夢想與投資目標。"
     />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
+    <meta property="og:title" content="寬鑫國際置業有限公司" />
+    <meta property="og:description" content="專業房地產服務，為客戶提供專業、誠信良質的服務，幫助實現家園夢想與投資目標。" />
+    <meta property="og:image" content="%PUBLIC_URL%/logo512.png" />
+    <meta property="og:url" content="https://khglo.com" />
+    <meta property="og:type" content="website" />
+   
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
 
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>KH Global Property Company</title>
-    <link rel="alternate" hreflang="zh-TW" href="https://example.com/zh-TW" />
-    <link rel="alternate" hreflang="en" href="https://example.com/en" />
+    <title>寬鑫國際置業有限公司 | 專業房地產服務</title>
+    <link rel="alternate" hreflang="zh-TW" href="https://khglo.com/zh-TW" />
+    <link rel="alternate" hreflang="en" href="https://khglo.com/en" />
+    <link rel="canonical" href="https://khglo.com" />
+    <script type="text/javascript">
+      // 檢查是否有需要重定向的路徑
+      (function() {
+        var redirect = sessionStorage.getItem('redirect');
+        if (redirect) {
+          sessionStorage.removeItem('redirect');
+          if (redirect !== window.location.pathname) {
+            window.history.replaceState(null, null, redirect);
+          }
+        }
+      })();
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
   </body>
 </html>

@@ -1,7 +1,13 @@
 html {
+    scroll-behavior: smooth; /* 設置全局平滑滾動 */
+}
+
+/* 當需要平滑滾動時動態添加 */
+html.smooth-scroll {
     scroll-behavior: smooth;
 }
 
 #contact-section {
-    scroll-margin-top: 60px; /* 配合 navbar 高度 */
+    scroll-margin-top: 80px; /* 配合 navbar 高度 */
+    padding-top: 20px; /* 確保滾動到聯繫部分時有足夠的頂部空間 */
 } 

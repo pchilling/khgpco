@@ -1,0 +1,137 @@
+.overview {
+  padding: 0;
+}
+
+.overviewContainer {
+  padding: 0 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  overflow-x: hidden;
+}
+
+.pageTitle {
+  margin: 20px 0 24px 0;
+  color: #1f1f1f;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+/* 統計卡片樣式 */
+.statCard {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  height: 100%;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.statsRow {
+  margin: 0 0 24px 0;
+}
+
+/* 圖表卡片樣式 */
+.chartCard {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+  height: 100%;
+}
+
+.chartCard :global(.ant-card-head-title) {
+  font-size: 18px;
+}
+
+.chartsRow {
+  margin: 0 0 24px 0;
+}
+
+/* 最近活動卡片樣式 */
+.recentActivitiesCard {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 0 0 24px 0;
+}
+
+.recentActivitiesCard :global(.ant-tabs-nav) {
+  margin-bottom: 16px;
+}
+
+.recentActivitiesCard :global(.ant-list-item) {
+  padding: 12px 0;
+}
+
+.recentActivitiesCard :global(.ant-list-item-meta-title) {
+  margin-bottom: 4px;
+}
+
+.smallText {
+  font-size: 12px;
+  color: #999;
+  margin-left: 8px;
+}
+
+/* 加載和錯誤樣式 */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0;
+}
+
+.loadingContainer p {
+  margin-top: 16px;
+  color: #666;
+}
+
+.errorAlert {
+  margin: 20px;
+}
+
+/* 圓餅圖樣式 */
+.recharts-wrapper .recharts-pie-label-text {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.recharts-wrapper .recharts-legend-item-text {
+  font-size: 14px;
+}
+
+/* 響應式調整 */
+@media (max-width: 1200px) {
+  .chartsRow {
+    margin-bottom: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .overview, .overviewContainer {
+    padding: 0 10px;
+  }
+  
+  .pageTitle {
+    margin: 16px 0;
+    font-size: 20px;
+  }
+  
+  .statsRow, .chartsRow, .recentActivitiesCard {
+    margin: 0 0 16px 0;
+  }
+}
+
+.emptyChartContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 350px;
+  width: 100%;
+}
+
+.emptyChartContainer :global(.ant-empty) {
+  margin: 0;
+} 

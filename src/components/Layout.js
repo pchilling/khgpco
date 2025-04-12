@@ -11,9 +11,14 @@ export const Layout = ({ children }) => {
                            location.pathname.includes('/project/add');
 
   useEffect(() => {
-    // 當路由改變時滾動到頂部
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  }, [location.pathname]);
+    // 當路由改變時滾動到頂部，但排除跳轉到聯繫我們部分的情況
+    if (!location.hash.includes('contact-section')) {
+      // 使用 setTimeout 確保在頁面渲染後執行滾動
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }, 0);
+    }
+  }, [location.pathname, location.hash]);
 
   return (
     <AntLayout style={{ minHeight: '100vh' }}>

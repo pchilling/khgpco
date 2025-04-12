@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const languageContent = {
     'zh-TW': {
@@ -28,14 +28,26 @@ export const useLanguage = () => useContext(LanguageContext);
 export const LanguageProvider = ({ children }) => {
     const [language, setLanguage] = useState('zh-TW');
 
+    // 当语言变化时，设置 HTML 元素的 lang 属性
+    useEffect(() => {
+        document.documentElement.lang = language;
+    }, [language]);
+
     const toggleLanguage = () => {
         setLanguage(prev => prev === 'zh-TW' ? 'en' : 'zh-TW');
+    };
+
+    const setLanguageDirectly = (lang) => {
+        if (lang === 'zh-TW' || lang === 'en') {
+            setLanguage(lang);
+        }
     };
 
     return (
         <LanguageContext.Provider value={{ 
             language, 
-            toggleLanguage, 
+            toggleLanguage,
+            setLanguage: setLanguageDirectly,
             t: languageContent[language] 
         }}>
             {children}

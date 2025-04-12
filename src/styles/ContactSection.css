@@ -1,7 +1,36 @@
 .contact-section {
-    background-color: #1a2e22;
+    background-color: #142613 !important;
     padding: 60px 0 0;
     color: white;
+    margin-top: 0 !important; /* 不再需要負邊距 */
+    border-top: none;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 0;
+}
+
+/* 添加一個頂部偽元素來覆蓋波浪線間隙 */
+.contact-section::before {
+    content: '';
+    position: absolute;
+    top: -2px; /* 向上延伸一點 */
+    left: 0;
+    right: 0;
+    height: 4px; /* 足夠高以覆蓋波浪線 */
+    background-color: #142613;
+    z-index: 0;
+}
+
+/* 保留底部的偽元素 */
+.contact-section::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background-color: #142613;
+    z-index: 0;
 }
 
 .contact-container {
@@ -19,29 +48,43 @@
     padding-right: 40px;
 }
 
-.contact-left h2 {
-    font-size: 3.5rem;
+.contact-left h1 {
+    font-size: 4.5rem;
+    color: #fff;
     margin-bottom: 50px;
-    font-weight: normal;
+    font-weight: 600;
+    text-align: left;
 }
 
 .contact-right {
     grid-column: 7 / 12;
 }
 
+/* 原始表單樣式已被替換，請參見下方的特定樣式 */
+/* 
 .form-group {
     margin-bottom: 30px;
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.phone-group select {
     width: 100%;
-    padding: 12px 0;
-    background: transparent;
+    padding: 12px 15px;
+    background-color: rgba(255, 255, 255, 0.1) !important;
     border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-    color: white;
+    border-radius: 4px;
+    color: white !important;
     font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.phone-group select:focus {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    outline: none;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 .phone-group {
@@ -51,11 +94,16 @@
 
 .phone-group select {
     width: 120px;
-    background: transparent;
-    color: white;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
     border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 12px 0;
+    padding: 12px 15px;
+    border-radius: 4px;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 20px;
 }
 
 .phone-group input {
@@ -63,29 +111,28 @@
 }
 
 .form-group textarea {
-    height: 100px;
+    height: 120px;
     resize: none;
-    background-color: transparent !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
     -webkit-appearance: none;
     appearance: none;
+    padding: 15px;
 }
 
+.form-group input::placeholder,
 .form-group textarea::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.form-group textarea:focus {
-    background-color: transparent !important;
-    outline: none;
+    color: rgba(255, 255, 255, 0.6) !important;
 }
 
 .submit-btn {
     width: 100%;
     padding: 15px;
-    background: transparent;
+    background-color: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
     color: white;
     font-size: 1rem;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
     margin-top: 20px;
@@ -93,8 +140,9 @@
 }
 
 .submit-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.2);
 }
+*/
 
 .company-info {
     margin-bottom: 30px;
@@ -123,7 +171,7 @@
 
 .address-info {
     margin-bottom: 30px;
-    margin-top: 60px;
+    margin-top: 140px;
 }
 
 .address-info p {
@@ -187,8 +235,8 @@
         padding: 0;
     }
     
-    .contact-left h2 {
-        font-size: 2.8rem;
+    .contact-left h1 {
+        font-size: 3rem;
         margin-bottom: 40px;
     }
 
@@ -220,7 +268,218 @@
     }
 }
 
+@media (max-width: 480px) {
+    .contact-left h1 {
+        font-size: 2.5rem;
+        margin-bottom: 30px;
+    }
+}
+
 /* 移除 select 的默認箭頭 */
 .phone-group select::-ms-expand {
     display: none;
+}
+
+/* 特定於聯繫表單的樣式，增加特異性 */
+.contact-section .form-group {
+    margin-bottom: 30px;
+}
+
+.contact-section .form-group input,
+.contact-section .form-group textarea,
+.contact-section .phone-group select {
+    width: 100%;
+    padding: 12px 15px;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border: none !important;
+    border-radius: 4px;
+    color: white !important;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    -webkit-text-fill-color: white !important; /* 針對 Safari */
+    opacity: 1 !important;
+}
+
+.contact-section .form-group input:focus,
+.contact-section .form-group textarea:focus,
+.contact-section .phone-group select:focus {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    outline: none;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
+    border: none !important;
+}
+
+.contact-section .phone-group {
+    display: flex;
+    gap: 15px;
+}
+
+.contact-section .phone-group select {
+    width: 120px;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+    border: none !important;
+    padding: 12px 15px;
+    border-radius: 4px;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 20px;
+    -webkit-text-fill-color: white !important;
+}
+
+.contact-section .phone-group input {
+    flex: 1;
+}
+
+.contact-section .form-group textarea {
+    height: 120px;
+    resize: none;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    -webkit-appearance: none;
+    appearance: none;
+    padding: 15px;
+    -webkit-text-fill-color: white !important;
+}
+
+.contact-section .form-group input::placeholder,
+.contact-section .form-group textarea::placeholder {
+    color: rgba(255, 255, 255, 0.6) !important;
+    opacity: 0.8 !important;
+}
+
+.contact-section .submit-btn {
+    width: 100%;
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+    margin-bottom: 30px;
+}
+
+.contact-section .submit-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 免責聲明樣式 */
+.disclaimer-container {
+    max-width: 1200px;
+    margin: 60px auto 50px; /* 增加底部間距 */
+    padding: 15px 20px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
+    z-index: 1;
+}
+
+.disclaimer-container h3 {
+    display: none;
+}
+
+.disclaimer-content {
+    color: rgba(255, 255, 255, 0.7);
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0;
+    background-color: transparent;
+    border-radius: 0;
+}
+
+.main-disclaimer {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0;
+    text-align: center;
+    letter-spacing: 0.01em;
+    padding: 0;
+}
+
+.disclaimer-symbol {
+    color: #C5A664;
+    font-weight: 400;
+    font-size: 0.85rem;
+    display: inline-block;
+    margin: 0 2px;
+}
+
+@media (max-width: 768px) {
+    .disclaimer-container {
+        padding: 12px 15px;
+        margin: 40px auto 20px;
+    }
+    
+    .main-disclaimer {
+        font-size: 0.8rem;
+        line-height: 1.5;
+    }
+}
+
+/* 錯誤和成功訊息樣式 */
+.error {
+    color: #ff4d4d;
+    font-size: 0.85rem;
+    margin-top: 5px;
+    display: block;
+}
+
+.success-message,
+.error-message {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.success-message {
+    border-left: 4px solid #4CAF50;
+}
+
+.error-message {
+    border-left: 4px solid #ff4d4d;
+}
+
+.success-message i,
+.error-message i {
+    font-size: 24px;
+}
+
+.success-message i {
+    color: #4CAF50;
+}
+
+.error-message i {
+    color: #ff4d4d;
+}
+
+.success-message p,
+.error-message p {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.loading-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.loading-text i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 } 
