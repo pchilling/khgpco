@@ -1,0 +1,40 @@
+{
+  "files": {
+    "main.css": "https://khglo.com/static/css/main.45c4cd23.css",
+    "main.js": "https://khglo.com/static/js/main.296aa05f.js",
+    "static/media/landingcity.jpg": "https://khglo.com/static/media/landingcity.19cb6e8c4214ad3b4975.jpg",
+    "static/media/placeholder.jpg": "https://khglo.com/static/media/placeholder.0e19f5422b84c11769b0.jpg",
+    "static/media/instagram.png": "https://khglo.com/static/media/instagram.6f676173b2c88dfb635a.png",
+    "static/media/fa-solid-900.ttf": "https://khglo.com/static/media/fa-solid-900.2582b0e4bcf85eceead0.ttf",
+    "static/media/about-bg.jpg": "https://khglo.com/static/media/about-bg.10d2f8682a8c6d2d912f.jpg",
+    "static/media/fa-brands-400.ttf": "https://khglo.com/static/media/fa-brands-400.1815e00441357e01619e.ttf",
+    "static/media/mrlee.jpg": "https://khglo.com/static/media/mrlee.b3357ea68541f66114f2.jpg",
+    "static/media/fa-solid-900.woff2": "https://khglo.com/static/media/fa-solid-900.2463b90d9a316e4e5294.woff2",
+    "static/media/fa-brands-400.woff2": "https://khglo.com/static/media/fa-brands-400.c210719e60948b211a12.woff2",
+    "static/media/partner13.png": "https://khglo.com/static/media/partner13.802e6e57c5c6951cfd01.png",
+    "static/media/fa-regular-400.ttf": "https://khglo.com/static/media/fa-regular-400.914997e1bdfc990d0897.ttf",
+    "static/media/line.png": "https://khglo.com/static/media/line.6edc7fd604e58b8025eb.png",
+    "static/media/mswang.jpg": "https://khglo.com/static/media/mswang.2c9cb9df446017a22b24.jpg",
+    "static/media/mschang.jpg": "https://khglo.com/static/media/mschang.adde5f0e2c23d1615d01.jpg",
+    "static/media/fa-regular-400.woff2": "https://khglo.com/static/media/fa-regular-400.89999bdf5d835c012025.woff2",
+    "static/media/KH_Logo.png": "https://khglo.com/static/media/KH_Logo.4a49cfceaf26fb317246.png",
+    "static/media/logo2.png": "https://khglo.com/static/media/logo2.eb629ede86adecc3932c.png",
+    "static/media/KHGreen.png": "https://khglo.com/static/media/KHGreen.d9404bdbf1a3b33c6bce.png",
+    "static/media/logo-white.png": "https://khglo.com/static/media/logo-white.935e1578f6ba1d827490.png",
+    "static/media/partner14.png": "https://khglo.com/static/media/partner14.5579cabce7a5861d3c8f.png",
+    "static/media/partner12.png": "https://khglo.com/static/media/partner12.179328b3056173bdcbce.png",
+    "static/media/partner3.jpg": "https://khglo.com/static/media/partner3.420f4d0e019a82ad5da2.jpg",
+    "static/media/partner5.jpg": "https://khglo.com/static/media/partner5.267dfcc4e32377e01c82.jpg",
+    "static/media/partner1.jpg": "https://khglo.com/static/media/partner1.56c41181bb6bdcde3985.jpg",
+    "static/media/fa-v4compatibility.ttf": "https://khglo.com/static/media/fa-v4compatibility.da94ef451f4969af06e6.ttf",
+    "static/media/facebook.webp": "https://khglo.com/static/media/facebook.1fcd513e8c8b3274cb68.webp",
+    "static/media/fa-v4compatibility.woff2": "https://khglo.com/static/media/fa-v4compatibility.ea8f94e1d22e0d35ccd4.woff2",
+    "index.html": "https://khglo.com/index.html",
+    "main.45c4cd23.css.map": "https://khglo.com/static/css/main.45c4cd23.css.map",
+    "main.296aa05f.js.map": "https://khglo.com/static/js/main.296aa05f.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.45c4cd23.css",
+    "static/js/main.296aa05f.js"
+  ]
+}
