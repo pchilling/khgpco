@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "https://khglo.com/static/css/main.a7fd62d0.css",
-    "main.js": "https://khglo.com/static/js/main.4aef5f38.js",
+    "main.css": "https://khglo.com/static/css/main.67ae39bb.css",
+    "main.js": "https://khglo.com/static/js/main.ff45826c.js",
     "static/media/landingcity.jpg": "https://khglo.com/static/media/landingcity.19cb6e8c4214ad3b4975.jpg",
     "static/media/placeholder.jpg": "https://khglo.com/static/media/placeholder.0e19f5422b84c11769b0.jpg",
     "static/media/instagram.png": "https://khglo.com/static/media/instagram.6f676173b2c88dfb635a.png",
@@ -30,11 +30,11 @@
     "static/media/facebook.webp": "https://khglo.com/static/media/facebook.1fcd513e8c8b3274cb68.webp",
     "static/media/fa-v4compatibility.woff2": "https://khglo.com/static/media/fa-v4compatibility.ea8f94e1d22e0d35ccd4.woff2",
     "index.html": "https://khglo.com/index.html",
-    "main.a7fd62d0.css.map": "https://khglo.com/static/css/main.a7fd62d0.css.map",
-    "main.4aef5f38.js.map": "https://khglo.com/static/js/main.4aef5f38.js.map"
+    "main.67ae39bb.css.map": "https://khglo.com/static/css/main.67ae39bb.css.map",
+    "main.ff45826c.js.map": "https://khglo.com/static/js/main.ff45826c.js.map"
   },
   "entrypoints": [
-    "static/css/main.a7fd62d0.css",
-    "static/js/main.4aef5f38.js"
+    "static/css/main.67ae39bb.css",
+    "static/js/main.ff45826c.js"
   ]
 }
