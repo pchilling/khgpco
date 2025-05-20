@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "https://humbleskh.com/static/css/main.cc0f1d5c.css",
-    "main.js": "https://humbleskh.com/static/js/main.a53fca5e.js",
+    "main.js": "https://humbleskh.com/static/js/main.49b94801.js",
     "static/media/landingcity.jpg": "https://humbleskh.com/static/media/landingcity.19cb6e8c4214ad3b4975.jpg",
     "static/media/placeholder.jpg": "https://humbleskh.com/static/media/placeholder.0e19f5422b84c11769b0.jpg",
     "static/media/instagram.png": "https://humbleskh.com/static/media/instagram.6f676173b2c88dfb635a.png",
@@ -15,6 +15,8 @@
     "static/media/fa-regular-400.ttf": "https://humbleskh.com/static/media/fa-regular-400.914997e1bdfc990d0897.ttf",
     "static/media/line.png": "https://humbleskh.com/static/media/line.6edc7fd604e58b8025eb.png",
     "static/media/mswang.jpg": "https://humbleskh.com/static/media/mswang.2c9cb9df446017a22b24.jpg",
+    "static/media/partner17.png": "https://humbleskh.com/static/media/partner17.8d19ace09adc20512ac7.png",
+    "static/media/partner16.png": "https://humbleskh.com/static/media/partner16.c743cfd3973708dbad16.png",
     "static/media/mschang.jpg": "https://humbleskh.com/static/media/mschang.adde5f0e2c23d1615d01.jpg",
     "static/media/fa-regular-400.woff2": "https://humbleskh.com/static/media/fa-regular-400.89999bdf5d835c012025.woff2",
     "static/media/KH_Logo.png": "https://humbleskh.com/static/media/KH_Logo.4a49cfceaf26fb317246.png",
@@ -27,14 +29,15 @@
     "static/media/partner5.jpg": "https://humbleskh.com/static/media/partner5.267dfcc4e32377e01c82.jpg",
     "static/media/partner1.jpg": "https://humbleskh.com/static/media/partner1.56c41181bb6bdcde3985.jpg",
     "static/media/fa-v4compatibility.ttf": "https://humbleskh.com/static/media/fa-v4compatibility.da94ef451f4969af06e6.ttf",
+    "static/media/partner15.png": "https://humbleskh.com/static/media/partner15.a5880b86668e7461dde7.png",
     "static/media/facebook.webp": "https://humbleskh.com/static/media/facebook.1fcd513e8c8b3274cb68.webp",
     "static/media/fa-v4compatibility.woff2": "https://humbleskh.com/static/media/fa-v4compatibility.ea8f94e1d22e0d35ccd4.woff2",
     "index.html": "https://humbleskh.com/index.html",
     "main.cc0f1d5c.css.map": "https://humbleskh.com/static/css/main.cc0f1d5c.css.map",
-    "main.a53fca5e.js.map": "https://humbleskh.com/static/js/main.a53fca5e.js.map"
+    "main.49b94801.js.map": "https://humbleskh.com/static/js/main.49b94801.js.map"
   },
   "entrypoints": [
     "static/css/main.cc0f1d5c.css",
-    "static/js/main.a53fca5e.js"
+    "static/js/main.49b94801.js"
   ]
 }
