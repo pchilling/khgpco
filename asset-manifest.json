@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "https://humbleskh.com/static/css/main.604cd280.css",
-    "main.js": "https://humbleskh.com/static/js/main.65445e2a.js",
+    "main.js": "https://humbleskh.com/static/js/main.426601b0.js",
     "static/media/landingcity.jpg": "https://humbleskh.com/static/media/landingcity.19cb6e8c4214ad3b4975.jpg",
     "static/media/placeholder.jpg": "https://humbleskh.com/static/media/placeholder.0e19f5422b84c11769b0.jpg",
     "static/media/instagram.png": "https://humbleskh.com/static/media/instagram.6f676173b2c88dfb635a.png",
@@ -29,15 +29,14 @@
     "static/media/partner5.jpg": "https://humbleskh.com/static/media/partner5.267dfcc4e32377e01c82.jpg",
     "static/media/partner1.jpg": "https://humbleskh.com/static/media/partner1.56c41181bb6bdcde3985.jpg",
     "static/media/fa-v4compatibility.ttf": "https://humbleskh.com/static/media/fa-v4compatibility.da94ef451f4969af06e6.ttf",
-    "static/media/partner15.png": "https://humbleskh.com/static/media/partner15.a5880b86668e7461dde7.png",
     "static/media/facebook.webp": "https://humbleskh.com/static/media/facebook.1fcd513e8c8b3274cb68.webp",
     "static/media/fa-v4compatibility.woff2": "https://humbleskh.com/static/media/fa-v4compatibility.ea8f94e1d22e0d35ccd4.woff2",
     "index.html": "https://humbleskh.com/index.html",
     "main.604cd280.css.map": "https://humbleskh.com/static/css/main.604cd280.css.map",
-    "main.65445e2a.js.map": "https://humbleskh.com/static/js/main.65445e2a.js.map"
+    "main.426601b0.js.map": "https://humbleskh.com/static/js/main.426601b0.js.map"
   },
   "entrypoints": [
     "static/css/main.604cd280.css",
-    "static/js/main.65445e2a.js"
+    "static/js/main.426601b0.js"
   ]
 }
