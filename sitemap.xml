@@ -1,33 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://www.humbleskh.com/</loc>
-    <lastmod>2023-11-30</lastmod>
+    <lastmod>2025-05-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.humbleskh.com/zh-TW"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.humbleskh.com/en"/>
   </url>
   <url>
     <loc>https://www.humbleskh.com/about</loc>
-    <lastmod>2023-11-30</lastmod>
+    <lastmod>2025-05-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.humbleskh.com/zh-TW/about"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.humbleskh.com/en/about"/>
   </url>
   <url>
     <loc>https://www.humbleskh.com/projects</loc>
-    <lastmod>2023-11-30</lastmod>
+    <lastmod>2025-05-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.humbleskh.com/zh-TW/projects"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.humbleskh.com/en/projects"/>
   </url>
   <url>
     <loc>https://www.humbleskh.com/events</loc>
-    <lastmod>2023-11-30</lastmod>
+    <lastmod>2025-05-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.humbleskh.com/zh-TW/events"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.humbleskh.com/en/events"/>
   </url>
   <url>
     <loc>https://www.humbleskh.com/contact</loc>
-    <lastmod>2023-11-30</lastmod>
+    <lastmod>2025-05-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.humbleskh.com/zh-TW/contact"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.humbleskh.com/en/contact"/>
   </url>
 </urlset>

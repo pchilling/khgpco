@@ -2,4 +2,8 @@
 User-agent: *
 Disallow:
 
+# 告知 Google 新網站的站點地圖
 Sitemap: https://www.humbleskh.com/sitemap.xml
+
+# 處理舊域名轉換
+Host: www.humbleskh.com
