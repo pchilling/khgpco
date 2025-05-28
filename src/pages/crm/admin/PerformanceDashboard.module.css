@@ -1,0 +1,92 @@
+.performanceDashboard {
+  padding: 24px;
+  width: 100%;
+  margin: 20px;
+}
+
+.dashboardCard {
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.statsCards {
+  margin-bottom: 24px;
+}
+
+.statCard {
+  height: 100%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.trendIndicator {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tableCard {
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.chartPlaceholder {
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fafafa;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .performanceDashboard {
+    padding: 16px;
+    margin: 10px;
+  }
+  
+  .filterBar {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+  }
+  
+  .filterBar > * {
+    margin-bottom: 8px;
+    width: 100%;
+  }
+  
+  .statCard {
+    margin-bottom: 10px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+  .statCard {
+    padding: 12px;
+  }
+  
+  .statCard :global(.ant-statistic-content-value) {
+    font-size: 18px;
+  }
+  
+  .statCard :global(.ant-statistic-title) {
+    font-size: 13px;
+  }
+} 
+ 
+ 
+ 

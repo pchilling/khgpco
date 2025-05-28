@@ -15,6 +15,10 @@ import partner11 from '../assets/partner11.png';
 import partner12 from '../assets/partner12.png';
 import partner13 from '../assets/partner13.png';
 import partner14 from '../assets/partner14.png';
+import partner15 from '../assets/partner15.png';
+import partner16 from '../assets/partner16.png';
+import partner17 from '../assets/partner17.png';
+
 
 const Partners = () => {
     const { language } = useLanguage();
@@ -44,7 +48,10 @@ const Partners = () => {
         { id: 11, name: "Partner 11", logo: partner11 },
         { id: 12, name: "Partner 12", logo: partner12 },
         { id: 13, name: "Partner 13", logo: partner13 },
-        { id: 14, name: "Partner 14", logo: partner14 }
+        { id: 14, name: "Partner 14", logo: partner14 },
+        { id: 15, name: "Partner 15", logo: partner15 },
+        { id: 16, name: "Partner 16", logo: partner16 },
+        { id: 17, name: "Partner 17", logo: partner17 }
     ];
 
     return (

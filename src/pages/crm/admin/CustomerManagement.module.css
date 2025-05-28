@@ -1,5 +1,7 @@
 .customerManagement {
   padding: 24px;
+  width: 100%;
+  margin: 20px;
 }
 
 .customerManagement :global(.ant-card) {
@@ -25,9 +27,568 @@
   margin: 16px 0;
 }
 
+.filterPanel {
+  background-color: #f9f9f9;
+  padding: 16px;
+  margin-bottom: 16px;
+  border-radius: 6px;
+  border: 1px solid #eee;
+}
+
+.filterButtons {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+/* 狀態指示器樣式 */
+.statusIndicator {
+  display: flex;
+  align-items: center;
+}
+
+.statusDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.statusText {
+  font-weight: 500;
+}
+
+/* 表格行交替顏色 */
+:global(.ant-table-row:nth-child(odd)) {
+  background-color: #fafafa;
+}
+
+/* 美化表格頭部 */
+:global(.ant-table-thead > tr > th) {
+  background-color: #f0f5ff;
+  font-weight: 600;
+}
+
 /* 響應式設計 */
 @media (max-width: 768px) {
   .customerManagement {
     padding: 16px;
+  }
+
+  .filterButtons {
+    justify-content: flex-start;
+  }
+}
+
+/* 表格樣式增強 */
+.customerTable {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.customerTable :global(.ant-table) {
+  border-radius: 8px;
+}
+
+.customerTable :global(.ant-table-container) {
+  border-radius: 8px;
+}
+
+.customerTable :global(.ant-table-content) {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 備註文字樣式 */
+.noteText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  max-width: 200px;
+  border-left: 3px solid #1890ff;
+  padding-left: 8px;
+  transition: all 0.3s;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.noteText:hover {
+  color: #1890ff;
+  background-color: rgba(24, 144, 255, 0.1);
+  padding: 4px 8px;
+}
+
+/* iPad專用樣式 - 確保單行顯示 */
+@media only screen and (min-width: 768px) and (max-width: 1024px),
+       only screen and (min-device-width: 768px) and (max-device-width: 1024px) {
+  /* 調整卡片邊距 */
+  .customerManagement {
+    padding: 12px 8px !important;
+    margin: 10px !important;
+  }
+  
+  /* 調整卡片內邊距 */
+  .customerManagement :global(.ant-card-body) {
+    padding: 12px 8px !important;
+  }
+  
+  /* 減少表頭高度 */
+  .customerTable :global(.ant-table-thead > tr > th) {
+    height: 32px !important;
+    line-height: 32px !important;
+  }
+  
+  /* 調整分頁控制器大小 */
+  .customerTable :global(.ant-pagination-item),
+  .customerTable :global(.ant-pagination-prev),
+  .customerTable :global(.ant-pagination-next),
+  .customerTable :global(.ant-pagination-options) {
+    height: 24px !important;
+    min-width: 24px !important;
+    line-height: 22px !important;
+    font-size: 12px !important;
+    margin-right: 4px !important;
+  }
+  
+  .customerTable :global(.ant-pagination-options-size-changer) {
+    font-size: 12px !important;
+  }
+  
+  /* 調整搜索框和按鈕大小 */
+  .customerManagement :global(.ant-input-affix-wrapper),
+  .customerManagement :global(.ant-btn) {
+    height: 28px !important;
+    font-size: 12px !important;
+  }
+  
+  /* 表格整體縮放 */
+  .customerTable {
+    transform: scale(0.9);
+    transform-origin: top left;
+    margin-right: -10%;
+  }
+  
+  /* 確保單行顯示 */
+  .customerTable :global(.ant-table) {
+    font-size: 12px !important;
+  }
+  
+  .customerTable :global(.ant-table-cell) {
+    padding: 6px 4px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 120px !important;
+  }
+  
+  /* 列標題 */
+  .customerTable :global(.ant-table-thead > tr > th) {
+    padding: 6px 4px !important;
+    font-size: 12px !important;
+  }
+  
+  /* 表格內容 */
+  .customerTable :global(.ant-table-tbody > tr > td) {
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+  }
+  
+  /* 自定義Tag樣式縮小 */
+  .customerTable :global(.ant-table-tbody > tr > td) span[style*="border-radius"] {
+    padding: 1px 5px !important;
+    font-size: 11px !important;
+  }
+  
+  /* 備註欄位縮小 */
+  .noteText {
+    max-width: 80px !important;
+    font-size: 12px !important;
+  }
+  
+  /* 按鈕縮小 */
+  .customerTable :global(.ant-btn) {
+    padding: 0 4px !important;
+    height: 24px !important;
+    font-size: 12px !important;
+  }
+  
+  /* 防止表格換行 */
+  .customerTable :global(.ant-table-row) {
+    height: 36px !important;
+    min-height: 36px !important;
+  }
+  
+  /* 禁止換行顯示 */
+  .customerTable :global(.ant-table-cell) > * {
+    white-space: nowrap !important;
+  }
+}
+
+/* 移動設備操作按鈕樣式 */
+.mobileActions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.actionRow {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.actionRow .actionButton {
+  padding: 4px;
+  font-size: 12px;
+  height: 26px;
+  min-height: 26px;
+  width: 28px;
+  min-width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 改進 iPad 顯示效果 */
+@media only screen and (min-width: 768px) and (max-width: 1024px) {
+  .customerManagement {
+    padding: 16px 10px;
+    margin: 10px;
+  }
+  
+  .customerCard {
+    margin: 0;
+    box-shadow: none;
+  }
+  
+  .tableHeader {
+    padding: 0 10px;
+  }
+  
+  .headerActions {
+    width: 100%;
+  }
+  
+  .actionButtons {
+    margin-bottom: 10px;
+  }
+  
+  .actionButtons button {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+  
+  .searchAndFilterArea {
+    width: 100%;
+  }
+  
+  .searchAndFilterArea > * {
+    height: 32px;
+    font-size: 13px;
+  }
+  
+  .customerManagement :global(.ant-table-thead > tr > th) {
+    padding: 10px 6px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  
+  .customerManagement :global(.ant-table-tbody > tr > td) {
+    padding: 8px 6px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  
+  .actionButtonsGroup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+  
+  .actionButton {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+/* Tab頁樣式 */
+.customerManagement :global(.ant-tabs-nav) {
+  margin-bottom: 20px;
+}
+
+.customerManagement :global(.ant-tabs-tab) {
+  padding: 8px 12px;
+}
+
+.customerManagement :global(.ant-tabs-tab-active) {
+  font-weight: 500;
+}
+
+/* 緊湊行樣式 */
+.compactRow {
+  height: 36px !important;
+  line-height: 1.2 !important;
+}
+
+.compactRow td {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
+/* CSV匯入樣式 */
+.importContainer {
+  padding: 0 10px;
+}
+
+.importInstructions {
+  margin-bottom: 20px;
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: 5px;
+}
+
+.importInstructions h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.importInstructions ul {
+  padding-left: 20px;
+  margin-bottom: 0;
+}
+
+.fileUpload {
+  margin-bottom: 20px;
+}
+
+.previewSection {
+  margin-top: 20px;
+}
+
+.previewSection h3 {
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.previewTable {
+  overflow-x: auto;
+  margin-bottom: 10px;
+}
+
+.previewTable table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.previewTable th,
+.previewTable td {
+  border: 1px solid #e8e8e8;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.previewTable th {
+  background-color: #fafafa;
+  font-weight: 500;
+}
+
+.previewNote {
+  font-size: 12px;
+  color: #888;
+  margin-top: 10px;
+}
+
+/* 聯絡記錄樣式 */
+.contactRecordsList {
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 0 10px;
+}
+
+.contactRecord {
+  padding: 12px;
+  background-color: #fafafa;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  border-left: 3px solid #1890ff;
+}
+
+.contactRecordHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.contactDate {
+  font-weight: 500;
+  margin-right: 10px;
+}
+
+.contactContent {
+  white-space: pre-wrap;
+  margin-bottom: 8px;
+  padding: 8px;
+  background-color: white;
+  border-radius: 4px;
+  border: 1px solid #f0f0f0;
+}
+
+.contactRecordFooter {
+  display: flex;
+  justify-content: space-between;
+  color: #888;
+  font-size: 12px;
+}
+
+/* 待分配客戶模態框樣式 */
+.pendingCustomersInfo {
+  padding: 0;
+}
+
+.pendingCustomersInfo :global(.ant-table-tbody > tr > td) {
+  padding: 8px 6px;
+  white-space: normal;
+}
+
+.pendingCustomersInfo :global(.ant-table-thead > tr > th) {
+  padding: 8px 6px;
+  white-space: nowrap;
+  background-color: #f5f5f5;
+}
+
+.pendingCustomersInfo :global(.ant-table) {
+  margin-bottom: 0;
+}
+
+.pendingCustomersInfo :global(.ant-pagination) {
+  margin: 12px 0 0;
+}
+
+@media (max-width: 768px) {
+  .contactRecordHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .contactDate {
+    margin-bottom: 4px;
+  }
+  
+  .contactRecordFooter {
+    flex-direction: column;
+  }
+  
+  .contactRecordFooter span {
+    margin-bottom: 4px;
+  }
+}
+
+/* 介面優化樣式 */
+.actionButtonsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.primaryActions, .secondaryActions, .utilityActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.actionButtonsGroup {
+  min-width: 140px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.actionButton {
+  margin: 0 2px;
+  padding: 4px 8px;
+}
+
+.tableHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.tableTitle {
+  font-size: 18px;
+  font-weight: 500;
+  padding-top: 8px;
+}
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.searchAndFilterArea {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+/* 響應式調整 */
+@media (max-width: 1200px) {
+  .actionButtonsContainer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .utilityActions {
+    width: 100%;
+    margin-top: 12px;
+  }
+  
+  .tableHeader {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 768px) {
+  .headerActions, .actionButtons {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .actionButtons button {
+    width: 100%;
+    margin-bottom: 8px;
+  }
+  
+  .searchAndFilterArea {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .searchAndFilterArea > * {
+    width: 100%;
   }
 } 

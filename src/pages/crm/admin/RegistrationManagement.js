@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Space, Tag, Modal, Select, message } from 'antd';
-import { UserAddOutlined, UserSwitchOutlined, DownloadOutlined } from '@ant-design/icons';
+import { Table, Card, Button, Space, Tag, Modal, Select, message, Popconfirm, Tooltip } from 'antd';
+import { UserAddOutlined, UserSwitchOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import { API_BASE_URL } from '../../../utils/api';
 import styles from './RegistrationManagement.module.css';
 import * as XLSX from 'xlsx';
@@ -14,6 +14,8 @@ const RegistrationManagement = () => {
   const [selectedRows, setSelectedRows] = useState([]);
   const [assignModalVisible, setAssignModalVisible] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
+  const [events, setEvents] = useState({});
+  const [batchDeleteModalVisible, setBatchDeleteModalVisible] = useState(false);
 
   // 獲取報名資料
   const fetchRegistrations = async () => {
@@ -21,7 +23,7 @@ const RegistrationManagement = () => {
     
     try {
       // 不使用任何認證頭，即使在生產環境
-      const response = await fetch(`${API_BASE_URL}/api/registrations?populate=*`);
+      const response = await fetch(`${API_BASE_URL}/api/registrations?populate=*&sort=createdAt:desc`);
       
       const data = await response.json();
       
@@ -36,6 +38,25 @@ const RegistrationManagement = () => {
       setRegistrations([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 獲取活動資料
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/events?populate=*`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        // 將活動資料轉為 Map 結構，方便查詢
+        const eventsMap = {};
+        (data.data || []).forEach(event => {
+          eventsMap[event.id] = event.attributes;
+        });
+        setEvents(eventsMap);
+      }
+    } catch (error) {
+      console.error('獲取活動資料錯誤:', error);
     }
   };
 
@@ -62,7 +83,58 @@ const RegistrationManagement = () => {
   useEffect(() => {
     fetchRegistrations();
     fetchSalesStaff();
+    fetchEvents();
   }, []);
+
+  // 根據sessionIndex獲取場次名稱
+  const getSessionName = (eventId, sessionIndex) => {
+    if (!eventId || sessionIndex === undefined || sessionIndex === null) {
+      return '未指定場次';
+    }
+
+    const event = events[eventId];
+    if (!event) return '未知活動';
+
+    // 檢查所有可能的場次欄位名稱
+    const sessions = event.session || event.sessions || event.sessionInfo || [];
+    
+    if (!sessions || !sessions.length || !sessions[sessionIndex]) {
+      return `場次 ${sessionIndex + 1}`;
+    }
+
+    const session = sessions[sessionIndex];
+    
+    // 檢查場次是否有地點資訊作為標識
+    const location = session.location || session.venue || session.place;
+    
+    // 如果有地點，則返回地點名稱
+    if (location) return location;
+    
+    // 否則返回索引編號
+    return `場次 ${sessionIndex + 1}`;
+  };
+
+  // 刪除報名資料
+  const handleDelete = async (record) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('刪除失敗');
+      }
+
+      message.success('成功刪除報名資料');
+      await fetchRegistrations();
+    } catch (error) {
+      console.error('刪除失敗:', error);
+      message.error('刪除失敗');
+    }
+  };
 
   // 匯出 Excel
   const handleExport = () => {
@@ -79,6 +151,7 @@ const RegistrationManagement = () => {
         '電話': record.attributes.phone,
         'Email': record.attributes.email,
         '活動名稱': record.attributes.event?.data?.attributes?.title || '未指定活動',
+        '活動場次': getSessionName(record.attributes.event?.data?.id, record.attributes.sessionIndex),
         '狀態': record.attributes.status === 'confirmed' ? '已轉換' : '未處理'
       }));
 
@@ -111,7 +184,8 @@ const RegistrationManagement = () => {
           phone: record.attributes.phone,
           email: record.attributes.email,
           status: 'potential',
-          source: 'event'
+          source: 'event',
+          notes: record.attributes.notes || `來自活動報名: ${record.attributes.event?.data?.attributes?.title || '未知活動'} - ${getSessionName(record.attributes.event?.data?.id, record.attributes.sessionIndex)}`
         }
       };
 
@@ -291,6 +365,115 @@ const RegistrationManagement = () => {
     }
   };
 
+  // 批量轉換為客戶
+  const handleBatchConvert = async () => {
+    if (selectedRows.length === 0) {
+      message.warning('請先選擇要轉換的報名資料');
+      return;
+    }
+
+    // 過濾已轉換的報名資料
+    const unconvertedRows = selectedRows.filter(row => row.attributes.status !== 'confirmed');
+    
+    if (unconvertedRows.length === 0) {
+      message.warning('所選資料都已轉換為客戶');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 批量轉換為客戶
+      await Promise.all(unconvertedRows.map(async (record) => {
+        // 1. 創建新客戶
+        const customerData = {
+          data: {
+            name: record.attributes.name,
+            phone: record.attributes.phone,
+            email: record.attributes.email,
+            status: 'potential',
+            source: 'event',
+            notes: record.attributes.notes || `來自活動報名: ${record.attributes.event?.data?.attributes?.title || '未知活動'} - ${getSessionName(record.attributes.event?.data?.id, record.attributes.sessionIndex)}`
+          }
+        };
+
+        const createCustomerResponse = await fetch(`${API_BASE_URL}/api/customers`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(customerData)
+        });
+
+        if (!createCustomerResponse.ok) {
+          throw new Error('創建客戶失敗');
+        }
+
+        const responseData = await createCustomerResponse.json();
+        const customerId = responseData.data.id;
+
+        // 2. 更新報名狀態
+        await fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            data: {
+              status: 'confirmed',
+              customer: customerId
+            }
+          })
+        });
+      }));
+
+      message.success(`成功將 ${unconvertedRows.length} 筆報名資料轉換為客戶`);
+      setSelectedRows([]);
+      await fetchRegistrations();
+    } catch (error) {
+      console.error('批量轉換失敗:', error);
+      message.error('批量轉換失敗');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 批量刪除報名資料
+  const handleBatchDelete = async () => {
+    if (selectedRows.length === 0) {
+      message.warning('請先選擇要刪除的報名資料');
+      return;
+    }
+
+    setBatchDeleteModalVisible(true);
+  };
+
+  // 確認批量刪除
+  const confirmBatchDelete = async () => {
+    try {
+      setLoading(true);
+      
+      // 批量刪除所選記錄
+      await Promise.all(selectedRows.map(record => 
+        fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+      ));
+
+      message.success(`成功刪除 ${selectedRows.length} 筆報名資料`);
+      setSelectedRows([]);
+      setBatchDeleteModalVisible(false);
+      await fetchRegistrations();
+    } catch (error) {
+      console.error('批量刪除失敗:', error);
+      message.error('批量刪除失敗');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const columns = [
     {
       title: '姓名',
@@ -308,9 +491,50 @@ const RegistrationManagement = () => {
       key: 'email',
     },
     {
-      title: '活動',
-      dataIndex: ['attributes', 'event', 'data', 'attributes', 'title'],
-      key: 'event',
+      title: '活動/場次',
+      key: 'event_session',
+      width: 180,
+      ellipsis: true,
+      render: (_, record) => {
+        const eventTitle = record.attributes.event?.data?.attributes?.title || '未知活動';
+        const eventId = record.attributes.event?.data?.id;
+        const sessionIndex = record.attributes.sessionIndex;
+        const sessionName = getSessionName(eventId, sessionIndex);
+        
+        // 合併活動名稱和場次，使用Tooltip顯示完整信息
+        return (
+          <Tooltip title={`${eventTitle} - ${sessionName}`}>
+            <div style={{ cursor: 'pointer', color: '#1890ff' }}>
+              {eventTitle.length > 10 ? `${eventTitle.substring(0, 10)}...` : eventTitle}
+              <span style={{ fontSize: '12px', color: '#888', marginLeft: '5px' }}>
+                ({sessionName})
+              </span>
+            </div>
+          </Tooltip>
+        );
+      }
+    },
+    {
+      title: '備註',
+      key: 'notes',
+      ellipsis: true,
+      render: (_, record) => {
+        const notes = record.attributes.notes;
+        if (!notes || notes.trim() === '') {
+          return <span style={{ color: '#c0c0c0' }}>無</span>;
+        }
+        
+        // 備註顯示，類似CustomerManagement
+        const displayText = notes.length > 20 ? `${notes.substring(0, 20)}...` : notes;
+        
+        return (
+          <Tooltip title={notes}>
+            <div style={{ cursor: 'pointer', color: '#666' }}>
+              {displayText}
+            </div>
+          </Tooltip>
+        );
+      }
     },
     {
       title: '報名時間',
@@ -331,15 +555,28 @@ const RegistrationManagement = () => {
     {
       title: '操作',
       key: 'action',
+      width: 170, // 設定固定寬度
       render: (_, record) => (
-        <Space>
+        <Space size="small" wrap>
           <Button 
+            size="small"
             icon={<UserAddOutlined />}
             onClick={() => convertToCustomer(record)}
             disabled={record.attributes.status === 'confirmed'}
           >
-            轉換為客戶
+            轉換
           </Button>
+          <Popconfirm
+            title="確定要刪除此報名資料嗎？"
+            description="此操作無法撤銷"
+            onConfirm={() => handleDelete(record)}
+            okText="確定"
+            cancelText="取消"
+          >
+            <Button danger size="small" icon={<DeleteOutlined />}>
+              刪除
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },
@@ -361,10 +598,18 @@ const RegistrationManagement = () => {
             <Button
               type="primary"
               icon={<UserSwitchOutlined />}
-              onClick={() => setAssignModalVisible(true)}
+              onClick={handleBatchConvert}
               disabled={selectedRows.length === 0}
             >
-              批量指派
+              批量轉換
+            </Button>
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={handleBatchDelete}
+              disabled={selectedRows.length === 0}
+            >
+              批量刪除
             </Button>
           </Space>
         }
@@ -398,6 +643,20 @@ const RegistrationManagement = () => {
             </Option>
           ))}
         </Select>
+      </Modal>
+
+      {/* 批量刪除確認 Modal */}
+      <Modal
+        title="批量刪除報名資料"
+        open={batchDeleteModalVisible}
+        onOk={confirmBatchDelete}
+        onCancel={() => setBatchDeleteModalVisible(false)}
+        okText="確認刪除"
+        cancelText="取消"
+        okButtonProps={{ danger: true, loading: loading }}
+      >
+        <p>您確定要刪除所選的 {selectedRows.length} 筆報名資料嗎？</p>
+        <p style={{ color: 'red' }}>警告：此操作無法撤銷！</p>
       </Modal>
     </div>
   );

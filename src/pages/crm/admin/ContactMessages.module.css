@@ -1,0 +1,111 @@
+.tabButtons {
+  display: flex;
+  margin-right: 16px;
+}
+
+.tabButtons button {
+  margin-right: 8px;
+}
+
+.tabButtons button:last-child {
+  margin-right: 0;
+}
+
+@media (max-width: 768px) {
+  .tabButtons {
+    margin-bottom: 16px;
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+.contactMessagesCard {
+  margin-bottom: 24px;
+}
+
+.unreadRow {
+  background-color: #f0f7ff;
+  font-weight: 500;
+}
+
+.unreadRow:hover > td {
+  background-color: #e6f7ff !important;
+}
+
+/* 標題和內容間距 */
+.contactMessagesCard :global(.ant-card-head) {
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 0;
+}
+
+.contactMessagesCard :global(.ant-table-thead > tr > th) {
+  background-color: #fafafa;
+  font-weight: 600;
+}
+
+/* 手機端響應式樣式 */
+@media (max-width: 768px) {
+  .contactMessagesCard :global(.ant-card-extra) {
+    margin-left: 0;
+    margin-top: 16px;
+  }
+  
+  .tabButtons {
+    margin-bottom: 16px;
+  }
+}
+
+/* 優化模態框樣式 */
+:global(.ant-modal-content) {
+  border-radius: 8px;
+}
+
+:global(.ant-modal-header) {
+  border-radius: 8px 8px 0 0;
+}
+
+/* 狀態標籤顏色 */
+:global(.ant-badge-status-processing) {
+  background-color: #1890ff;
+}
+
+:global(.ant-badge-status-success) {
+  background-color: #52c41a;
+}
+
+:global(.ant-badge-status-purple) {
+  background-color: #722ed1;
+}
+
+.actionButtonsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.actionButtonsContainer > * {
+  margin-bottom: 4px !important;
+  margin-right: 4px !important;
+  white-space: nowrap;
+}
+
+/* 確保按鈕在小尺寸螢幕上也能正確顯示 */
+@media (max-width: 1200px) {
+  .actionButtonsContainer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .actionButtonsContainer > * {
+    margin-bottom: 8px !important;
+    margin-right: 0 !important;
+  }
+}
+
+/* 針對特別小的螢幕，確保按鈕能夠適當換行 */
+@media (max-width: 576px) {
+  .actionButtonsContainer > * {
+    width: 100%;
+  }
+} 

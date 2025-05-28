@@ -12,6 +12,17 @@ const Events = () => {
     const [loading, setLoading] = useState(true);
     const [visibleEvents, setVisibleEvents] = useState(3); // 初始顯示3個活動
     const [hasMore, setHasMore] = useState(true); // 是否還有更多活動可以加載
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    // 监听窗口大小变化
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+        
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // 设置 HTML 元素的 lang 属性
     useEffect(() => {
@@ -27,6 +38,9 @@ const Events = () => {
             maxParticipants: '名額上限',
             showMore: '顯示更多',
             noMoreEvents: '沒有更多活動了',
+            date: '日期:',
+            location: '地點:',
+            details: '專案細節',
             status: {
                 upcoming: '即將舉行',
                 ongoing: '進行中',
@@ -41,6 +55,9 @@ const Events = () => {
             maxParticipants: 'Max Participants',
             showMore: 'Show More',
             noMoreEvents: 'No more events',
+            date: 'Date:',
+            location: 'Location:',
+            details: 'Project Details',
             status: {
                 upcoming: 'Upcoming',
                 ongoing: 'Ongoing',
@@ -168,7 +185,7 @@ const Events = () => {
                                                 alt={event.attributes.title}
                                                 onError={(e) => {
                                                     e.target.onerror = null;
-                                                    e.target.src = 'https://placehold.co/400x300?text=No+Image';
+                                                    e.target.src = 'https://placehold.co/380x380?text=No+Image';
                                                 }}
                                             />
                                         </div>
@@ -177,7 +194,9 @@ const Events = () => {
                                         <span className={`event-status ${event.attributes.status}`}>
                                             {currentText.status[event.attributes.status]}
                                         </span>
-                                        <h2>{event.attributes.title}</h2>
+                                        <div className="title-container">
+                                            <h2>{event.attributes.title}</h2>
+                                        </div>
                                         <p className="event-description">
                                             {event.attributes.description}
                                         </p>
@@ -186,13 +205,13 @@ const Events = () => {
                                                 <div className="sessions-list">
                                                     {getAllSessionsInfo(event.attributes.session).map((session, index) => (
                                                         <div key={index} className="session-item">
-                                                            <div className="brief-item">
+                                                            <div className="brief-item brief-date">
                                                                 <i className="far fa-calendar-alt"></i>
-                                                                <span>{session.date}</span>
+                                                                <span><strong>{currentText.date}</strong> {session.date}</span>
                                                             </div>
-                                                            <div className="brief-item">
+                                                            <div className="brief-item brief-location">
                                                                 <i className="fas fa-map-marker-alt"></i>
-                                                                <span>{session.location}</span>
+                                                                <span><strong>{currentText.location}</strong> {session.location}</span>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -200,15 +219,33 @@ const Events = () => {
                                             </div>
                                         )}
                                         <div className="event-footer">
-                                            <button 
-                                                className="register-button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    navigate(`/events/${event.id}`);
-                                                }}
-                                            >
-                                                {currentText.register}
-                                            </button>
+                                            <div className="button-group">
+                                                <button 
+                                                    className="register-button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigate(`/events/${event.id}`);
+                                                    }}
+                                                    style={{ 
+                                                        padding: isMobile ? '8px 15px' : '10px 18px',
+                                                        fontSize: isMobile ? '0.85rem' : '0.95rem'
+                                                    }}
+                                                >
+                                                    {currentText.register}
+                                                </button>
+                                                
+                                                {event.attributes.eventlink && (
+                                                    <a 
+                                                        href={event.attributes.eventlink}
+                                                        className="details-button"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        {currentText.details}
+                                                    </a>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

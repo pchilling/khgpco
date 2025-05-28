@@ -117,6 +117,64 @@
     }
 }
 
+/* 針對 402*874 尺寸的中小型手機設備優化 */
+@media (max-width: 420px) {
+    .partners-section {
+        padding: 30px 0 0;
+    }
+
+    .partners-container {
+        padding: 0 15px 20px;
+    }
+
+    .partners-title {
+        font-size: 1.7rem;
+        margin-bottom: 25px;
+    }
+
+    .partners-grid {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 15px;
+        padding-bottom: 40px;
+    }
+
+    .partner-item {
+        max-width: 100px;
+        height: 50px;
+    }
+    
+    .partner-item img {
+        max-height: 45px;
+    }
+}
+
+/* 針對 500-850px 中等屏幕的設備，保持與桌面版相同的排版設計 */
+@media (min-width: 500px) and (max-width: 850px) {
+    .partners-section {
+        padding: 80px 0 0;
+    }
+
+    .partners-container {
+        padding: 0 20px;
+    }
+
+    .partners-title {
+        font-size: 2.5rem;
+        margin-bottom: 50px;
+    }
+
+    .partners-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 40px;
+        padding-bottom: 120px;
+    }
+
+    .partner-item {
+        max-width: 200px;
+        height: 100px;
+    }
+}
+
 .section-header h2 {
     font-size: 2.5rem;
     color: #1B3C35;

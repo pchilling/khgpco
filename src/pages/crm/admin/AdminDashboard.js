@@ -7,7 +7,10 @@ import {
   BarChartOutlined,
   SettingOutlined,
   LogoutOutlined,
-  FormOutlined
+  FormOutlined,
+  InteractionOutlined,
+  MessageOutlined,
+  MailOutlined
 } from '@ant-design/icons';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { logout } from '../../../services/auth';
@@ -31,7 +34,9 @@ const AdminDashboard = () => {
     if (path.includes('/admin/registrations')) return '2';
     if (path.includes('/admin/staff-management')) return '3';
     if (path.includes('/admin/customers')) return '4';
-    if (path.includes('/admin/sales-data')) return '5';
+    if (path.includes('/admin/interactions')) return '5';
+    if (path.includes('/admin/contact-messages')) return '6';
+    if (path.includes('/admin/sales-data')) return '7';
     return '1';
   };
 
@@ -48,7 +53,7 @@ const AdminDashboard = () => {
             {
               key: '1',
               icon: <DashboardOutlined />,
-              label: '總覽',
+              label: '總覽 & 業績追蹤',
               onClick: () => navigate('/crm/admin/overview')
             },
             {
@@ -71,6 +76,18 @@ const AdminDashboard = () => {
             },
             {
               key: '5',
+              icon: <MessageOutlined />,
+              label: '互動記錄管理',
+              onClick: () => navigate('/crm/admin/interactions')
+            },
+            {
+              key: '6',
+              icon: <MailOutlined />,
+              label: '網站聯絡訊息',
+              onClick: () => navigate('/crm/admin/contact-messages')
+            },
+            {
+              key: '7',
               icon: <BarChartOutlined />,
               label: '銷售數據',
               onClick: () => navigate('/crm/admin/sales-data')

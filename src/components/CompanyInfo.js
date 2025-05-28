@@ -15,7 +15,7 @@ const CompanyInfo = () => {
                 name: '寬鑫國際置業有限公司',
                 phone: '04-3702-1316',
                 address: '台中市西區台灣大道二段489號31F3106',
-                email: 'service@khglobal.com.tw'
+                email: 'khglobal.service@khglo.com'
             }
         },
         'en': {
@@ -23,14 +23,14 @@ const CompanyInfo = () => {
                 name: 'KH Global International Property Ltd.',
                 phone: '04-3702-1316',
                 address: '31F-3106, No.489, Sec. 2, Taiwan Blvd., West Dist., Taichung City',
-                email: 'service@khglobal.com.tw'
+                email: 'khglobal.service@khglo.com'
             }
         }
     };
 
     const socialLinks = {
         line: 'https://line.me/ti/p/~@118qhydb',
-        facebook: 'https://www.facebook.com/profile.php?id=61571826491287',
+        facebook: 'https://www.facebook.com/KHGlobalprop/',
         instagram: 'https://www.instagram.com/khgpco?fbclid=IwY2xjawH6k41leHRuA2FlbQIxMAABHVIrdNR3UEjJE8y2VxMTQZtnW2meWesDEX6b_wM_ozsGr_0SIjFM-Ape4g_aem_ocU0a9CE9DRUpxGNzjAIHg'
     };
 

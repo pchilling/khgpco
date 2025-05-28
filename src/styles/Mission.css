@@ -1,102 +1,267 @@
 .mission-section {
     position: relative;
-    padding: 200px 0;
+    padding: 120px 30px;  /* 減少垂直padding，增加水平padding */
     background-color: #fff;
     text-align: center;
+    overflow: hidden;  /* 防止邊框溢出 */
 }
 
-/* 添加裝飾元素樣式 */
-.mission-top-decor, .mission-bottom-decor {
-    position: absolute;
-    left: 0;
-    width: 100%;
-    height: 80px; /* 減少裝飾元素的高度 */
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: contain;
-}
-
-.mission-top-decor {
-    top: 60px; /* 調整頂部裝飾元素的位置 */
-}
-
-.mission-bottom-decor {
-    bottom: 60px; /* 調整底部裝飾元素的位置 */
-}
-
+/* 使用絕對定位和固定大小的框架 */
 .mission-content {
-    max-width: 1200px;
+    position: relative;
+    max-width: 1000px;
     margin: 0 auto;
-    padding: 0 40px;
+    padding: 60px 40px;
+    z-index: 2;
+}
+
+/* 左上角裝飾元素 - 使用點線邊框 */
+.mission-section::before {
+    content: '';
+    position: absolute;
+    top: 40px;
+    left: 40px;
+    width: 100px;
+    height: 100px;
+    border-left: 3px solid #C5A664;
+    border-top: 3px solid #C5A664;
+    border-radius: 5px 0 0 0;
+    opacity: 0.8;
+    z-index: 1;
+}
+
+/* 右下角裝飾元素 - 使用點線邊框 */
+.mission-section::after {
+    content: '';
+    position: absolute;
+    bottom: 40px;
+    right: 40px;
+    width: 100px;
+    height: 100px;
+    border-right: 3px solid #C5A664;
+    border-bottom: 3px solid #C5A664;
+    border-radius: 0 0 5px 0;
+    opacity: 0.8;
+    z-index: 1;
+}
+
+/* 添加中心線 */
+.mission-content::before {
+    content: '';
+    position: absolute;
+    top: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 1px;
+    background-color: #C5A664;
+    opacity: 0.6;
+}
+
+.mission-content::after {
+    content: '';
+    position: absolute;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 1px;
+    background-color: #C5A664;
+    opacity: 0.6;
 }
 
 .mission-title {
-    font-size: 2.2rem;
+    font-size: 2.5rem;
     color: #C5A664;  /* 金色 */
     margin-bottom: 30px;
     font-weight: 600;
 }
 
 .mission-text {
-    font-size: 1.1rem;
-    line-height: 1.6;
+    font-size: 1.2rem;
+    line-height: 1.8;
     color: #142613;  /* 深綠色 */
     max-width: 800px;
     margin: 0 auto;
-    font-weight: 1000;
+    font-weight: 500;
 }
 
-/* 響應式設計 */
+/* 響應式設計 - 保持L形邊框在所有螢幕尺寸下固定位置 */
 @media (max-width: 768px) {
     .mission-section {
-        padding: 80px 0;
+        padding: 90px 20px; /* 增加上下間距 */
     }
-
-    .mission-top-decor, .mission-bottom-decor {
-        height: 60px; /* 在平板上減少裝飾元素的高度 */
+    
+    .mission-content {
+        padding: 60px 25px; /* 進一步增加內部間距 */
     }
-
-    .mission-top-decor {
-        top: 30px; /* 調整頂部裝飾元素的位置 */
+    
+    .mission-section::before {
+        top: 25px;
+        left: 25px;
+        width: 60px;
+        height: 60px;
+        border-width: 2px;
     }
-
-    .mission-bottom-decor {
-        bottom: 30px; /* 調整底部裝飾元素的位置 */
+    
+    .mission-section::after {
+        bottom: 25px;
+        right: 25px;
+        width: 60px;
+        height: 60px;
+        border-width: 2px;
     }
-
+    
+    .mission-content::before,
+    .mission-content::after {
+        width: 50px;
+    }
+    
     .mission-title {
-        font-size: 1.8rem;
-        margin-bottom: 25px;
+        font-size: 2.2rem;
+        margin-bottom: 30px; /* 進一步增加標題和文本間的間距 */
+        letter-spacing: 0.5px;
     }
-
+    
     .mission-text {
-        font-size: 1rem;
+        font-size: 1.1rem;
+        line-height: 1.7;
+        max-width: 95%;
+    }
+}
+
+/* 新增針對中等手機螢幕的優化 */
+@media (max-width: 600px) {
+    .mission-section {
+        padding: 80px 15px; /* 增加上下間距 */
+    }
+    
+    .mission-content {
+        padding: 55px 20px; /* 進一步增加內部間距 */
+    }
+    
+    .mission-section::before {
+        top: 20px;
+        left: 20px;
+        width: 45px;
+        height: 45px;
+        border-width: 2px;
+    }
+    
+    .mission-section::after {
+        bottom: 20px;
+        right: 20px;
+        width: 45px;
+        height: 45px;
+        border-width: 2px;
+    }
+    
+    .mission-content::before,
+    .mission-content::after {
+        width: 40px;
+    }
+    
+    .mission-title {
+        font-size: 2rem;
+        margin-bottom: 28px; /* 進一步增加標題和文本間的間距 */
+    }
+    
+    .mission-text {
+        font-size: 1.05rem;
+        line-height: 1.6;
     }
 }
 
 @media (max-width: 480px) {
     .mission-section {
-        padding: 60px 0;
+        padding: 70px 15px; /* 增加上下間距 */
     }
-
-    .mission-top-decor, .mission-bottom-decor {
-        height: 40px; /* 在手機上減少裝飾元素的高度 */
+    
+    .mission-content {
+        padding: 50px 15px; /* 進一步增加內部間距 */
     }
-
-    .mission-top-decor {
-        top: 20px; /* 調整頂部裝飾元素的位置 */
+    
+    .mission-section::before {
+        top: 15px;
+        left: 15px;
+        width: 35px;
+        height: 35px;
+        border-width: 2px;
     }
-
-    .mission-bottom-decor {
-        bottom: 20px; /* 調整底部裝飾元素的位置 */
+    
+    .mission-section::after {
+        bottom: 15px;
+        right: 15px;
+        width: 35px;
+        height: 35px;
+        border-width: 2px;
     }
-
+    
+    .mission-content::before,
+    .mission-content::after {
+        width: 30px;
+    }
+    
     .mission-title {
         font-size: 1.6rem;
-        margin-bottom: 20px;
+        margin-bottom: 25px; /* 進一步增加標題和文本間的間距 */
+        letter-spacing: 0.5px;
     }
+    
+    .mission-text {
+        font-size: 0.8rem;
+        line-height: 1.6;
+        font-weight: 800;
+    }
+    
+    /* 調整頂部裝飾線與標題間距 */
+    .mission-content::before {
+        top: 25px; /* 調整裝飾線位置 */
+    }
+    
+    .mission-content::after {
+        bottom: 25px; /* 調整底部裝飾線位置 */
+    }
+}
 
+/* 新增超小螢幕優化 */
+@media (max-width: 360px) {
+    .mission-section {
+        padding: 60px 10px; /* 增加上下間距 */
+    }
+    
+    .mission-content {
+        padding: 45px 12px; /* 進一步增加內部間距 */
+    }
+    
+    .mission-section::before {
+        top: 12px;
+        left: 12px;
+        width: 25px;
+        height: 25px;
+        border-width: 1.5px;
+    }
+    
+    .mission-section::after {
+        bottom: 12px;
+        right: 12px;
+        width: 25px;
+        height: 25px;
+        border-width: 1.5px;
+    }
+    
+    .mission-content::before,
+    .mission-content::after {
+        width: 25px;
+    }
+    
+    .mission-title {
+        font-size: 1.4rem;
+        margin-bottom: 22px; /* 進一步增加標題和文本間的間距 */
+    }
+    
     .mission-text {
         font-size: 0.95rem;
+        line-height: 1.5;
     }
 } 

@@ -28,14 +28,12 @@ const Mission = () => {
     
     return (
         <section className="mission-section">
-            <div className="mission-top-decor"></div>
             <div className="mission-content">
                 <h2 className="mission-title" style={{ color: '#C5A664' }}>{t.title}</h2>
                 <p className="mission-text" style={{ color: '#142613' }}>
                     {formattedText}
                 </p>
             </div>
-            <div className="mission-bottom-decor"></div>
         </section>
     );
 };

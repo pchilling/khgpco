@@ -11,12 +11,13 @@ console.log('LOCAL_API_URL:', LOCAL_API_URL);
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('REACT_APP_USE_CLOUD:', process.env.REACT_APP_USE_CLOUD);
 
-export const getImageUrl = (media) => {
-    if (!media?.data?.[0]?.attributes?.url) {
+// 修改為支持多張圖片
+export const getImageUrl = (media, index = 0) => {
+    if (!media?.data || media.data.length === 0 || !media.data[index]?.attributes?.url) {
         return PLACEHOLDER_IMAGE;
     }
     
-    const { url } = media.data[0].attributes;
+    const { url } = media.data[index].attributes;
     
     if (url.startsWith('http')) {
         return url;
@@ -28,4 +29,27 @@ export const getImageUrl = (media) => {
     const finalUrl = useCloud ? `${STRAPI_CLOUD_URL}${url}` : `${LOCAL_API_URL}${url}`;
     console.log('Image URL:', finalUrl);
     return finalUrl;
+};
+
+// 獲取所有圖片的URL數組
+export const getAllImageUrls = (media) => {
+    if (!media?.data || media.data.length === 0) {
+        return [PLACEHOLDER_IMAGE];
+    }
+    
+    return media.data.map((item, index) => {
+        if (!item?.attributes?.url) {
+            return PLACEHOLDER_IMAGE;
+        }
+        
+        const { url } = item.attributes;
+        
+        if (url.startsWith('http')) {
+            return url;
+        }
+        
+        const useCloud = process.env.REACT_APP_USE_CLOUD === 'true' || process.env.NODE_ENV === 'production';
+        const finalUrl = useCloud ? `${STRAPI_CLOUD_URL}${url}` : `${LOCAL_API_URL}${url}`;
+        return finalUrl;
+    });
 };

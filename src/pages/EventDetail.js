@@ -2,15 +2,18 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import RegistrationModal from '../components/RegistrationModal';
+import ImageSlider from '../components/ImageSlider';
 import '../styles/EventDetail.css';
-import { getImageUrl } from '../utils/imageUtils';
+import { getImageUrl, getAllImageUrls } from '../utils/imageUtils';
 import { API_BASE_URL } from '../utils/api';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 
 // 將文本配置抽離
 const text = {
     'zh-TW': {
         loading: '載入中...',
         register: '立即報名',
+        backToEvents: '返回活動列表',
         maxParticipants: '名額上限',
         remainingSpots: '剩餘名額',
         eventDate: '活動日期',
@@ -21,11 +24,13 @@ const text = {
             upcoming: '即將舉行',
             ongoing: '進行中',
             ended: '已結束'
-        }
+        },
+        details: '專案細節'
     },
     'en': {
         loading: 'Loading...',
         register: 'Register Now',
+        backToEvents: 'Back to Events',
         maxParticipants: 'Max Participants',
         remainingSpots: 'Remaining Spots',
         eventDate: 'Event Date',
@@ -36,7 +41,8 @@ const text = {
             upcoming: 'Upcoming',
             ongoing: 'Ongoing',
             ended: 'Ended'
-        }
+        },
+        details: 'Project Details'
     }
 };
 
@@ -48,38 +54,52 @@ const EventDetail = () => {
     const [error, setError] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedSessionIndex, setSelectedSessionIndex] = useState(null);
+    const [eventImages, setEventImages] = useState([]);
 
     const currentText = useMemo(() => text[language], [language]);
 
     const formatDateTime = useCallback((dateTime) => {
-        const date = new Date(dateTime);
+        if (!dateTime) {
+            console.error('Invalid date provided to formatDateTime:', dateTime);
+            return { formattedDate: '日期未設定', formattedTime: '時間未設定' };
+        }
         
-        // 格式化日期部分
-        const dateOptions = { 
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            weekday: 'long'
-        };
-        
-        // 格式化時間部分
-        const timeOptions = {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: language !== 'zh-TW' // 英文使用 12 小時制，中文使用 24 小時制
-        };
-        
-        const formattedDate = date.toLocaleDateString(
-            language === 'zh-TW' ? 'zh-TW' : 'en-US',
-            dateOptions
-        );
-        
-        const formattedTime = date.toLocaleTimeString(
-            language === 'zh-TW' ? 'zh-TW' : 'en-US',
-            timeOptions
-        );
-        
-        return { formattedDate, formattedTime };
+        try {
+            const date = new Date(dateTime);
+            if (isNaN(date.getTime())) {
+                throw new Error('Invalid date');
+            }
+            
+            // 格式化日期部分
+            const dateOptions = { 
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long'
+            };
+            
+            // 格式化時間部分
+            const timeOptions = {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: language !== 'zh-TW' // 英文使用 12 小時制，中文使用 24 小時制
+            };
+            
+            const formattedDate = date.toLocaleDateString(
+                language === 'zh-TW' ? 'zh-TW' : 'en-US',
+                dateOptions
+            );
+            
+            const formattedTime = date.toLocaleTimeString(
+                language === 'zh-TW' ? 'zh-TW' : 'en-US',
+                timeOptions
+            );
+            
+            return { formattedDate, formattedTime };
+        } catch (error) {
+            console.error('Error formatting date:', error, dateTime);
+            return { formattedDate: '日期格式錯誤', formattedTime: '時間格式錯誤' };
+        }
     }, [language]);
 
     const getRegistrationsForSession = useCallback((sessionIndex) => {
@@ -126,6 +146,13 @@ const EventDetail = () => {
             
             if (data && data.data) {
                 setEvent(data.data);
+                
+                // 獲取活動的所有圖片
+                if (data.data.attributes.coverImage?.data) {
+                    const imageUrls = getAllImageUrls(data.data.attributes.coverImage);
+                    setEventImages(imageUrls);
+                    console.log('All image URLs:', imageUrls);
+                }
             } else {
                 setError('No event data found');
             }
@@ -176,81 +203,130 @@ const EventDetail = () => {
     // 添加數據驗證和調試
     console.log('Rendering event:', event);
     console.log('Event attributes:', event.attributes);
-    console.log('Event sessions:', event.attributes.session);
+    
+    // 檢查所有可能的場次欄位名稱
+    const sessionData = event.attributes.session || event.attributes.sessions || event.attributes.sessionInfo || [];
+    console.log('Event sessions:', sessionData);
     console.log('Event coverImage:', event.attributes.coverImage);
 
     return (
         <div className="event-detail-page">
-            <div className="event-detail-header">
-                <div className="header-image">
-                    {event.attributes.coverImage?.data && (
-                        <img 
-                            src={getImageUrl(event.attributes.coverImage)}
-                            alt={event.attributes.title}
-                            loading="lazy"
-                            onError={(e) => {
-                                console.error('Image failed to load:', e);
-                                e.target.onerror = null;
-                                e.target.src = 'https://placehold.co/800x400?text=No+Image';
-                            }}
-                        />
-                    )}
-                </div>
-                <div className="header-content">
-                    <span className={`event-status ${event.attributes.status}`}>
-                        {currentText.status[event.attributes.status]}
-                    </span>
-                    <h1>{event.attributes.title}</h1>
-                    <p className="event-description">{event.attributes.description}</p>
-                </div>
+            {/* 圖片區域移至最頂部並簡化結構 */}
+            <div className="event-image-area">
+                {eventImages.length > 0 ? (
+                    <ImageSlider 
+                        images={eventImages} 
+                        fullWidth={true} 
+                    />
+                ) : event.attributes.coverImage?.data && (
+                    <img 
+                        src={getImageUrl(event.attributes.coverImage)}
+                        alt={event.attributes.title}
+                        loading="lazy"
+                        className="full-width-image"
+                        onError={(e) => {
+                            console.error('Image failed to load:', e);
+                            e.target.onerror = null;
+                            e.target.src = 'https://placehold.co/380x380?text=No+Image';
+                        }}
+                    />
+                )}
             </div>
 
-            {/* 檢查 session 是否存在 */}
-            {event.attributes.session && event.attributes.session.length > 0 ? (
-                <div className="event-sessions">
-                    <h2 className="section-title">{currentText.sessions}</h2>
-                    <div className="sessions-grid">
-                        {event.attributes.session.map((session, index) => {
-                            const registrations = getRegistrationsForSession(index);
-                            const isDisabled = event.attributes.status === 'ended' || 
-                                            session.maxParticipants <= registrations;
-                            
-                            return (
-                                <div key={index} className="session-card">
-                                    <div className="session-header">
-                                        <div className="session-time">
-                                            <i className="far fa-calendar-alt"></i>
-                                            <div className="time-details">
-                                                <span className="session-date">{formatDateTime(session.startDateTime).formattedDate}</span>
-                                                <div className="session-time-range">
-                                                    <span>{formatDateTime(session.startDateTime).formattedTime}</span>
-                                                    <span> - </span>
-                                                    <span>{formatDateTime(session.endDateTime).formattedTime}</span>
+            {/* 內容區域 */}
+            <div className="event-content-area">
+                <div className="header-content-container">
+                    <div className="header-content">
+                        <span className={`event-status ${event.attributes.status}`}>
+                            {currentText.status[event.attributes.status]}
+                        </span>
+                        <h1>{event.attributes.title}</h1>
+                        <p className="event-description">{event.attributes.description}</p>
+                    </div>
+                </div>
+
+                {/* 場次資訊 */}
+                {sessionData && sessionData.length > 0 ? (
+                    <div className="event-sessions">
+                        <h2>{currentText.sessions}</h2>
+                        <div className="sessions-grid">
+                            {sessionData.map((session, index) => {
+                                const registrations = getRegistrationsForSession(index);
+                                const maxParticipants = session.maxParticipants || 0;
+                                const remainingSpots = Math.max(0, maxParticipants - registrations);
+                                const isDisabled = remainingSpots === 0 || event.attributes.status === 'ended';
+                                
+                                // 確保日期時間存在並格式化
+                                let formattedDate = '日期未設定';
+                                let formattedTime = '時間未設定';
+                                
+                                // 檢查所有可能的日期時間欄位
+                                const dateTimeField = session.datetime || session.startDateTime || session.date || session.eventDate;
+                                
+                                if (dateTimeField) {
+                                    const dateTimeResult = formatDateTime(dateTimeField);
+                                    formattedDate = dateTimeResult.formattedDate;
+                                    formattedTime = dateTimeResult.formattedTime;
+                                }
+                                
+                                // 檢查所有可能的地點欄位
+                                const locationField = session.location || session.venue || session.place || '';
+                                
+                                return (
+                                    <div key={index} className="session-card">
+                                        <div>
+                                            <div className="session-time">
+                                                <i className="fas fa-calendar-alt"></i>
+                                                <div className="session-datetime">
+                                                    <div className="session-date">{formattedDate}</div>
+                                                    <div className="session-time-value">{formattedTime}</div>
+                                                </div>
+                                            </div>
+                                            <div className="session-location">
+                                                <i className="fas fa-map-marker-alt"></i>
+                                                <div>{locationField}</div>
+                                            </div>
+                                            <div className="capacity-info">
+                                                <div className="max-participants">
+                                                    <i className="fas fa-users"></i>
+                                                    {currentText.maxParticipants}: {maxParticipants}
+                                                </div>
+                                                <div className="remaining">
+                                                    {currentText.remainingSpots}: {remainingSpots}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="session-location">
-                                            <i className="fas fa-map-marker-alt"></i>
-                                            <span>{session.location}</span>
+                                        <div className="event-actions">
+                                            <button 
+                                                className={`register-button ${isDisabled ? 'disabled' : ''}`}
+                                                disabled={isDisabled}
+                                                onClick={() => handleRegistrationClick(index)}
+                                            >
+                                                {currentText.register}
+                                            </button>
+                                            
+                                            {event.attributes.eventlink && (
+                                                <a 
+                                                    href={event.attributes.eventlink}
+                                                    className="details-button"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    {currentText.details}
+                                                </a>
+                                            )}
                                         </div>
                                     </div>
-                                    <button 
-                                        className={`register-button ${isDisabled ? 'disabled' : ''}`}
-                                        disabled={isDisabled}
-                                        onClick={() => handleRegistrationClick(index)}
-                                    >
-                                        {currentText.register}
-                                    </button>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
-            ) : (
-                <div className="no-sessions">
-                    <p>此活動尚未設置場次資訊</p>
-                </div>
-            )}
+                ) : (
+                    <div className="no-sessions">
+                        <p>此活動尚未設置場次資訊</p>
+                    </div>
+                )}
+            </div>
 
             <RegistrationModal
                 isOpen={isModalOpen}

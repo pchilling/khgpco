@@ -16,7 +16,7 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding-top: 40px;
+    padding-top: 80px;
 }
 
 .events-header::before {
@@ -55,7 +55,7 @@
 }
 
 .events-container {
-    max-width: 1200px;
+    max-width: 1300px;
     margin: 0 auto;
     padding: 0 20px;
     display: flex;
@@ -70,14 +70,18 @@
 }
 
 .event-card {
-    background: white;
-    border-radius: 16px;
+    width: 100%;
+    height: 420px;
+    background: #FFFFFF;
+    box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
-    display: flex;
-    flex-direction: row;
 }
 
 .event-card:hover {
@@ -85,101 +89,114 @@
     box-shadow: 0 8px 30px rgba(0,0,0,0.12);
 }
 
-.event-image {
-    width: 300px;
-    min-width: 300px;
-    height: 300px;
-    min-height: 300px;
-    overflow: hidden;
+.event-card .event-image {
+    flex: 0 0 380px;
+    width: 380px;
+    height: 420px;
     position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #f5f5f5;
+    overflow: hidden;
 }
 
-.event-image::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to right, transparent 70%, rgba(0,0,0,0.1));
-}
-
-.event-image img {
+.event-card .event-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s ease;
 }
 
-.event-card:hover .event-image img {
-    transform: scale(1.03);
-}
-
-.event-content {
-    padding: 25px;
-    flex: 1;
+.event-card .event-content {
+    padding: 20px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    width: calc(100% - 380px);
+    overflow: hidden;
     position: relative;
+    height: 100%;
 }
 
-.event-status {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: white;
-    z-index: 10;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.event-status.upcoming {
-    background: rgba(25, 118, 210, 0.95);
-    color: white;
-}
-
-.event-status.ongoing {
-    background: rgba(46, 125, 50, 0.95);
-    color: white;
-}
-
-.event-status.ended {
-    background: rgba(198, 40, 40, 0.95);
-    color: white;
+.event-content .title-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    width: 100%;
+    gap: 8px;
 }
 
 .event-content h2 {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     font-weight: 600;
-    margin: 0 0 12px;
+    margin: 0;
     color: #1a202c;
-    line-height: 1.3;
-    padding-right: 80px;
-}
-
-.event-description {
-    font-size: 0.95rem;
-    line-height: 1.5;
-    color: #4a5568;
-    margin-bottom: 16px;
+    line-height: 1.25;
+    flex: 1;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
+    padding-left: 20px;
+}
+
+.event-status {
+    display: inline-block;
+    padding: 2px 6px;
+    margin: 0;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: white;
+    white-space: nowrap;
+    width: auto;
+    max-width: max-content;
+    letter-spacing: 0.01em;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 5;
+}
+
+.event-status.upcoming {
+    background: rgba(25, 118, 210, 0.9);
+    color: white;
+}
+
+.event-status.ongoing {
+    background: rgba(46, 125, 50, 0.9);
+    color: white;
+}
+
+.event-status.ended {
+    background: rgba(198, 40, 40, 0.9);
+    color: white;
+}
+
+.event-description {
+    font-size: 0.85rem !important;
+    line-height: 1.5 !important;
+    color: #4a5568;
+    margin-bottom: 10px !important;
+    padding-bottom: 6px;
+    border-bottom: none;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 4.5em;
+    padding-left: 20px;
 }
 
 .event-footer {
-    margin-top: 20px;
+    margin-top: 10px;
     display: flex;
     justify-content: flex-end;
+    padding-top: 0;
+    align-self: flex-end;
+    width: 100%;
+    position: relative;
+    z-index: 2;
 }
 
 .event-participants {
@@ -196,22 +213,31 @@
 }
 
 .event-brief-info {
+    margin-top: 0;
+    margin-bottom: 12px;
+    flex-grow: 0;
+    overflow: visible;
     display: flex;
     flex-direction: column;
-    margin-top: auto;
-    margin-bottom: 16px;
+    max-height: 80px;
 }
 
 .sessions-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
+    max-height: none;
+    overflow-y: visible;
+    padding-top: 0;
+    flex-grow: 1;
 }
 
 .session-item {
     display: flex;
-    padding-bottom: 10px;
+    padding-bottom: 4px;
     border-bottom: 1px dashed #e2e8f0;
+    align-items: flex-start;
+    flex-wrap: wrap;
 }
 
 .session-item:last-child {
@@ -221,42 +247,121 @@
 
 .brief-item {
     display: flex;
-    align-items: center;
-    font-size: 0.9rem;
+    align-items: flex-start;
+    font-size: 0.8rem;
     color: #4a5568;
-    margin-right: 20px;
-    min-width: 120px;
-}
-
-.brief-item i {
-    color: #142613;
-    font-size: 1rem;
-    width: 20px;
-    text-align: center;
-    margin-right: 8px;
-    flex-shrink: 0;
-}
-
-.brief-item span {
-    white-space: nowrap;
+    margin-right: 5px;
+    min-width: 0;
+    width: calc(50% - 5px);
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.register-button {
+.brief-item i {
+    color: #142613;
+    font-size: 0.8rem;
+    width: 15px;
+    text-align: center;
+    margin-right: 5px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.brief-item span {
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 22px);
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+}
+
+.brief-item span strong {
+    font-weight: 600;
+    color: #142613;
+    margin-right: 4px;
+    display: inline-block;
+    font-size: 0.8rem;
+}
+
+.brief-date,
+.brief-location {
+    position: relative;
+    max-width: 50%;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.brief-date i,
+.brief-location i {
+    position: absolute;
+    top: 2px;
+    left: 0;
+    color: #142613;
+    font-size: 1rem;
+    width: 16px;
+    text-align: center;
+}
+
+.brief-date span,
+.brief-location span {
+    padding-left: 20px;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    font-size: 0.8rem;
+}
+
+.event-footer .button-group {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+.register-button,
+.details-button {
     background-color: #142613;
     color: white;
     border: none;
-    padding: 8px 20px;
+    padding: 10px 20px;
     border-radius: 6px;
     font-size: 0.9rem;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-width: 120px;
+    text-align: center;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .register-button:hover {
     background-color: #1d3a1d;
     transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.details-button {
+    background-color: #ffffff;
+    color: #142613;
+    border: 2px solid #142613;
+}
+
+.details-button:hover {
+    background-color: #f0f7f0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
 .loading {
@@ -270,11 +375,84 @@
     .events-container {
         padding: 0 15px;
     }
+    
+    .event-card {
+        height: 380px;
+    }
+    
+    .event-card .event-image {
+        flex: 0 0 350px;
+        width: 350px;
+        height: 380px;
+    }
+    
+    .event-card .event-content {
+        width: calc(100% - 350px);
+    }
+}
+
+@media (max-width: 992px) {
+    .event-card {
+        height: 320px;
+        min-height: unset;
+    }
+    
+    .event-card .event-image {
+        flex: 0 0 320px;
+        width: 320px;
+        height: 320px;
+    }
+    
+    html[lang="en"] .event-card {
+        height: 350px;
+        min-height: unset;
+    }
+    
+    html[lang="en"] .event-image {
+        width: 350px;
+        min-width: 350px;
+        height: 350px;
+    }
+    
+    html[lang="en"] .event-content {
+        max-width: calc(100% - 350px);
+    }
+    
+    .event-content h2 {
+        font-size: 1.3rem;
+        padding-right: 8px;
+        padding-left: 20px;
+    }
+    
+    .event-description {
+        font-size: 0.8rem !important;
+    }
+    
+    .brief-item {
+        font-size: 0.8rem;
+    }
+    
+    .brief-item i {
+        font-size: 0.9rem;
+        width: 16px;
+        margin-right: 6px;
+    }
+    
+    .brief-date span,
+    .brief-location span {
+        padding-left: 21px;
+    }
+    
+    .event-status {
+        top: 18px;
+        right: 18px;
+    }
 }
 
 @media (max-width: 768px) {
     .events-header {
-        padding: 80px 20px 60px;
+        padding: 100px 20px 40px;
+        height: 300px;
     }
 
     .events-header h1 {
@@ -282,53 +460,186 @@
     }
 
     .events-container {
-        padding: 0 10px;
+        padding: 0 15px;
     }
 
     .event-card {
+        height: auto;
         flex-direction: column;
+        margin-bottom: 20px;
     }
     
-    .event-image {
+    .event-card .event-image {
+        flex: 0 0 auto;
         width: 100%;
-        min-width: 100%;
-        height: 250px;
-        min-height: 250px;
+        height: auto;
+        aspect-ratio: 16 / 9;
     }
     
-    .event-image::after {
-        background: linear-gradient(to bottom, transparent 70%, rgba(0,0,0,0.2));
+    .event-card .event-content {
+        width: 100%;
+        padding: 16px;
+        height: auto;
     }
-
-    .event-content {
-        padding: 20px;
-    }
-
+    
     .event-content h2 {
-        font-size: 1.4rem;
-        padding-right: 0;
-        margin-top: 30px;
+        font-size: 1.2rem;
+        padding-right: 60px;
+        padding-left: 0;
+        margin-bottom: 8px;
     }
-
+    
     .event-status {
-        top: 10px;
-        right: 10px;
+        font-size: 0.6rem;
+        padding: 1px 4px;
+        top: 16px;
+        right: 16px;
+    }
+    
+    .event-description {
+        font-size: 0.8rem !important;
+        margin-bottom: 10px !important;
+        padding-bottom: 10px;
+        padding-left: 0;
+    }
+    
+    .event-brief-info {
+        margin-top: 0;
+        margin-bottom: 12px;
+        max-height: none;
+    }
+    
+    .sessions-list {
+        gap: 8px;
     }
     
     .session-item {
         flex-direction: column;
-        gap: 8px;
+        gap: 5px;
+        padding-bottom: 8px;
+        border-bottom: 1px dashed #e2e8f0;
     }
     
     .brief-item {
         margin-right: 0;
         margin-bottom: 4px;
-        min-width: auto;
+        width: 100%;
+        font-size: 0.8rem;
     }
     
-    .show-more-button {
+    .brief-date,
+    .brief-location {
+        max-width: 100%;
+    }
+    
+    .brief-item span {
+        max-width: calc(100% - 24px);
+    }
+    
+    .brief-date span,
+    .brief-location span {
+        padding-left: 25px;
+        font-size: 0.85rem;
+    }
+    
+    .brief-date i,
+    .brief-location i {
+        font-size: 1rem;
+        top: 1px;
+    }
+    
+    .register-button,
+    .details-button {
+        padding: 8px 15px;
+        font-size: 0.9rem;
+        min-width: 110px;
+        height: 38px;
+    }
+}
+
+@media (max-width: 480px) {
+    .events-header {
+        height: 250px;
+        padding: 90px 15px 30px;
+    }
+    
+    .events-header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .event-card .event-image {
+        aspect-ratio: 16 / 9;
+    }
+    
+    .event-content h2 {
+        font-size: 1.3rem;
+        padding-right: 0;
+        padding-left: 0;
+        margin-bottom: 8px;
+        -webkit-line-clamp: 2;
+    }
+    
+    .event-status {
+        padding: 1px 3px;
+        font-size: 0.55rem;
+        margin-bottom: 0;
+        top: 15px;
+        right: 15px;
+    }
+    
+    .event-description {
+        font-size: 0.85rem !important;
+        margin-bottom: 12px !important;
+        padding-bottom: 8px;
+        padding-left: 0;
+        -webkit-line-clamp: 3;
+        max-height: none;
+    }
+    
+    .event-brief-info {
+        margin-top: 0;
+        margin-bottom: 12px;
+    }
+    
+    .sessions-list {
+        gap: 6px;
+    }
+    
+    .session-item {
+        padding-bottom: 8px;
+    }
+    
+    .brief-item {
+        font-size: 0.85rem;
+        margin-bottom: 5px;
+    }
+    
+    .brief-item i {
+        font-size: 1rem;
+        width: 18px;
+    }
+    
+    .brief-date span,
+    .brief-location span {
+        padding-left: 25px;
+        line-height: 1.4;
+        font-size: 0.85rem;
+    }
+    
+    .brief-item span strong {
+        font-size: 0.85rem;
+    }
+    
+    .event-footer .button-group {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .register-button,
+    .details-button {
         width: 100%;
-        padding: 12px 0;
+        margin-bottom: 0;
+        height: 40px;
     }
 }
 
@@ -368,28 +679,25 @@
 html[lang="en"] .event-card {
     display: flex;
     flex-direction: row;
-    height: 300px; /* 固定卡片高度與圖片一致 */
+    height: auto;
+    min-height: 380px;
     overflow: hidden;
     max-width: 100%;
 }
 
 html[lang="en"] .event-image {
-    width: 300px;
-    min-width: 300px;
-    height: 300px;
-    min-height: 300px;
-    flex-shrink: 0; /* 防止圖片被壓縮 */
+    width: 380px;
+    min-width: 380px;
+    height: 380px;
+    min-height: 380px;
+    flex-shrink: 0;
 }
 
 html[lang="en"] .event-content {
-    padding: 20px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    position: relative;
+    padding: 30px;
     height: 100%;
     overflow: hidden;
-    max-width: calc(100% - 300px); /* 確保內容區域不會超過卡片剩餘寬度 */
+    max-width: calc(100% - 380px);
 }
 
 html[lang="en"] .event-content h2 {
@@ -401,33 +709,43 @@ html[lang="en"] .event-content h2 {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    word-break: break-word; /* 允許長單詞換行 */
+    word-break: break-word;
     max-width: 100%;
 }
 
 html[lang="en"] .event-status {
+    display: inline-block;
+    vertical-align: top;
+    padding: 1px 3px;
+    margin: 0;
+    margin-bottom: 5px;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: white;
+    white-space: nowrap;
+    width: auto;
+    max-width: max-content;
     position: absolute;
-    top: 15px;
-    right: 15px;
-    padding: 5px 10px;
-    font-size: 0.7rem;
-    z-index: 10;
+    top: 20px;
+    right: 20px;
+    z-index: 5;
 }
 
 html[lang="en"] .event-description {
-    font-size: 0.8rem;
-    line-height: 1.4;
+    font-size: 0.6rem !important;
+    line-height: 1.5 !important;
     -webkit-line-clamp: 2;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    word-break: break-word; /* 允許長單詞換行 */
+    word-break: break-word;
     max-width: 100%;
 }
 
 html[lang="en"] .event-brief-info {
-    margin-top: 0;
+    margin-top: 5px;
     margin-bottom: 10px;
     width: 100%;
     flex-grow: 1;
@@ -436,19 +754,19 @@ html[lang="en"] .event-brief-info {
 }
 
 html[lang="en"] .sessions-list {
-    gap: 6px;
+    gap: 4px;
     width: 100%;
-    max-height: 110px;
-    overflow: hidden;
+    max-height: none;
+    overflow: visible;
 }
 
 html[lang="en"] .session-item {
     display: flex;
-    padding-bottom: 6px;
+    padding-bottom: 5px;
     border-bottom: 1px dashed #e2e8f0;
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: 3px;
     width: 100%;
 }
 
@@ -458,8 +776,8 @@ html[lang="en"] .session-item:last-child {
 }
 
 html[lang="en"] .brief-item {
-    font-size: 0.75rem;
-    margin-right: 8px;
+    font-size: 0.8rem;
+    margin-right: 5px;
     min-width: auto;
     max-width: none;
     display: flex;
@@ -468,17 +786,17 @@ html[lang="en"] .brief-item {
 
 html[lang="en"] .brief-item i {
     margin-top: 2px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
 }
 
 html[lang="en"] .brief-item span {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     white-space: normal;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.3;
-    max-height: 2.6em; /* 限制高度為兩行 */
-    word-break: break-word; /* 允許長單詞換行 */
+    max-height: 2.5em;
+    word-break: break-word;
 }
 
 html[lang="en"] .event-footer {
@@ -502,23 +820,35 @@ html[lang="en"] .register-button {
     }
     
     html[lang="en"] .event-description {
-        font-size: 0.75rem;
+        font-size: 0.6rem !important;
     }
     
     html[lang="en"] .brief-item,
     html[lang="en"] .brief-item span {
-        font-size: 0.7rem;
+        font-size: 0.8rem;
     }
 }
 
 @media (max-width: 768px) {
     html[lang="en"] .event-card {
-        flex-direction: column;
         height: auto;
+        min-height: unset;
+    }
+    
+    html[lang="en"] .event-image {
+        width: 100%;
+        min-width: 100%;
+        height: auto;
+        min-height: unset;
+        aspect-ratio: 1 / 1;
+        position: static;
+    }
+    
+    html[lang="en"] .event-image img {
     }
     
     html[lang="en"] .event-content {
-        padding: 15px;
+        padding: 20px;
         height: auto;
         max-width: 100%;
     }
@@ -530,8 +860,8 @@ html[lang="en"] .register-button {
     }
     
     html[lang="en"] .event-description {
-        font-size: 0.75rem;
-        margin-bottom: 10px;
+        font-size: 0.6rem !important;
+        margin-bottom: 6px;
     }
     
     html[lang="en"] .sessions-list {
@@ -553,7 +883,7 @@ html[lang="en"] .register-button {
     
     html[lang="en"] .brief-item span {
         max-width: none;
-        width: calc(100% - 25px);
+        width: calc(100% - 28px);
     }
     
     html[lang="en"] .event-brief-info {
@@ -561,7 +891,7 @@ html[lang="en"] .register-button {
     }
     
     html[lang="en"] .event-footer {
-        margin-top: 10px;
+        margin-top: 8px;
     }
 }
 
@@ -576,8 +906,8 @@ html[lang="en"] .register-button {
     }
     
     html[lang="en"] .event-description {
-        font-size: 0.7rem;
-        margin-bottom: 8px;
+        font-size: 0.6rem !important;
+        margin-bottom: 5px;
     }
     
     html[lang="en"] .event-brief-info {
@@ -585,7 +915,36 @@ html[lang="en"] .register-button {
     }
     
     .event-image {
-        height: 200px;
-        min-height: 200px;
+        height: auto;
+        min-height: unset;
+        aspect-ratio: 1 / 1;
     }
+}
+
+/* 為日期和地點添加特定樣式 */
+.session-heading {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    border-left: 3px solid #142613;
+    padding-left: 10px;
+}
+
+/* 移除不可見間隔元素 */
+.event-brief-info::before {
+    display: none;
+}
+
+/* 添加漸變陰影效果，提高可讀性 */
+.event-image::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30%;
+    background: linear-gradient(to top, rgba(0,0,0,0.1), transparent);
+    z-index: 1;
+    pointer-events: none;
 }

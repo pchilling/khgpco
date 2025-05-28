@@ -192,6 +192,7 @@
     }
     
     .projects-grid {
+        grid-template-columns: repeat(2, 1fr);
         gap: 1.5rem;
     }
 }
@@ -211,24 +212,43 @@
     }
     
     .projects-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1.25rem;
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 2rem !important;
+    }
+    
+    .project-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    .project-image {
+        padding-top: 50% !important;
     }
     
     .project-content {
-        padding: 0.5rem 0.75rem;
+        padding: 1rem !important;
     }
     
     .project-name {
-        font-size: 1rem;
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
     }
     
     .project-location {
-        font-size: 0.8rem;
+        font-size: 0.9rem;
+        margin-bottom: 0.3rem;
     }
     
     .project-address {
-        font-size: 0.75rem;
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .project-price {
+        margin-top: 0.5rem;
+        font-size: 1.1rem;
     }
 }
 
@@ -238,10 +258,18 @@
     }
     
     .projects-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
     }
     
     .project-name {
-        font-size: 1.25rem;
+        font-size: 1.1rem;
+    }
+    
+    .project-location {
+        font-size: 0.85rem;
+    }
+    
+    .project-address {
+        font-size: 0.8rem;
     }
 } 

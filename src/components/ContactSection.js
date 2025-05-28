@@ -8,6 +8,7 @@ import instagramIcon from '../assets/instagram.png';
 import logo2 from '../assets/logo2.png';
 import axios from 'axios';
 import { API_BASE_URL } from '../utils/api';
+import { message } from 'antd';
 
 const ContactSection = () => {
     const { language } = useLanguage();
@@ -33,7 +34,7 @@ const ContactSection = () => {
             companyName: '寬鑫國際置業有限公司',
             address: '台中市西區台灣大道二段489號31F3106',
             phone: '04-3702-1316',
-            companyEmail: 'service@khglobal.com.tw',
+            companyEmail: 'khglobal.service@khglo.com',
             relatedCompany: '關係企業',
             disclaimer: '免責聲明',
             disclaimerHTML: '<span class="disclaimer-symbol">※</span> 本網頁資訊內容均由開發商/發展商/經紀商所提供，所包含之所有資料僅供參考用途，並僅作廣告宣傳用途。 <span class="disclaimer-symbol">※</span>',
@@ -54,7 +55,7 @@ const ContactSection = () => {
             companyName: 'KH Global International Property Ltd.',
             address: '31F-3106, No.489, Sec. 2, Taiwan Blvd., West Dist., Taichung City',
             phone: '04-3702-1316',
-            companyEmail: 'service@khglobal.com.tw',
+            companyEmail: 'khglobal.service@khglo.com',
             relatedCompany: 'Related Company',
             disclaimer: 'Disclaimer',
             disclaimerHTML: '<span class="disclaimer-symbol">※</span> The information on this website is provided by developers/brokers for reference and advertising purposes only. <span class="disclaimer-symbol">※</span>',
@@ -132,69 +133,52 @@ const ContactSection = () => {
         setSubmitStatus(null);
 
         try {
-            // 確保使用正確的 API URL
-            const apiUrl = `${API_BASE_URL}/api/registrations`;
-            console.log(`Submitting contact form to ${apiUrl}`);
-            
-            // 準備數據
-            const payload = {
+            // 準備聯絡表單數據
+            const contactData = {
                 data: {
                     name: formData.name,
                     phone: formData.phone,
                     email: formData.email,
                     message: formData.message,
-                    // 使用默認 event ID 或設置為 null
-                    event: null,
-                    // 添加來源標記
-                    source: 'contact_form'
+                    source: 'website',
                 }
             };
             
-            console.log('Contact form payload:', JSON.stringify(payload, null, 2));
+            console.log('正在提交聯絡表單...');
+            console.log('API地址:', `${API_BASE_URL}/api/contact-messages`);
+            console.log('表單數據:', JSON.stringify(contactData, null, 2));
             
-            try {
-                // 使用 axios 發送請求
-                const response = await axios.post(apiUrl, payload, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                
-                console.log('Contact form submission success! Response:', response.data);
-                setSubmitStatus('success');
-                
-                // 清空表單
-                setFormData({
-                    name: '',
-                    phone: '',
-                    email: '',
-                    message: ''
-                });
-            } catch (apiError) {
-                console.error('API error:', apiError.message);
-                console.error('API error details:', apiError);
-                
-                if (apiError.response && apiError.response.status === 403) {
-                    console.error('權限錯誤: 請在 Strapi 管理面板中啟用 Registration 的公開創建權限。');
-                    console.log('模擬成功提交...');
-                    
-                    // 臨時解決方案：模擬成功提交
-                    console.log('模擬提交成功！');
-                    setSubmitStatus('success');
-                    
-                    // 清空表單
-                    setFormData({
-                        name: '',
-                        phone: '',
-                        email: '',
-                        message: ''
-                    });
-                } else {
-                    throw apiError; // 重新拋出其他錯誤
-                }
+            // 使用fetch API提交
+            const response = await fetch(`${API_BASE_URL}/api/contact-messages`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(contactData)
+            });
+            
+            // 檢查響應狀態
+            if (!response.ok) {
+                const errorData = await response.text();
+                console.error('API響應錯誤:', response.status, errorData);
+                throw new Error(`請求失敗: ${response.status}`);
             }
+            
+            const result = await response.json();
+            console.log('提交成功!', result);
+            
+            // 清空表單並顯示成功訊息
+            setFormData({
+                name: '',
+                phone: '',
+                email: '',
+                message: ''
+            });
+            setSubmitStatus('success');
+            
         } catch (error) {
-            console.error('Contact form submission error:', error);
+            console.error('聯絡表單提交失敗:', error);
             setSubmitStatus('error');
         } finally {
             setIsSubmitting(false);
@@ -205,7 +189,7 @@ const ContactSection = () => {
 
     const socialLinks = {
         line: 'https://line.me/ti/p/~@118qhydb',
-        facebook: 'https://www.facebook.com/profile.php?id=61571826491287',
+        facebook: 'https://www.facebook.com/KHGlobalprop/',
         instagram: 'https://www.instagram.com/khgpco?fbclid=IwY2xjawH6k41leHRuA2FlbQIxMAABHVIrdNR3UEjJE8y2VxMTQZtnW2meWesDEX6b_wM_ozsGr_0SIjFM-Ape4g_aem_ocU0a9CE9DRUpxGNzjAIHg'
     };
 
@@ -216,6 +200,24 @@ const ContactSection = () => {
         // 添加 ID 到全局變量，方便調試
         window.contactSectionLoaded = true;
         
+        // 測試API連接
+        const testApiConnection = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/contact-messages`);
+                const data = await response.json();
+                console.log('API測試結果:', {
+                    status: response.status,
+                    ok: response.ok,
+                    data: data
+                });
+            } catch (error) {
+                console.error('API測試失敗:', error);
+            }
+        };
+        
+        // 執行API測試
+        testApiConnection();
+        
         // 檢查元素是否可以被找到
         setTimeout(() => {
             const element = document.getElementById('contact-section');
@@ -225,6 +227,56 @@ const ContactSection = () => {
             }
         }, 500);
     }, []);
+
+    // 測試提交函數
+    const testSubmit = async () => {
+        try {
+            // 準備測試數據
+            const testData = {
+                data: {
+                    name: "測試用戶",
+                    email: "test@test.com",
+                    phone: "0912-345-678",
+                    message: "這是一條測試訊息",
+                    source: "網站測試"
+                }
+            };
+            
+            console.log('嘗試提交測試數據:');
+            console.log('API地址:', `${API_BASE_URL}/api/contact-messages`);
+            console.log('測試數據:', JSON.stringify(testData, null, 2));
+            
+            // 使用fetch API提交
+            const response = await fetch(`${API_BASE_URL}/api/contact-messages`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(testData)
+            });
+            
+            // 處理響應
+            if (!response.ok) {
+                const errorData = await response.text();
+                console.error('測試失敗:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: errorData
+                });
+                message.error(`測試失敗: ${response.status} ${response.statusText}`);
+                throw new Error(`API請求失敗: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            console.log('測試成功!', result);
+            message.success('測試訊息已成功發送!');
+            
+        } catch (error) {
+            console.error('測試提交出錯:', error);
+            message.error(`測試錯誤: ${error.message}`);
+        }
+    };
 
     return (
         <section className="contact-section" id="contact-section">
@@ -298,6 +350,23 @@ const ContactSection = () => {
                                     t.submit
                                 )}
                             </button>
+                            {process.env.NODE_ENV === 'development' && (
+                                <button 
+                                    type="button"
+                                    onClick={testSubmit}
+                                    style={{ 
+                                        marginTop: '10px', 
+                                        background: '#ff5722',
+                                        color: 'white',
+                                        padding: '8px 15px',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    測試API連接
+                                </button>
+                            )}
                         </form>
                     )}
                 </div>

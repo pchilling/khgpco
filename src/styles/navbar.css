@@ -209,6 +209,12 @@
   font-size: 18px;
 }
 
+/* 為最後一個導航項目（聯絡我們）添加更多底部間距 */
+.mobile-nav-link:last-child {
+  padding-bottom: 25px;
+  margin-bottom: 10px;
+}
+
 .mobile-nav-link:hover,
 .mobile-nav-link.active {
   background-color: #f5f5f5;
@@ -216,7 +222,7 @@
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 1000px) {
   .desktop-only {
     display: none;
   }
@@ -231,6 +237,26 @@
   
   .logo {
     height: 40px;
+  }
+  
+  .nav-menu {
+    display: none;
+  }
+  
+  /* 確保在1000px以下時手機菜單可以正確顯示 */
+  .mobile-menu.open {
+    display: block;
+  }
+}
+
+/* 原有的768px媒體查詢保留用於更小屏幕的特定調整 */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 10px;
+  }
+  
+  .logo {
+    height: 35px;
   }
 }
 

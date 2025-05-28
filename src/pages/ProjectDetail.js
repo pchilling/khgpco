@@ -9,7 +9,7 @@ import {
 } from 'react-icons/fi';
 import '../styles/ProjectDetail.css';
 import { API_BASE_URL } from '../utils/api';
-import { getImageUrl } from '../utils/imageUtils';
+import { getImageUrl, getAllImageUrls, PLACEHOLDER_IMAGE } from '../utils/imageUtils';
 import placeholderImage from '../assets/placeholder.jpg';
 import CompanyInfo from '../components/CompanyInfo';
 
@@ -668,9 +668,9 @@ const ProjectDetail = () => {
                 
                 // Process images
                 if (data.data?.attributes?.projectMedia?.data) {
-                    const processedImages = data.data.attributes.projectMedia.data.map(
-                        media => getImageUrl({ data: [media] })
-                    );
+                    console.log('處理項目圖片：', data.data.attributes.projectMedia.data);
+                    const processedImages = getAllImageUrls(data.data.attributes.projectMedia);
+                    console.log('處理後的圖片數組：', processedImages);
                     setImages(processedImages);
                 }
                 
@@ -883,7 +883,7 @@ const ProjectDetail = () => {
                                                     <div className="unit-type-header">
                                                         <h5>{unit.type_name}</h5>
                                                         <div className="unit-specs">
-                                                            <span className="area">{unit.area} m²</span>
+                                                            <span className="area">{unit.area} sf</span>
                                                             <span className="room-type">{unit.roomtype}</span>
                                                         </div>
                                                     </div>

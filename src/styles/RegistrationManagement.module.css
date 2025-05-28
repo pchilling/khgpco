@@ -1,0 +1,62 @@
+.registrationManagement {
+  padding: 24px;
+}
+
+.registrationManagement :global(.ant-card) {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.registrationManagement :global(.ant-table-wrapper) {
+  background: white;
+  border-radius: 8px;
+}
+
+.registrationManagement :global(.ant-card-head) {
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 0;
+}
+
+.registrationManagement :global(.ant-card-head-title) {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.registrationManagement :global(.ant-table) {
+  margin: 16px 0;
+}
+
+/* 確保操作欄位內容不溢出 */
+.registrationManagement :global(.ant-table-cell) {
+  vertical-align: middle;
+  padding: 8px;
+}
+
+.registrationManagement :global(.ant-table-cell:last-child) {
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+/* 讓按鈕更緊湊 */
+.registrationManagement :global(.ant-btn) {
+  padding: 0 8px;
+  height: 28px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* 確保表格內容響應式 */
+@media (max-width: 768px) {
+  .registrationManagement {
+    padding: 16px;
+  }
+  
+  .registrationManagement :global(.ant-table-cell) {
+    padding: 6px 4px;
+  }
+  
+  .registrationManagement :global(.ant-btn) {
+    padding: 0 6px;
+    height: 24px;
+    font-size: 12px;
+  }
+} 

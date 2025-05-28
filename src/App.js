@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import About from './pages/About';
@@ -27,6 +27,13 @@ import RegistrationManagement from './pages/crm/admin/RegistrationManagement';
 import CustomerManagement from './pages/crm/admin/CustomerManagement';
 import SalesStaffManagement from './pages/crm/admin/SalesStaffManagement';
 import SalesAnalytics from './pages/crm/admin/SalesAnalytics';
+import MyCustomers from './pages/crm/dashboard/MyCustomers';
+import InteractionManagement from './pages/crm/admin/InteractionManagement';
+import ContactMessages from './pages/crm/admin/ContactMessages';
+import PerformanceDashboard from './pages/crm/admin/PerformanceDashboard';
+
+// 添加互動記錄組件的引入
+import Interactions from './pages/crm/dashboard/Interactions';
 
 // 創建一個 ScrollToTop 組件，確保每次頁面切換時滾動到頂部
 function ScrollToTop() {
@@ -94,8 +101,11 @@ function App() {
                         <Route path="overview" element={<Overview />} />
                         <Route path="registrations" element={<RegistrationManagement />} />
                         <Route path="customers" element={<CustomerManagement />} />
+                        <Route path="interactions" element={<InteractionManagement />} />
+                        <Route path="contact-messages" element={<ContactMessages />} />
                         <Route path="staff-management" element={<SalesStaffManagement />} />
                         <Route path="sales-data" element={<SalesAnalytics />} />
+                        <Route path="performance" element={<Navigate to="/crm/admin/overview" replace />} />
                     </Route>
 
                     {/* 銷售人員路由 */}
@@ -114,6 +124,8 @@ function App() {
                             </div>
                         } />
                         <Route path="profile" element={<Profile />} />
+                        <Route path="my-customers" element={<MyCustomers />} />
+                        <Route path="interactions" element={<Interactions />} />
                     </Route>
 
                     {/* 主網站路由 */}

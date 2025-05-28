@@ -482,4 +482,145 @@
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* 400px 左右的移動裝置 - 針對 402*874 尺寸優化 */
+@media (max-width: 420px) {
+    .contact-section {
+        padding: 40px 0 0;
+    }
+    
+    .contact-container {
+        padding: 0 15px;
+    }
+    
+    .contact-left, 
+    .contact-right {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .contact-left h1 {
+        font-size: 2.2rem;
+        margin-bottom: 25px;
+        text-align: center;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .contact-section .form-group input,
+    .contact-section .form-group textarea,
+    .contact-section .phone-group select {
+        padding: 10px 12px;
+        font-size: 0.95rem;
+    }
+    
+    .contact-section .phone-group {
+        gap: 10px;
+    }
+    
+    .contact-section .phone-group select {
+        width: 110px;
+    }
+    
+    .contact-section .form-group textarea {
+        height: 100px;
+    }
+    
+    .contact-section .submit-btn {
+        padding: 12px;
+        margin-top: 15px;
+        margin-bottom: 25px;
+    }
+    
+    .address-info {
+        margin-top: 40px;
+        margin-bottom: 20px;
+    }
+    
+    .address-info p {
+        font-size: 0.95rem;
+        margin-bottom: 15px;
+        gap: 10px;
+    }
+    
+    .social-links {
+        justify-content: center;
+    }
+    
+    .social-icon img {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .disclaimer-container {
+        margin: 30px auto 20px;
+        padding: 10px;
+    }
+    
+    .main-disclaimer {
+        font-size: 0.75rem;
+    }
+}
+
+/* 針對 500-850px 中等屏幕的設備，保持與桌面版相同的排版設計 */
+@media (min-width: 500px) and (max-width: 850px) {
+    .contact-section {
+        padding: 60px 0 0;
+    }
+    
+    .contact-container {
+        max-width: 1200px;
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 0;
+        padding: 0 40px;
+    }
+    
+    .contact-left {
+        grid-column: 2 / 6;
+        padding-right: 40px;
+    }
+    
+    .contact-left h1 {
+        font-size: 4.5rem;
+        text-align: left;
+        margin-bottom: 50px;
+    }
+    
+    .contact-right {
+        grid-column: 7 / 12;
+    }
+    
+    .address-info {
+        margin-top: 140px;
+        margin-bottom: 30px;
+    }
+    
+    .address-info p {
+        font-size: 1.1rem;
+        margin-bottom: 20px;
+        gap: 15px;
+    }
+    
+    .social-links {
+        display: flex;
+        gap: 20px;
+    }
+    
+    .social-icon img {
+        width: 45px;
+        height: 45px;
+    }
+    
+    .disclaimer-container {
+        margin: 60px auto 50px;
+        padding: 15px 20px;
+    }
+    
+    .main-disclaimer {
+        font-size: 0.85rem;
+    }
 } 

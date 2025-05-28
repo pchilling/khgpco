@@ -41,7 +41,7 @@
 }
 
 .hero-text-large {
-    font-size: 9rem;  /* 更大的夢想字體 */
+    font-size: 9rem;  /* 基本大小 */
     font-weight: bold;
     margin: 0;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
@@ -96,16 +96,10 @@
     }
 }
 
-/* 修改發光效果為白色 */
+/* 修改發光效果為白色，移除閃爍效果，使用固定陰影 */
 @keyframes glowing {
-    0% {
-        text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
-    }
-    50% {
-        text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
-    }
-    100% {
-        text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    0%, 50%, 100% {
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
     }
 }
 
@@ -264,7 +258,7 @@
 }
 
 /* Media Queries for Tablets and Mobile */
-@media screen and (max-width: 845px) {
+@media screen and (max-width: 499px) {
   /* Navbar adjustments */
   .navbar {
     padding: 1rem;
@@ -300,7 +294,7 @@
 }
 
 /* For Mobile Phones */
-@media screen and (max-width: 845px) {
+@media screen and (max-width: 499px) {
   /* Navbar mobile styles */
   .navbar {
     padding: 0.8rem;
@@ -380,13 +374,13 @@
   }
 }
 
-@media screen and (max-width: 930px) {
+@media screen and (max-width: 499px) {
     .home-hero {
         padding-left: 5%;  /* 在較小螢幕上減少左邊距 */
     }
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 499px) {
     .hero-section {
         min-height: calc(100vh - 5.5rem);  /* 確保最小高度 */
         height: auto;  /* 允許內容決定高度 */
@@ -411,17 +405,8 @@
     }
 }
 
-/* 確保其他部分不會被 navbar 遮擋 */
-.mission-section,
-.about-section,
-.services-section {
-    position: relative;
-    z-index: 1;
-    padding: 80px 0;
-}
-
 /* 響應式設計 */
-@media (max-width: 768px) {
+@media (max-width: 499px) {
     .home-hero {
         padding-left: 20px;  /* 在手機上使用更小的左邊距 */
     }
@@ -439,41 +424,8 @@
     }
 } 
 
-/* 統一所有區塊的基本樣式 */
-.mission-section,
-.partners-section,
-.disclaimer-section {
-    padding: 40px 0; /* 統一上下間距 */
-    margin: 0; /* 移除所有 margin */
-    background-color: #fff;
-    border: none; /* 確保沒有邊框 */
-}
-
-/* Partners 區塊樣式調整 */
-.partners-section {
-    padding: 40px 0; /* 與其他區塊統一 */
-}
-
-/* 免責聲明區塊樣式 */
-.disclaimer-section {
-    padding: 40px 0; /* 與其他區塊統一 */
-}
-
-.disclaimer-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px; /* 只保留左右 padding */
-}
-
-/* 移除所有可能造成額外間距的樣式 */
-.partners-section + .disclaimer-section,
-.mission-section + .partners-section {
-    margin-top: 0;
-    padding-top: 40px;
-}
-
 /* 響應式設計調整 */
-@media (max-width: 768px) {
+@media (max-width: 499px) {
     .mission-section,
     .partners-section,
     .disclaimer-section {
@@ -489,111 +441,40 @@
     }
 }
 
-.disclaimer-section h3 {
-    text-align: center;
-    font-size: 2.5rem;
-    color: #1B3C35;
-    margin: 20px 0 40px;
-    font-weight: 600;
-    position: relative;
-    display: inline-block;
-    left: 50%;
-    transform: translateX(-50%);
-}
-
-/* 移除之前的分隔線效果 */
-.disclaimer-section h3::after {
-    display: none;
-}
-
-/* 確保內容區域沒有額外的邊框或背景 */
-.disclaimer-content {
-    color: #666;
-    line-height: 1.8;
-    padding: 0;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-}
-
-.main-disclaimer {
-    font-size: 0.95rem;
-    margin-bottom: 25px;
-    text-align: justify;
-    letter-spacing: 0.5px;
-}
-
-.risk-warnings {
-    margin-top: 30px;
-    padding-top: 25px;
-    border-top: 1px solid rgba(43, 92, 75, 0.1);  /* 使用主色調但透明度降低 */
-}
-
-.risk-warnings p {
-    font-size: 0.95rem;
-    margin-bottom: 15px;
-    padding-left: 25px;
-    position: relative;
-    line-height: 1.6;
-}
-
-/* 添加項目符號樣式 */
-.risk-warnings p::before {
-    content: '●';
-    position: absolute;
-    left: 0;
-    color: #2B5C4B;
-    opacity: 0.7;
-}
-
 /* 響應式設計 */
-@media (max-width: 768px) {
-    .disclaimer-section {
-        margin-top: -30px;
-    }
-
-    .disclaimer-container {
-        padding: 0 15px 40px;
-    }
-
-    .disclaimer-section h3 {
+@media (max-width: 499px) {
+    .mission-title,
+    .partners-title,
+    .disclaimer-section h3,
+    .contact-left h2 {
         font-size: 2rem;
         margin-bottom: 30px;
-    }
-
-    .disclaimer-content {
-        padding: 0 15px;
-    }
-
-    .main-disclaimer,
-    .risk-warnings p {
-        font-size: 0.9rem;
-        letter-spacing: 0.3px;
     }
 }
 
 @media (max-width: 480px) {
-    .disclaimer-section {
-        margin-top: -20px;
-    }
-
-    .disclaimer-container {
-        padding: 0 10px 30px;
-    }
-
-    .disclaimer-section h3 {
+    .mission-title,
+    .partners-title,
+    .disclaimer-section h3,
+    .contact-left h2 {
         font-size: 1.8rem;
         margin-bottom: 25px;
     }
+}
 
-    .disclaimer-content {
-        padding: 0 10px;
+@media (max-width: 499px) {
+    .partners-section + .contact-section {
+        margin-top: 0 !important;
+        padding-top: 40px;
+        border-top: none;
     }
+}
 
-    .main-disclaimer,
-    .risk-warnings p {
-        font-size: 0.85rem;
-        letter-spacing: 0.2px;
+@media (max-width: 480px) {
+    .partners-section + .contact-section {
+        margin-top: 0 !important;
+        padding-top: 30px;
+        border-top: none;
     }
 }
 
@@ -738,4 +619,422 @@ body {
 .contact-section {
     margin-top: 0 !important;
     border-top: none !important;
+}
+
+/* 針對 402*874 尺寸的中小型手機設備優化 */
+@media screen and (max-width: 420px) {
+  /* 調整整體布局和間距 */
+  .home-container {
+    width: 100%;
+    overflow-x: hidden;
+  }
+  
+  /* 英雄部分調整 */
+  .hero-text-group {
+    display: flex;
+    flex-direction: column; /* 改為縱向排列 */
+    align-items: flex-start; /* 左對齊 */
+    gap: 5px; /* 減少間距 */
+  }
+  
+  /* 調整主標題 */
+  .hero-text-large {
+    font-size: 3.5rem;
+    font-weight: 800; /* 加粗 */
+    letter-spacing: 1px; /* 增加字間距 */
+    text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.7); /* 增強陰影 */
+  }
+  
+  /* 調整副標題 */
+  .hero-text-small {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.1;
+    text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.7);
+  }
+  
+  /* 調整說明文字 */
+  .hero-subtitle {
+    font-size: 2rem;
+    margin: 5px 0 0;
+    padding: 2px 5px;
+    background: linear-gradient(45deg, rgba(255,255,255,0.8), rgba(255,255,255,1));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+  }
+  
+  /* 調整右側文字排列 */
+  .hero-text-right {
+    gap: 5px;
+  }
+  
+  /* 調整英雄區邊距 */
+  .home-hero {
+    padding-left: 10px;
+  }
+  
+  /* 使命部分調整 */
+  .mission-section {
+    padding: 2rem 0.8rem;
+  }
+  
+  .mission-content {
+    padding: 1.2rem;
+  }
+  
+  .mission-title {
+    font-size: 1.6rem;
+    margin-bottom: 1.2rem;
+  }
+  
+  .mission-text {
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+  
+  /* 合作夥伴部分調整 */
+  .partners-section {
+    padding: 30px 0 10px;
+  }
+  
+  .partners-container {
+    padding: 0 15px;
+  }
+  
+  .partners-section h2 {
+    font-size: 1.8rem;
+  }
+  
+  /* 免責聲明部分調整 */
+  .disclaimer-section {
+    padding: 20px 0;
+  }
+  
+  .disclaimer-section h3 {
+    font-size: 1.8rem;
+    margin: 10px 0 20px;
+  }
+  
+  .disclaimer-content {
+    padding: 10px;
+  }
+}
+
+/* 手機版標題樣式 */
+@media screen and (max-width: 768px) {
+    .hero-text-group {
+        gap: 5px;
+    }
+    
+    .hero-text-large {
+        font-size: 20rem;
+        letter-spacing: 1px;
+    }
+    
+    .hero-text-small {
+        font-size: 3.5rem;
+        letter-spacing: 0.5px;
+    }
+    
+    .hero-subtitle {
+        font-size: 2.5rem;
+    }
+}
+
+/* 小型手機標題樣式 */
+@media screen and (max-width: 420px) {
+    .hero-text-large {
+        font-size: 9rem;
+        letter-spacing: 0.5px;
+    }
+    
+    .hero-text-small {
+        font-size: 2.5rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 2rem;
+        margin-top: 5px;
+    }
+}
+
+/* 針對 500-850px 中等屏幕的設備，保持與桌面版相同的排版設計 */
+@media screen and (min-width: 500px) and (max-width: 850px) {
+  /* 保持與桌面版相同的標題大小和排列 */
+  .hero-text-group {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+  }
+  
+  .hero-text-large {
+    font-size: 9rem;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  }
+  
+  .hero-text-right {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    justify-content: center;
+  }
+  
+  .hero-text-small {
+    font-size: 3.5rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  }
+  
+  .hero-subtitle {
+    font-size: 3rem;
+    padding: 5px 15px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* 其他元素也保持桌面版樣式 */
+  .mission-section {
+    padding: 80px 10%;
+  }
+  
+  .mission-title {
+    font-size: 3rem;
+  }
+  
+  .mission-text {
+    font-size: 1.5rem;
+  }
+}
+
+/* 確保其他部分不會被 navbar 遮擋 */
+.mission-section,
+.about-section,
+.services-section {
+    position: relative;
+    z-index: 1;
+    padding: 80px 0;
+}
+
+/* 統一所有區塊的基本樣式 */
+.mission-section,
+.partners-section,
+.disclaimer-section {
+    padding: 40px 0; /* 統一上下間距 */
+    margin: 0; /* 移除所有 margin */
+    background-color: #fff;
+    border: none; /* 確保沒有邊框 */
+}
+
+/* Partners 區塊樣式調整 */
+.partners-section {
+    padding: 40px 0; /* 與其他區塊統一 */
+}
+
+/* 免責聲明區塊樣式 */
+.disclaimer-section {
+    padding: 40px 0; /* 與其他區塊統一 */
+}
+
+.disclaimer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px; /* 只保留左右 padding */
+}
+
+/* 移除所有可能造成額外間距的樣式 */
+.partners-section + .disclaimer-section,
+.mission-section + .partners-section {
+    margin-top: 0;
+    padding-top: 40px;
+}
+
+/* 修改手機版媒體查詢 */
+@media screen and (max-width: 499px) {
+  /* 手機版標題樣式 */
+  .hero-text-group {
+    display: flex;
+    flex-direction: column; /* 改為縱向排列 */
+    align-items: flex-start; /* 左對齊 */
+    gap: 5px; /* 減少間距 */
+  }
+}
+
+/* 保持大屏幕樣式，但在650px以下修改 */
+@media screen and (max-width: 650px) {
+    /* 調整標題間距和排版，保持原始水平布局但調整大小 */
+    .hero-text-group {
+        display: flex;
+        flex-direction: row; /* 保持水平排列 */
+        align-items: center;
+        gap: 15px; /* 減少間距 */
+    }
+    
+    .hero-text-large {
+        font-size: 5rem; /* 適當減小 */
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    
+    .hero-text-small {
+        font-size: 2.5rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 2rem;
+    }
+}
+
+/* 小型手機特別考慮 */
+@media screen and (max-width: 480px) {
+    /* 極小屏幕才換成垂直排列 */
+    .hero-text-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .hero-text-large {
+        font-size: 4rem;
+    }
+    
+    .hero-text-small {
+        font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.8rem;
+        padding: 2px 10px;
+    }
+}
+
+/* 移除之前添加的彩虹文字效果，避免閃爍問題 */
+@media screen and (max-width: 420px) {
+    .hero-subtitle {
+        background: none;
+        -webkit-background-clip: initial;
+        -webkit-text-fill-color: white;
+        background-clip: initial;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* 完全重新設計1000px以下的樣式 */
+@media (max-width: 1000px) {
+    .home-hero {
+        padding: 0 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-position: center;
+    }
+    
+    .hero-content {
+        max-width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+    
+    .hero-text-group {
+        flex-direction: row;
+        align-items: flex-end;
+        gap: 15px;
+    }
+    
+    .hero-text-large {
+        font-size: 6rem;
+        line-height: 0.9;
+        font-weight: 800;
+        text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.6);
+    }
+    
+    .hero-text-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .hero-text-small {
+        font-size: 2.5rem;
+        font-weight: 700;
+        line-height: 1;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+    }
+    
+    .hero-subtitle {
+        font-size: 2rem;
+        padding: 3px 0;
+        line-height: 1;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+    }
+    
+    /* 加強背景效果 */
+    .home-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+            to right,
+            rgba(0, 0, 0, 0.6),
+            rgba(0, 0, 0, 0.4)
+        );
+        z-index: 1;
+    }
+}
+
+/* 平板尺寸調整 */
+@media (max-width: 768px) {
+    .hero-text-large {
+        font-size: 5rem;
+    }
+    
+    .hero-text-small {
+        font-size: 2.2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.8rem;
+    }
+}
+
+/* 手機尺寸調整 */
+@media (max-width: 480px) {
+    .hero-text-group {
+        gap: 10px;
+    }
+    
+    .hero-text-large {
+        font-size: 4.5rem;
+    }
+    
+    .hero-text-small {
+        font-size: 1.8rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.5rem;
+    }
+}
+
+/* 小型手機調整 */
+@media (max-width: 380px) {
+    .hero-text-group {
+        gap: 8px;
+    }
+    
+    .hero-text-large {
+        font-size: 4rem;
+    }
+    
+    .hero-text-small {
+        font-size: 1.5rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.2rem;
+    }
 }

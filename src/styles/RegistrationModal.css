@@ -205,4 +205,95 @@
     .submit-button {
         width: 100%;
     }
+}
+
+/* 成功確認窗口樣式 */
+.success-confirmation {
+    text-align: center;
+    padding: 10px 0;
+}
+
+.success-confirmation p {
+    margin-bottom: 12px;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+.success-confirmation p:first-child {
+    font-size: 18px;
+    font-weight: 600;
+    color: #52c41a;
+}
+
+/* 確保 ant-modal-confirm-body 內的內容居中 */
+:global(.ant-modal-confirm-body) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 表單底部按鈕區域 */
+.form-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+/* 成功報名視窗樣式 */
+.success-modal .ant-modal-content {
+    padding: 24px;
+    text-align: center;
+}
+
+.success-confirmation {
+    text-align: center;
+    padding: 10px 0;
+}
+
+.success-confirmation p {
+    margin-bottom: 12px;
+    font-size: 16px;
+    line-height: 1.5;
+    color: rgba(0, 0, 0, 0.65);
+}
+
+/* 調整 Result 組件樣式 */
+.success-modal .ant-result {
+    padding: 24px 0 0 0;
+}
+
+.success-modal .ant-result-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #52c41a;
+}
+
+.success-modal .ant-result-subtitle {
+    font-size: 18px;
+    color: rgba(0, 0, 0, 0.85);
+    margin-top: 8px;
+    margin-bottom: 16px;
+}
+
+/* 確保 ant-modal-confirm-body 內的內容居中 */
+:global(.ant-modal-confirm-body) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 響應式調整 */
+@media (max-width: 480px) {
+    .success-modal .ant-result-title {
+        font-size: 20px;
+    }
+    
+    .success-modal .ant-result-subtitle {
+        font-size: 16px;
+    }
+    
+    .success-confirmation p {
+        font-size: 14px;
+    }
 } 

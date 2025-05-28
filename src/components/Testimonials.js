@@ -4,7 +4,7 @@ import '../styles/Testimonials.css';
 
 // 導入客戶頭像圖片
 import mswangAvatar from '../assets/mswang.jpg';
-import mrleeAvatar from '../assets/mrlee.jpg';
+import mrleeAvatar from '../assets/mrlee.png';
 import mschangAvatar from '../assets/mschang.jpg';
 
 const Testimonials = () => {
