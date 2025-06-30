@@ -13,6 +13,7 @@ import { API_BASE_URL } from '../utils/api';
 import { getImageUrl, getAllImageUrls, PLACEHOLDER_IMAGE } from '../utils/imageUtils';
 import placeholderImage from '../assets/placeholder.jpg';
 import CompanyInfo from '../components/CompanyInfo';
+import ImageSlider from '../components/ImageSlider';
 
 // Loading Skeleton Component
 const LoadingSkeleton = () => (
@@ -816,10 +817,45 @@ const ProjectDetail = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
         >
-            <ProjectHero 
-                project={project} 
-                images={images} 
-            />
+            {/* 圖片區域 - 類似 EventDetail */}
+            <div className="project-image-area">
+                {images.length > 0 ? (
+                    <ImageSlider 
+                        images={images} 
+                        fullWidth={true} 
+                    />
+                ) : (
+                    <img 
+                        src={placeholderImage}
+                        alt={attributes.name}
+                        loading="lazy"
+                        className="full-width-image"
+                    />
+                )}
+            </div>
+
+            {/* 標題區域 */}
+            <div className="project-header-area">
+                <div className="project-header-content">
+                    <motion.h1 
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="project-title"
+                    >
+                        {attributes.name}
+                    </motion.h1>
+                    <motion.div 
+                        className="project-location"
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.3 }}
+                    >
+                        <FiMapPin className="location-icon" />
+                        <span>{attributes.location?.address}</span>
+                    </motion.div>
+                </div>
+            </div>
 
             <QuickNav activeSection={activeSection} setActiveSection={setActiveSection} />
 
