@@ -51,13 +51,25 @@ const Navbar = () => {
   useEffect(() => {
     // 只有在路徑變化，且不是跳轉到包含 'contact-section' 的路徑時才滾動到頂部
     if (!location.hash.includes('contact-section')) {
-      // 使用 setTimeout 確保在頁面渲染後執行滾動
+      // 立即執行滾動
+      window.scrollTo(0, 0);
+      
+      // 使用多個 setTimeout 確保在不同階段都執行滾動
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+      }, 10);
+      
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+      }, 100);
+      
+      // 最後一次確保滾動到頂部
       setTimeout(() => {
         window.scrollTo({
           top: 0,
-          behavior: 'instant' // 使用 'instant' 而不是 'smooth'，避免用戶看到滾動過程
+          behavior: 'instant'
         });
-      }, 0);
+      }, 300);
     }
   }, [location.pathname, location.hash]);
 
@@ -86,13 +98,47 @@ const Navbar = () => {
 
   // 處理導航點擊，確保總是回到頁面頂部
   const handleNavClick = () => {
-    // 延遲執行滾動，確保在頁面切換後執行
-    setTimeout(() => {
+    console.log('Navigation clicked, scrolling to top');
+    
+    // 強制滾動到頂部的函數
+    const forceScrollToTop = () => {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
       window.scrollTo({
         top: 0,
+        left: 0,
         behavior: 'instant'
       });
-    }, 0);
+    };
+    
+    // 立即滾動到頂部
+    forceScrollToTop();
+    
+    // 使用多次滾動確保成功，增加更多延遲階段
+    setTimeout(() => {
+      console.log('First delayed scroll');
+      forceScrollToTop();
+    }, 10);
+    
+    setTimeout(() => {
+      console.log('Second delayed scroll');
+      forceScrollToTop();
+    }, 50);
+    
+    setTimeout(() => {
+      console.log('Third delayed scroll');
+      forceScrollToTop();
+    }, 100);
+    
+    setTimeout(() => {
+      console.log('Fourth delayed scroll');
+      forceScrollToTop();
+    }, 200);
+    
+    setTimeout(() => {
+      console.log('Final delayed scroll');
+      forceScrollToTop();
+    }, 500);
     
     // 如果是移動端，點擊後關閉菜單
     if (windowWidth <= 768) {

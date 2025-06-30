@@ -1779,3 +1779,654 @@
         padding: 0 15px;
     }
 }
+
+/* ========================= */
+/* 完整的移動端響應式設計 */
+/* ========================= */
+
+/* 移動端: 768px 以下 */
+@media (max-width: 768px) {
+    /* 主頁面佈局 */
+    .project-detail-page {
+        padding: calc(var(--navbar-height) + 10px) 10px 0 10px;
+        max-width: 100%;
+    }
+
+    /* Project Hero 移動端優化 */
+    .project-hero {
+        margin-bottom: 16px;
+    }
+
+    .main-gallery .gallery-main-image {
+        height: 250px;
+        border-radius: 8px;
+        position: relative;
+        overflow: hidden;
+        cursor: grab;
+        user-select: none;
+    }
+
+    .main-gallery .gallery-main-image:active {
+        cursor: grabbing;
+    }
+
+    /* 添加滑動提示 */
+    .main-gallery .gallery-main-image::after {
+        content: '← 滑動查看 →';
+        position: absolute;
+        bottom: 40px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.6);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 11px;
+        opacity: 0;
+        animation: swipeHint 3s ease-in-out 1s;
+        pointer-events: none;
+    }
+
+    @keyframes swipeHint {
+        0%, 90% { opacity: 0; }
+        10%, 80% { opacity: 1; }
+    }
+
+    .hero-overlay {
+        padding: 16px;
+        background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.3)) !important;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        color: white;
+    }
+
+    .hero-overlay h1 {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+        line-height: 1.3;
+        color: white;
+    }
+
+    .hero-location {
+        font-size: 14px;
+        opacity: 0.9;
+        color: rgba(255,255,255,0.9);
+    }
+
+    .image-counter {
+        font-size: 12px;
+        padding: 4px 8px;
+        bottom: 8px;
+        right: 8px;
+    }
+
+    .gallery-controls {
+        opacity: 0.8;
+    }
+
+    .gallery-control {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+
+    /* Quick Navigation 移動端優化 */
+    .quick-nav {
+        position: sticky;
+        top: var(--navbar-height);
+        padding: 12px 0;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .quick-nav-container {
+        padding: 0 15px;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .quick-nav-list {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 8px;
+        padding-bottom: 8px;
+    }
+
+    .quick-nav-item {
+        padding: 6px 12px;
+        font-size: 14px;
+        min-width: auto;
+        flex-shrink: 0;
+    }
+
+    .quick-nav-item svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .share-buttons {
+        margin-left: 0;
+        align-self: flex-end;
+    }
+
+    .share-button {
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+
+    .share-button svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    /* 內容區塊移動端優化 */
+    .project-content {
+        padding: 0;
+    }
+
+    .basic-info-section,
+    .location-section,
+    .buildings-section,
+    .features-section {
+        margin-bottom: 20px;
+        padding: 16px;
+        border-radius: 8px;
+        scroll-margin-top: 140px; /* 調整滾動偏移 */
+    }
+
+    /* 區塊標題 */
+    .section-title {
+        font-size: 18px;
+        margin-bottom: 16px;
+        gap: 8px;
+    }
+
+    .section-title svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* 基本資訊區塊 */
+    .info-table {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .info-group {
+        border-radius: 6px;
+    }
+
+    .info-row {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .info-label {
+        width: 100%;
+        font-size: 14px;
+        font-weight: 600;
+        gap: 8px;
+    }
+
+    .info-label svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .info-value {
+        padding-left: 0;
+        font-size: 14px;
+        color: #555;
+    }
+
+    .info-value.price-value {
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    /* 位置資訊移動端 */
+    .location-info {
+        gap: 16px;
+    }
+
+    .location-address {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .location-icon {
+        width: 18px;
+        height: 18px;
+    }
+
+    .address-text {
+        font-size: 15px;
+        line-height: 1.4;
+    }
+
+    .location-details {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .detail-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 6px;
+    }
+
+    .detail-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #666;
+    }
+
+    .detail-value {
+        font-size: 14px;
+        color: #333;
+    }
+
+    /* 建築資訊移動端 */
+    .building-cards {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .building-card {
+        padding: 16px;
+        border-radius: 8px;
+    }
+
+    .building-header {
+        margin-bottom: 12px;
+    }
+
+    .building-name {
+        font-size: 16px;
+        margin-bottom: 8px;
+    }
+
+    .building-specs span {
+        font-size: 13px;
+        padding: 4px 8px;
+    }
+
+    .building-content {
+        margin-bottom: 16px;
+    }
+
+    .building-image {
+        height: 180px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+    }
+
+    /* Unit Types 移動端 */
+    .building-unit-types {
+        margin-top: 16px;
+    }
+
+    .unit-types-title {
+        font-size: 16px;
+        margin-bottom: 12px;
+    }
+
+    .unit-types-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .unit-type-item {
+        padding: 14px;
+        border-radius: 6px;
+    }
+
+    .unit-type-header h5 {
+        font-size: 15px;
+        margin-bottom: 8px;
+    }
+
+    .unit-specs {
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .unit-specs .area,
+    .unit-specs .room-type {
+        font-size: 12px;
+        padding: 3px 6px;
+    }
+
+    .unit-description {
+        font-size: 13px;
+        line-height: 1.4;
+        margin-bottom: 12px;
+    }
+
+    .unit-layout {
+        height: 160px;
+        margin-bottom: 12px;
+    }
+
+    .unit-layout img {
+        border-radius: 4px;
+    }
+
+    .unit-price {
+        gap: 8px;
+    }
+
+    .price-label {
+        font-size: 12px;
+    }
+
+    .price-value {
+        font-size: 14px;
+    }
+
+    /* 特色區塊移動端 */
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .feature-category {
+        padding: 16px;
+        border-radius: 8px;
+    }
+
+    .feature-category-title {
+        font-size: 16px;
+        margin-bottom: 12px;
+        gap: 8px;
+    }
+
+    .feature-category-title svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .feature-tags {
+        gap: 8px;
+    }
+
+    .feature-tag {
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 4px;
+    }
+
+    /* 圖片庫移動端優化 */
+    .project-gallery-section {
+        margin-bottom: 20px;
+    }
+
+    .gallery-main-image {
+        height: 220px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+    }
+
+    .gallery-thumbnails {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        max-height: 80px;
+        overflow-y: hidden;
+    }
+
+    .gallery-thumbnail {
+        height: 60px;
+        border-radius: 4px;
+    }
+
+    /* 全螢幕圖片庫移動端 */
+    .fullscreen-gallery {
+        padding: 0;
+    }
+
+    .close-fullscreen {
+        top: 10px;
+        right: 10px;
+        width: 36px;
+        height: 36px;
+    }
+
+    .fullscreen-image {
+        height: 70vh;
+        margin: 60px 10px 20px 10px;
+    }
+
+    .fullscreen-controls {
+        padding: 12px;
+        gap: 16px;
+    }
+
+    .fullscreen-controls button {
+        width: 36px;
+        height: 36px;
+    }
+
+    .fullscreen-counter {
+        font-size: 14px;
+    }
+
+    .fullscreen-thumbnails {
+        height: 60px;
+        padding: 0 10px 10px 10px;
+        gap: 8px;
+    }
+
+    .fullscreen-thumbnails .thumbnail {
+        min-width: 50px;
+        height: 50px;
+        border-radius: 4px;
+    }
+
+    /* Loading Skeleton 移動端 */
+    .loading-skeleton {
+        padding: 15px;
+    }
+
+    .hero-skeleton {
+        height: 250px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+    }
+
+    .skeleton-content {
+        padding: 0;
+    }
+
+    .skeleton-item.title {
+        height: 20px;
+        margin-bottom: 8px;
+    }
+
+    .skeleton-item.text {
+        height: 14px;
+        margin-bottom: 6px;
+    }
+
+    .skeleton-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-top: 16px;
+    }
+
+    .skeleton-card {
+        height: 120px;
+        border-radius: 6px;
+    }
+
+    /* 錯誤頁面移動端 */
+    .error-container {
+        padding: 40px 20px;
+    }
+
+    .error-message h2 {
+        font-size: 1.5rem;
+        margin-bottom: 12px;
+    }
+
+    .error-message p {
+        font-size: 14px;
+    }
+}
+
+/* 小螢幕移動端: 480px 以下 */
+@media (max-width: 480px) {
+    .project-detail-page {
+        padding: calc(var(--navbar-height) + 8px) 8px 0 8px;
+    }
+
+    /* Hero 區塊極小螢幕優化 */
+    .main-gallery .gallery-main-image {
+        height: 200px;
+    }
+
+    .hero-overlay {
+        padding: 12px;
+        background: linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.35)) !important;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        color: white;
+    }
+
+    .hero-overlay h1 {
+        font-size: 1.3rem;
+        color: white;
+    }
+
+    .hero-location {
+        font-size: 13px;
+        color: rgba(255,255,255,0.9);
+    }
+
+    /* Quick Nav 極小螢幕 */
+    .quick-nav {
+        padding: 8px 0;
+    }
+
+    .quick-nav-container {
+        padding: 0 10px;
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .quick-nav-list {
+        flex: 1;
+        justify-content: space-between;
+        gap: 4px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .quick-nav-item {
+        padding: 6px 8px;
+        font-size: 11px;
+        min-width: 60px;
+        flex-direction: column;
+        text-align: center;
+        gap: 2px;
+    }
+
+    .quick-nav-item svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .quick-nav-item span {
+        display: block;
+        font-size: 10px;
+        line-height: 1.1;
+        white-space: nowrap;
+    }
+
+    .share-buttons {
+        margin-left: 8px;
+        display: flex;
+        align-items: center;
+    }
+
+    .share-button {
+        padding: 6px 8px;
+        font-size: 11px;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 60px;
+        text-align: center;
+        height: auto;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .share-button svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .share-button span {
+        display: block;
+        font-size: 10px;
+        line-height: 1.1;
+        white-space: nowrap;
+    }
+
+    /* 內容區塊極小螢幕 */
+    .basic-info-section,
+    .location-section,
+    .buildings-section,
+    .features-section {
+        padding: 12px;
+        margin-bottom: 16px;
+        scroll-margin-top: 120px;
+    }
+
+    .section-title {
+        font-size: 16px;
+        margin-bottom: 12px;
+    }
+
+    .info-row {
+        padding: 10px;
+    }
+
+    .info-label {
+        font-size: 13px;
+    }
+
+    .info-value {
+        font-size: 13px;
+    }
+
+    .building-card {
+        padding: 12px;
+    }
+
+    .building-image {
+        height: 150px;
+    }
+
+    .gallery-main-image {
+        height: 180px;
+    }
+
+    .gallery-thumbnails {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .gallery-thumbnail {
+        height: 50px;
+    }
+}

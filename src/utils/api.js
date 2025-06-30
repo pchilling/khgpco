@@ -1,15 +1,10 @@
 import axios from 'axios';
 
 // 新建一個 api.js 文件來集中管理 API URL
-// 使用 Strapi Cloud URL 作為生產環境 API 基礎 URL
-export const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? process.env.REACT_APP_API_BASE_URL || 'https://eloquent-splendor-a265f51ba3.strapiapp.com'  // 使用正確的 Strapi Cloud URL
-  : 'http://localhost:1339';
+// 使用 Strapi Cloud URL 作為基礎 API URL
+export const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://eloquent-splendor-a265f51ba3.strapiapp.com';
 
-// 如果是生產環境，檢查是否有設置環境變量
-if (process.env.NODE_ENV === 'production') {
-  console.log('使用 Strapi Cloud URL:', API_BASE_URL);
-}
+console.log('使用 API URL:', API_BASE_URL);
 
 // 設置請求攔截器
 axios.interceptors.request.use(

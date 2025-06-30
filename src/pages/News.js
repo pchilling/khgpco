@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import '../styles/News.css';
 import { useNavigate } from 'react-router-dom';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl, PLACEHOLDER_IMAGE } from '../utils/imageUtils';
 
 const News = () => {
     const { language } = useLanguage();
+    useScrollToTop(); // 確保頁面載入時滾動到頂部
     const [news, setNews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);

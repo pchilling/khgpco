@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 import '../styles/Projects.css';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl, PLACEHOLDER_IMAGE } from '../utils/imageUtils';
@@ -9,6 +10,7 @@ import { FiSearch, FiFilter, FiX, FiMapPin, FiHome, FiNavigation } from 'react-i
 const Projects = () => {
     const navigate = useNavigate();
     const { language } = useLanguage();
+    useScrollToTop(); // 確保頁面載入時滾動到頂部
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');

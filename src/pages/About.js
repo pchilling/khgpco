@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 import Partners from '../components/Partners';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -19,6 +20,7 @@ import '../styles/About.css';
 
 const About = () => {
     const { language } = useLanguage();
+    useScrollToTop(); // 確保頁面載入時滾動到頂部
 
     const translations = {
         'zh-TW': {

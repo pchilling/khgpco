@@ -871,17 +871,17 @@ body {
     }
     
     .hero-text-large {
-        font-size: 5rem; /* 適當減小 */
+        font-size: 3.2rem;
         font-weight: bold;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     }
     
     .hero-text-small {
-        font-size: 2.5rem;
+        font-size: 1.5rem;
     }
     
     .hero-subtitle {
-        font-size: 2rem;
+        font-size: 1.2rem;
     }
 }
 
@@ -1037,4 +1037,16 @@ body {
     .hero-subtitle {
         font-size: 1.2rem;
     }
+}
+
+@media screen and (max-width: 650px) {
+  html[lang="en"] .hero-text-large {
+    font-size: 3.2rem;
+  }
+  html[lang="en"] .hero-text-small {
+    font-size: 1.5rem;
+  }
+  html[lang="en"] .hero-subtitle {
+    font-size: 1.2rem;
+  }
 }

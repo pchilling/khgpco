@@ -115,8 +115,10 @@ const EventDetail = () => {
     };
 
     const handleRegistrationSuccess = () => {
-        // Refresh the event data to update registration counts
-        fetchEvent();
+        // 延遲 2 秒後再重新獲取活動資料
+        setTimeout(() => {
+            fetchEvent();
+        }, 2000);
     };
 
     const fetchEvent = useCallback(async () => {
@@ -209,6 +211,16 @@ const EventDetail = () => {
     console.log('Event sessions:', sessionData);
     console.log('Event coverImage:', event.attributes.coverImage);
 
+    // 假設 accompaniedCount 取值為 accompanied0 ~ accompanied5
+    const options = [
+        { value: 'accompanied0', label: '0人' },
+        { value: 'accompanied1', label: '1人' },
+        { value: 'accompanied2', label: '2人' },
+        { value: 'accompanied3', label: '3人' },
+        { value: 'accompanied4', label: '4人' },
+        { value: 'accompanied5', label: '5人' },
+    ];
+
     return (
         <div className="event-detail-page">
             {/* 圖片區域移至最頂部並簡化結構 */}
@@ -276,14 +288,12 @@ const EventDetail = () => {
                                     <div key={index} className="session-card">
                                         <div>
                                             <div className="session-time">
-                                                <i className="fas fa-calendar-alt"></i>
                                                 <div className="session-datetime">
                                                     <div className="session-date">{formattedDate}</div>
                                                     <div className="session-time-value">{formattedTime}</div>
                                                 </div>
                                             </div>
                                             <div className="session-location">
-                                                <i className="fas fa-map-marker-alt"></i>
                                                 <div>{locationField}</div>
                                             </div>
                                             <div className="capacity-info">

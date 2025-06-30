@@ -8,8 +8,26 @@
     margin-top: 0;
     position: relative;
     z-index: 2;
+    font-size: 14px; /* 稍微縮小桌面端字體 */
 }
 
 .footer p {
     margin: 0;
+}
+
+/* 移動端優化 */
+@media (max-width: 768px) {
+    .footer {
+        font-size: 12px;
+        padding: 10px 0;
+        letter-spacing: 0.3px;
+    }
+}
+
+@media (max-width: 480px) {
+    .footer {
+        font-size: 11px;
+        padding: 8px 0;
+        letter-spacing: 0.2px;
+    }
 } 

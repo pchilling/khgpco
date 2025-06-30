@@ -36,7 +36,7 @@ const Login = () => {
         if (response.user.role === 'manager') {
           navigate('/crm/admin/dashboard');
         } else {
-          navigate('/crm/dashboard');
+          navigate('/crm/sales');
         }
         
         message.success('登入成功');

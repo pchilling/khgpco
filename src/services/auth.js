@@ -25,33 +25,8 @@ export const loginSalesStaff = async (credentials) => {
     // 生成 token
     const token = `token_${Date.now()}`;
     
-    // 如果是生產環境，嘗試獲取真正的 JWT token
+    // 使用自定義 token（移除有問題的 Strapi JWT 獲取邏輯）
     let jwtToken = token;
-    if (process.env.NODE_ENV === 'production') {
-      try {
-        // 嘗試使用 Strapi 的認證 API 獲取 JWT token
-        const strapiAuthResponse = await fetch(`${API_BASE_URL}/api/auth/local`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            identifier: 'strapi_api_user',  // 使用預設的 API 用戶
-            password: 'strapi_api_password' // 使用預設的 API 密碼
-          })
-        });
-        
-        if (strapiAuthResponse.ok) {
-          const authData = await strapiAuthResponse.json();
-          if (authData.jwt) {
-            jwtToken = authData.jwt;
-          }
-        }
-      } catch (err) {
-        console.error('無法獲取 Strapi JWT token:', err);
-        // 繼續使用自定義 token
-      }
-    }
     
     console.log('登入成功，用戶資訊:', {
       id: user.id,
@@ -59,17 +34,21 @@ export const loginSalesStaff = async (credentials) => {
       role: user.attributes.role
     });
     
-    // 創建包含 JWT 的用戶對象
+    // 創建包含完整資訊的用戶對象
     const userWithJwt = {
       id: user.id,
       username: user.attributes.username,
+      name: user.attributes.name,
       role: user.attributes.role,
       jwt: jwtToken
     };
     
+    console.log('登入成功，用戶資訊:', userWithJwt);
+    
     // 儲存到 localStorage
     localStorage.setItem('token', jwtToken);
     localStorage.setItem('user', JSON.stringify(userWithJwt));
+    localStorage.setItem('salesStaff', JSON.stringify(userWithJwt)); // 為了兼容性，同時保存兩個
     
     // 儲存用戶資訊和權限
     return {
@@ -96,5 +75,6 @@ export const checkAuth = () => {
 export const logout = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
-  window.location.href = '/crm/login';
+  localStorage.removeItem('salesStaff');
+  window.location.href = '/#/crm/login';
 }; 

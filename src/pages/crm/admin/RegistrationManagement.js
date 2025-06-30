@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Space, Tag, Modal, Select, message, Popconfirm, Tooltip } from 'antd';
-import { UserAddOutlined, UserSwitchOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Card, Button, Space, Tag, Modal, Select, message, Popconfirm, Tooltip, Form, Input, DatePicker, Upload, Row, Col, Switch } from 'antd';
+import { UserAddOutlined, UserSwitchOutlined, DownloadOutlined, DeleteOutlined, DownOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
 import { API_BASE_URL } from '../../../utils/api';
 import styles from './RegistrationManagement.module.css';
 import * as XLSX from 'xlsx';
@@ -10,108 +10,210 @@ const { Option } = Select;
 const RegistrationManagement = () => {
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [salesStaff, setSalesStaff] = useState([]);
   const [selectedRows, setSelectedRows] = useState([]);
-  const [assignModalVisible, setAssignModalVisible] = useState(false);
-  const [selectedStaff, setSelectedStaff] = useState(null);
-  const [events, setEvents] = useState({});
   const [batchDeleteModalVisible, setBatchDeleteModalVisible] = useState(false);
+  const [events, setEvents] = useState({});
+  const [groupedData, setGroupedData] = useState([]);
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [addForm] = Form.useForm();
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedEventSessions, setSelectedEventSessions] = useState([]);
+  const [importModalVisible, setImportModalVisible] = useState(false);
+  const [previewData, setPreviewData] = useState([]);
+  const [selectedEventForImport, setSelectedEventForImport] = useState(null);
+  const [selectedSessionForImport, setSelectedSessionForImport] = useState(null);
+  
+  // 指派業務相關狀態
+  const [assignModalVisible, setAssignModalVisible] = useState(false);
+  const [currentRegistration, setCurrentRegistration] = useState(null);
+  const [salesStaff, setSalesStaff] = useState([]);
+  const [isBatchAssign, setIsBatchAssign] = useState(false);
 
-  // 獲取報名資料
+  // 獲取報名資料後的處理函數
+  const processRegistrations = (data) => {
+    // 按活動和場次分組
+    const grouped = {};
+    data.forEach(registration => {
+      const eventId = registration.attributes.event?.data?.id;
+      const sessionIndex = registration.attributes.sessionIndex;
+      const eventTitle = registration.attributes.event?.data?.attributes?.title || '未知活動';
+      const eventSessions = registration.attributes.event?.data?.attributes?.session || [];
+      const sessionObj = eventSessions[sessionIndex];
+      
+      // 根據session數據結構確定場次名稱
+      let sessionName;
+      if (typeof sessionObj === 'object' && sessionObj?.location) {
+        sessionName = sessionObj.location;
+      } else if (typeof sessionObj === 'string') {
+        sessionName = sessionObj;
+      } else {
+        sessionName = `場次 ${sessionIndex + 1}`;
+      }
+      
+      console.log('processRegistrations 場次處理:', { 
+        eventId, 
+        sessionIndex, 
+        sessionObj, 
+        sessionName 
+      });
+      const key = `${eventId}-${sessionIndex}`;
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          key,
+          eventId,
+          sessionIndex,
+          eventTitle,
+          sessionName,
+          registrations: [],
+          totalCount: 0,
+          confirmedCount: 0
+        };
+      }
+
+      grouped[key].registrations.push(registration);
+      grouped[key].totalCount++;
+      if (registration.attributes.status === 'confirmed') {
+        grouped[key].confirmedCount++;
+      }
+    });
+
+    // 轉換為數組格式並按活動名稱和場次排序
+    const groupedArray = Object.values(grouped).sort((a, b) => {
+      // 先按活動名稱排序
+      const titleCompare = a.eventTitle.localeCompare(b.eventTitle);
+      if (titleCompare !== 0) return titleCompare;
+      // 如果活動名稱相同，則按場次索引排序
+      return a.sessionIndex - b.sessionIndex;
+    });
+    
+    console.log('分組後的資料:', groupedArray);
+    setGroupedData(groupedArray);
+  };
+
+  // 修改獲取報名資料的函數
   const fetchRegistrations = async () => {
     setLoading(true);
-    
     try {
-      // 不使用任何認證頭，即使在生產環境
-      const response = await fetch(`${API_BASE_URL}/api/registrations?populate=*&sort=createdAt:desc`);
-      
+      // 修改 API 請求，確保獲取完整的活動資訊和業務資訊
+      const response = await fetch(`${API_BASE_URL}/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&sort=createdAt:desc`);
       const data = await response.json();
       
       if (response.ok) {
+        console.log('報名資料:', data.data);
         setRegistrations(data.data || []);
+        processRegistrations(data.data || []);
       } else {
         console.log('獲取報名資料失敗:', data);
         setRegistrations([]);
+        setGroupedData([]);
       }
     } catch (error) {
       console.error('獲取報名資料錯誤:', error);
       setRegistrations([]);
+      setGroupedData([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 獲取業務人員資料
+  const fetchSalesStaff = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/sales-staffs`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setSalesStaff(data.data || []);
+      } else {
+        console.error('獲取業務人員資料失敗:', data);
+      }
+    } catch (error) {
+      console.error('獲取業務人員資料錯誤:', error);
     }
   };
 
   // 獲取活動資料
   const fetchEvents = async () => {
     try {
+      console.log('開始獲取活動資料');
       const response = await fetch(`${API_BASE_URL}/api/events?populate=*`);
       const data = await response.json();
+      
+      console.log('活動資料回應:', data);
       
       if (response.ok) {
         // 將活動資料轉為 Map 結構，方便查詢
         const eventsMap = {};
         (data.data || []).forEach(event => {
-          eventsMap[event.id] = event.attributes;
+          console.log('處理活動:', event.id, event.attributes);
+          eventsMap[event.id] = {
+            ...event.attributes,
+            // 確保正確獲取 session 資料
+            sessions: Array.isArray(event.attributes.session) 
+              ? event.attributes.session 
+              : event.attributes.session?.data?.map(s => s.attributes.name) || []
+          };
         });
+        console.log('處理後的活動資料:', eventsMap);
         setEvents(eventsMap);
+      } else {
+        console.error('獲取活動資料失敗:', data);
       }
     } catch (error) {
       console.error('獲取活動資料錯誤:', error);
     }
   };
 
-  // 獲取銷售人員
-  const fetchSalesStaff = async () => {
-    try {
-      // 不使用任何認證頭，即使在生產環境
-      const response = await fetch(`${API_BASE_URL}/api/sales-staffs?populate=*`);
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        setSalesStaff(data.data || []);
-      } else {
-        console.log('獲取銷售人員失敗:', data);
-        setSalesStaff([]);
-      }
-    } catch (error) {
-      console.error('獲取銷售人員錯誤:', error);
-      setSalesStaff([]);
-    }
-  };
-
   useEffect(() => {
     fetchRegistrations();
-    fetchSalesStaff();
     fetchEvents();
+    fetchSalesStaff();
   }, []);
 
   // 根據sessionIndex獲取場次名稱
   const getSessionName = (eventId, sessionIndex) => {
+    console.log('getSessionName 調用:', { eventId, sessionIndex, events });
+    
     if (!eventId || sessionIndex === undefined || sessionIndex === null) {
+      console.log('eventId或sessionIndex無效:', { eventId, sessionIndex });
       return '未指定場次';
     }
 
     const event = events[eventId];
-    if (!event) return '未知活動';
+    if (!event) {
+      console.log('找不到活動:', eventId, '可用活動:', Object.keys(events));
+      return '未知活動';
+    }
 
-    // 檢查所有可能的場次欄位名稱
-    const sessions = event.session || event.sessions || event.sessionInfo || [];
+    const sessions = event.sessions || [];
+    console.log('活動場次數據:', { eventId, sessions, sessionIndex });
     
-    if (!sessions || !sessions.length || !sessions[sessionIndex]) {
+    if (!sessions || !sessions.length) {
+      console.log('沒有場次數據，返回默認名稱');
       return `場次 ${sessionIndex + 1}`;
     }
 
-    const session = sessions[sessionIndex];
+    // 確保 sessionIndex 在有效範圍內
+    if (sessionIndex < 0 || sessionIndex >= sessions.length) {
+      console.log('sessionIndex超出範圍:', { sessionIndex, sessionsLength: sessions.length });
+      return `場次 ${sessionIndex + 1}`;
+    }
+
+    const sessionName = sessions[sessionIndex];
+    console.log('獲取到的場次名稱:', sessionName);
     
-    // 檢查場次是否有地點資訊作為標識
-    const location = session.location || session.venue || session.place;
+    // 如果session是對象，取location屬性
+    if (typeof sessionName === 'object' && sessionName?.location) {
+      return sessionName.location;
+    }
     
-    // 如果有地點，則返回地點名稱
-    if (location) return location;
+    // 如果session是字符串，直接返回
+    if (typeof sessionName === 'string') {
+      return sessionName;
+    }
     
-    // 否則返回索引編號
-    return `場次 ${sessionIndex + 1}`;
+    return sessionName || `場次 ${sessionIndex + 1}`;
   };
 
   // 刪除報名資料
@@ -136,304 +238,569 @@ const RegistrationManagement = () => {
     }
   };
 
-  // 匯出 Excel
+  // 導出 Excel
   const handleExport = () => {
-    try {
-      if (!registrations.length) {
-        message.warning('沒有可匯出的資料');
-        return;
-      }
-
-      // 準備匯出資料
-      const exportData = registrations.map(record => ({
-        '報名時間': new Date(record.attributes.createdAt).toLocaleString(),
-        '姓名': record.attributes.name,
-        '電話': record.attributes.phone,
-        'Email': record.attributes.email,
-        '活動名稱': record.attributes.event?.data?.attributes?.title || '未指定活動',
-        '活動場次': getSessionName(record.attributes.event?.data?.id, record.attributes.sessionIndex),
-        '狀態': record.attributes.status === 'confirmed' ? '已轉換' : '未處理'
-      }));
+    // 準備導出數據
+    const exportData = registrations.map(({ attributes }) => {
+      return {
+        '活動名稱': attributes.event?.data?.attributes?.title || '未知活動',
+        '場次': getSessionName(attributes.event?.data?.id, attributes.sessionIndex),
+        '姓名': attributes.name,
+        '電話': attributes.phone,
+        '電子郵件': attributes.email,
+        '海外投資經驗': attributes.has_overseas_investment ? '有' : '無',
+        '投資預算': (() => {
+          const budgetMap = {
+            budget_unknown: '未知',
+            budget_under_ten: '一千萬以下',
+            budget_ten_to_twenty: '一千萬到兩千萬',
+            budget_twenty_to_thirty: '兩千萬到三千萬',
+            budget_above_thirty: '三千萬以上'
+          };
+          return budgetMap[attributes.budget_range] || '未知';
+        })(),
+        '投資說明': attributes.overseas_investment_notes || '',
+        '出席人數': `${attributes.attendanceCount || 1}人`,
+        '備註': attributes.notes || '',
+        '報名時間': new Date(attributes.createdAt).toLocaleString(),
+        '狀態': attributes.status === 'confirmed' ? '已轉換' : '未處理'
+      };
+    });
 
       // 創建工作表
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, '報名資料');
+    XLSX.utils.book_append_sheet(wb, ws, "報名資料");
 
-      // 下載檔案
-      XLSX.writeFile(wb, `活動報名資料_${new Date().toLocaleDateString()}.xlsx`);
-      message.success('匯出成功！');
-    } catch (error) {
-      message.error('匯出失敗');
-      console.error('Export error:', error);
-    }
+    // 導出文件
+    XLSX.writeFile(wb, `活動報名資料_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  // 轉換為客戶 - 使用備選方法
+  // 下載範本
+  const handleTemplateDownload = () => {
+    const template = [{
+      '姓名': '(必填)',
+      '電話號碼': '(必填，請直接輸入數字，系統會自動處理格式)',
+      '電子郵件': '(必填)',
+      '海外投資經驗': '有/無',
+      '投資預算': '未知/一千萬以下/一千萬到兩千萬/兩千萬到三千萬/三千萬以上',
+      '投資說明': '',
+      '出席人數': '請填寫 1-5 之間的數字，例如：2人',
+      '備註': ''
+    }];
+
+    const ws = XLSX.utils.json_to_sheet(template);
+    
+    // 設定欄位寬度
+    if (!ws['!cols']) ws['!cols'] = [];
+    ws['!cols'][1] = { wch: 20, t: 's' }; // 電話號碼
+    ws['!cols'][6] = { wch: 15, t: 's' }; // 出席人數
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "範本");
+    XLSX.writeFile(wb, "活動報名範本.xlsx");
+  };
+
+  // 處理 Excel 上傳
+  const handleExcelUpload = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        
+        // 設定解析選項，將所有欄位都視為字串
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+          raw: false,
+          defval: ''
+        });
+
+        console.log('Excel 原始資料:', JSON.stringify(jsonData, null, 2));
+
+        // 轉換數據格式 - 跳過第一行標題行
+        const previewData = jsonData.slice(1).map((row, index) => {
+          console.log(`處理第 ${index + 2} 行:`, row);
+          
+          // 基本資料處理
+          const name = String(row['姓名'] || '').trim();
+          console.log('姓名:', name);
+          
+          // 特殊處理電話號碼 - 嘗試多個可能的欄位名稱
+          const phoneValue = row['電話號碼'] || row['電話'] || row['(必填，請在電話號碼前加上單引號 \' 以保留前導零，例如: \'0912345678)'] || '';
+          let phone = String(phoneValue).trim();
+          console.log('原始電話:', phone, typeof phone);
+          
+          // 移除所有非數字字符
+          const cleanPhone = phone.replace(/[^0-9]/g, '');
+          console.log('清理後的電話:', cleanPhone, cleanPhone.length);
+          
+          // 根據數字長度處理電話號碼
+          if (cleanPhone.length === 9) {
+            // 9位數字，自動加0
+            phone = '0' + cleanPhone;
+            console.log('補零後的電話:', phone);
+          } else if (cleanPhone.length === 10 && cleanPhone.startsWith('0')) {
+            // 已經是正確格式
+            phone = cleanPhone;
+            console.log('保持原樣的電話:', phone);
+          } else if (cleanPhone.length === 10) {
+            // 10位數字但不是以0開頭，加上0
+            phone = '0' + cleanPhone.substring(1);
+            console.log('調整後的電話:', phone);
+            } else {
+            // 其他情況視為無效
+            phone = '';
+            console.log('無效的電話格式');
+            }
+          
+          const email = String(row['電子郵件'] || '').trim();
+          console.log('電子郵件:', email);
+          
+          // 驗證必填欄位
+          const missingFields = [];
+          if (!name) missingFields.push('姓名');
+          if (!phone) missingFields.push('電話號碼');
+          if (!email) missingFields.push('電子郵件');
+          
+          if (missingFields.length > 0) {
+            console.log('缺少欄位:', missingFields);
+            throw new Error(`第 ${index + 2} 行缺少必填欄位: ${missingFields.join(', ')}`);
+      }
+
+          // 驗證電子郵件格式
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(email)) {
+            throw new Error(`第 ${index + 2} 行的電子郵件格式無效: ${email}`);
+          }
+
+          // 驗證電話格式
+          if (phone.length !== 10 || !phone.startsWith('0')) {
+            throw new Error(`第 ${index + 2} 行的電話格式無效（應為10位數字且以0開頭）: ${phoneValue}`);
+          }
+
+          // 處理選填欄位
+          const attendanceCount = (() => {
+            // 從字串中提取數字
+            const attendanceStr = String(row['出席人數'] || '').trim();
+            console.log('原始出席人數:', attendanceStr);
+            
+            // 提取數字
+            const match = attendanceStr.match(/\d+/);
+            const count = match ? parseInt(match[0]) : 1;
+            console.log('解析後的出席人數:', count);
+
+            // 確保數字在 1-5 的範圍內
+            const validCount = Math.min(Math.max(count, 1), 5);
+            console.log('有效的出席人數:', validCount);
+
+            // 轉換為對應的枚舉值
+            const attendanceMap = {
+              1: 'attendance1',
+              2: 'attendance2',
+              3: 'attendance3',
+              4: 'attendance4',
+              5: 'attendance5'
+            };
+
+            const result = attendanceMap[validCount];
+            console.log('最終出席人數設定:', result);
+            return result;
+          })();
+
+          const budgetRange = (() => {
+            const budget = String(row['投資預算'] || '').trim();
+            const map = {
+              '未知': 'budget_unknown',
+              '一千萬以下': 'budget_under_ten',
+              '一千萬到兩千萬': 'budget_ten_to_twenty',
+              '兩千萬到三千萬': 'budget_twenty_to_thirty',
+              '三千萬以上': 'budget_above_thirty'
+            };
+            return map[budget] || 'budget_unknown';
+          })();
+
+          // 檢查備註欄位的原始值
+          console.log('Excel 備註欄位原始值:', row['備註']);
+          
+          const notes = String(row['備註'] || '').trim();
+          console.log('處理後的備註值:', notes);
+
+          const result = {
+            name,
+            phone,
+            email,
+            has_overseas_investment: String(row['海外投資經驗'] || '').includes('有'),
+            budget_range: budgetRange,
+            overseas_investment_notes: String(row['投資說明'] || '').trim(),
+            attendanceCount,
+            notes: notes
+          };
+          
+          // 打印備註欄位的值
+          console.log('備註欄位:', result.notes);
+
+          console.log('處理結果:', result);
+          return result;
+        });
+
+        console.log('轉換後的資料:', previewData);
+        setPreviewData(previewData);
+        setImportModalVisible(true);
+    } catch (error) {
+        console.error('解析 Excel 文件錯誤:', error);
+        message.error(error.message || '無法解析 Excel 文件，請確保文件格式正確');
+    }
+    };
+    reader.readAsArrayBuffer(file);
+    return false;
+  };
+
+  // 轉換為客戶
   const convertToCustomer = async (record) => {
     try {
-      // 使用標準的內容類型頭
-      const headers = {
-        'Content-Type': 'application/json'
-      };
+      console.log('開始轉換客戶，報名資料:', record);
       
-      // 1. 創建新客戶
+      // 準備詳細的客戶備註資訊
+      const eventInfo = record.attributes.event?.data?.attributes;
+      const eventTitle = eventInfo?.title || '未知活動';
+      const sessionName = getSessionName(record.attributes.event?.data?.id, record.attributes.sessionIndex);
+      
+      // 組織備註內容
+      const notesContent = [
+        `活動報名資訊：`,
+        `• 活動名稱：${eventTitle}`,
+        `• 參與場次：${sessionName}`,
+        record.attributes.attendanceCount && `• 出席人數：${record.attributes.attendanceCount}`,
+        (record.attributes.notes || record.attributes.message) && `• 原始備註：${record.attributes.notes || record.attributes.message}`,
+        `• 報名時間：${new Date(record.attributes.createdAt).toLocaleString()}`
+      ].filter(Boolean).join('\n');
+
+      // 準備客戶資料 - 移除不存在的 source_detail 欄位
       const customerData = {
         data: {
           name: record.attributes.name,
           phone: record.attributes.phone,
           email: record.attributes.email,
-          status: 'potential',
+          has_overseas_investment: record.attributes.has_overseas_investment || false,
+          budget_range: record.attributes.budget_range || 'budget_unknown',
+          overseas_investment_notes: record.attributes.overseas_investment_notes || '',
+          notes: notesContent,
           source: 'event',
-          notes: record.attributes.notes || `來自活動報名: ${record.attributes.event?.data?.attributes?.title || '未知活動'} - ${getSessionName(record.attributes.event?.data?.id, record.attributes.sessionIndex)}`
+          status: 'potential',
+          publishedAt: new Date().toISOString(), // 添加發布狀態以符合 draftAndPublish: true
+          // 如果報名已有指派業務，同時指派給客戶
+          ...(record.attributes.sales_staff?.data?.id && {
+            sales_staff: record.attributes.sales_staff.data.id
+          })
         }
       };
 
-      console.log('API URL:', API_BASE_URL);
-      console.log('Creating customer with data:', customerData);
+      console.log('客戶資料準備完成:', JSON.stringify(customerData, null, 2));
 
-      let createCustomerResponse;
-      try {
-        // 首先嘗試使用 fetch API
-        createCustomerResponse = await fetch(`${API_BASE_URL}/api/customers`, {
+      // 檢查認證 token
+      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      console.log('認證 Token:', token ? '存在' : '不存在');
+      console.log('Token 長度:', token ? token.length : 0);
+      console.log('Token 前10字元:', token ? token.substring(0, 10) + '...' : '無');
+      console.log('用戶資訊:', user);
+      
+      if (!token) {
+        throw new Error('未找到認證 Token，請重新登入');
+      }
+
+      // 創建客戶 - 嘗試多種認證方式
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      // 如果有 token，添加認證
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      console.log('請求標頭:', headers);
+      console.log('請求 URL:', `${API_BASE_URL}/api/customers`);
+      console.log('請求方法: POST');
+      console.log('請求 Body:', JSON.stringify(customerData, null, 2));
+
+      let customerResponse = await fetch(`${API_BASE_URL}/api/customers`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(customerData)
+      });
+
+      // 如果第一次請求失敗 (401)，嘗試不帶認證的請求
+      if (customerResponse.status === 401) {
+        console.log('🔄 嘗試不帶認證的請求...');
+        customerResponse = await fetch(`${API_BASE_URL}/api/customers`, {
           method: 'POST',
-          headers,
+          headers: {
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify(customerData)
         });
-      } catch (fetchError) {
-        console.error('Fetch error:', fetchError);
-        // 如果 fetch 失敗，嘗試使用 XMLHttpRequest
-        console.log('Trying with XMLHttpRequest...');
-        createCustomerResponse = await new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open('POST', `${API_BASE_URL}/api/customers`);
-          xhr.setRequestHeader('Content-Type', 'application/json');
-          xhr.withCredentials = true; // 允許跨域請求發送 cookies
-          
-          xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve({
-                ok: true,
-                status: xhr.status,
-                json: () => Promise.resolve(JSON.parse(xhr.responseText))
-              });
-            } else {
-              resolve({
-                ok: false,
-                status: xhr.status,
-                json: () => Promise.resolve(JSON.parse(xhr.responseText))
-              });
-            }
-          };
-          
-          xhr.onerror = function() {
-            reject(new Error('Network error'));
-          };
-          
-          xhr.send(JSON.stringify(customerData));
-        });
       }
 
-      console.log('Customer creation response status:', createCustomerResponse.status);
+      const customerResult = await customerResponse.json();
+      console.log('=== 客戶創建詳細分析 ===');
+      console.log('HTTP 狀態碼:', customerResponse.status);
+      console.log('HTTP 狀態文字:', customerResponse.statusText);
+      console.log('回應是否成功:', customerResponse.ok);
+      console.log('完整回應標頭:', [...customerResponse.headers.entries()]);
+      console.log('客戶創建回應:', JSON.stringify(customerResult, null, 2));
       
-      let responseData;
-      try {
-        responseData = await createCustomerResponse.json();
-        console.log('Customer creation response data:', responseData);
-      } catch (e) {
-        console.error('解析創建客戶響應失敗:', e);
-        throw new Error('創建客戶失敗：伺服器響應格式錯誤');
+      // 特別檢查常見錯誤
+      if (customerResponse.status === 401) {
+        console.error('❌ 401 認證錯誤 - 需要登入或 Token 無效');
+      } else if (customerResponse.status === 403) {
+        console.error('❌ 403 權限錯誤 - 沒有創建客戶的權限');
+      } else if (customerResponse.status === 400) {
+        console.error('❌ 400 請求錯誤 - 資料格式問題');
+        console.error('錯誤詳情:', customerResult);
+      } else if (customerResponse.status === 500) {
+        console.error('❌ 500 伺服器錯誤 - Strapi 內部錯誤');
       }
 
-      if (!createCustomerResponse.ok) {
-        console.error('創建客戶失敗:', responseData);
-        throw new Error(responseData.error?.message || '創建客戶失敗');
+      console.log('新客戶 ID:', customerResult.data?.id);
+      console.log('新客戶資料:', JSON.stringify(customerResult.data, null, 2));
+
+      if (!customerResponse.ok) {
+        console.error('創建客戶失敗:', customerResult);
+        throw new Error(`創建客戶失敗: ${customerResult.error?.message || '未知錯誤'}`);
       }
 
-      const customerId = responseData.data.id;
-      console.log('Created customer ID:', customerId);
+      console.log('✅ 客戶創建成功! 客戶ID:', customerResult.data?.id);
 
-      // 2. 更新報名狀態
-      console.log('Updating registration status for ID:', record.id);
+      // 更新報名狀態並關聯到新創建的客戶
+      const updateData = {
+        data: {
+          status: 'confirmed',
+          customer: customerResult.data.id // 關聯到新創建的客戶
+        }
+      };
+
+      console.log('準備更新報名:', updateData);
+
+      const updateResponse = await fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      const updateResult = await updateResponse.json();
+      console.log('報名更新回應:', updateResult);
+      console.log('報名更新狀態:', updateResponse.status, updateResponse.ok);
+
+      if (!updateResponse.ok) {
+        console.error('更新報名狀態失敗:', updateResult);
+        throw new Error(`更新報名狀態失敗: ${updateResult.error?.message || '未知錯誤'}`);
+      }
+
+      console.log('✅ 報名更新成功!');
+      console.log('🎉 客戶轉換完全成功! 請檢查客戶管理頁面');
       
-      let updateRegistrationResponse;
-      try {
-        // 首先嘗試使用 fetch API
-        updateRegistrationResponse = await fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify({
-            data: {
-              status: 'confirmed',
-              customer: customerId
-            }
-          })
-        });
-      } catch (fetchError) {
-        console.error('Fetch error:', fetchError);
-        // 如果 fetch 失敗，嘗試使用 XMLHttpRequest
-        console.log('Trying with XMLHttpRequest...');
-        updateRegistrationResponse = await new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open('PUT', `${API_BASE_URL}/api/registrations/${record.id}`);
-          xhr.setRequestHeader('Content-Type', 'application/json');
-          xhr.withCredentials = true; // 允許跨域請求發送 cookies
-          
-          xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve({
-                ok: true,
-                status: xhr.status,
-                json: () => Promise.resolve(JSON.parse(xhr.responseText))
-              });
-            } else {
-              resolve({
-                ok: false,
-                status: xhr.status,
-                json: () => Promise.resolve(JSON.parse(xhr.responseText))
-              });
-            }
-          };
-          
-          xhr.onerror = function() {
-            reject(new Error('Network error'));
-          };
-          
-          xhr.send(JSON.stringify({
-            data: {
-              status: 'confirmed',
-              customer: customerId
-            }
-          }));
-        });
-      }
-
-      console.log('Registration update response status:', updateRegistrationResponse.status);
-      
-      let updateResponseData;
-      try {
-        updateResponseData = await updateRegistrationResponse.json();
-        console.log('Registration update response data:', updateResponseData);
-      } catch (e) {
-        console.error('解析更新報名狀態響應失敗:', e);
-        throw new Error('更新報名狀態失敗：伺服器響應格式錯誤');
-      }
-
-      if (!updateRegistrationResponse.ok) {
-        console.error('更新報名狀態失敗:', updateResponseData);
-        throw new Error(updateResponseData.error?.message || '更新報名狀態失敗');
-      }
-
-      message.success('成功轉換為客戶');
-      await fetchRegistrations();
+      message.success(`成功轉換 ${record.attributes.name} 為客戶！客戶ID: ${customerResult.data?.id}`);
+      fetchRegistrations(); // 重新載入報名資料
     } catch (error) {
-      console.error('轉換失敗:', error);
-      message.error(error.message || '轉換失敗');
+      console.error('轉換客戶失敗:', error);
+      message.error(`轉換失敗: ${error.message}`);
     }
   };
 
-  // 批量指派銷售人員
-  const handleBatchAssign = async () => {
-    if (!selectedStaff) {
-      message.error('請選擇銷售人員');
+  // 指派業務相關函數
+  const handleAssignSalesStaff = (record) => {
+    setCurrentRegistration(record);
+    setIsBatchAssign(false);
+    setAssignModalVisible(true);
+  };
+
+  // 批量指派業務
+  const handleBatchAssignSalesStaff = () => {
+    if (!selectedRows.length) {
+      message.warning('請選擇要指派的報名資料');
       return;
     }
+    setCurrentRegistration(null);
+    setIsBatchAssign(true);
+    setAssignModalVisible(true);
+  };
 
+  // 確認指派業務
+  const confirmAssignSalesStaff = async (salesStaffId) => {
     try {
-      // 批量更新客戶
-      await Promise.all(selectedRows.map(record => 
-        fetch(`${API_BASE_URL}/api/customers/${record.id}`, {
+      if (isBatchAssign) {
+        // 批量指派
+        const updatePromises = selectedRows.map(record => 
+          fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              data: {
+                sales_staff: salesStaffId
+              }
+            })
+          })
+        );
+
+        await Promise.all(updatePromises);
+        message.success(`成功為 ${selectedRows.length} 筆報名指派業務！`);
+        setSelectedRows([]);
+      } else {
+        // 單個指派
+        const response = await fetch(`${API_BASE_URL}/api/registrations/${currentRegistration.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             data: {
-              assignedStaff: selectedStaff
+              sales_staff: salesStaffId
             }
           })
-        })
-      ));
+        });
 
-      message.success('成功指派銷售人員');
+        if (!response.ok) {
+          throw new Error('指派失敗');
+        }
+
+        message.success('成功指派業務！');
+      }
+
       setAssignModalVisible(false);
-      setSelectedRows([]);
-      fetchRegistrations();
+      fetchRegistrations(); // 重新載入資料
     } catch (error) {
-      console.error('指派失敗:', error);
+      console.error('指派業務失敗:', error);
       message.error('指派失敗');
     }
   };
 
   // 批量轉換為客戶
   const handleBatchConvert = async () => {
-    if (selectedRows.length === 0) {
-      message.warning('請先選擇要轉換的報名資料');
+    if (!selectedRows.length) {
+      message.warning('請選擇要轉換的報名資料');
       return;
     }
 
-    // 過濾已轉換的報名資料
-    const unconvertedRows = selectedRows.filter(row => row.attributes.status !== 'confirmed');
-    
-    if (unconvertedRows.length === 0) {
-      message.warning('所選資料都已轉換為客戶');
-      return;
-    }
-
-    setLoading(true);
     try {
-      // 批量轉換為客戶
-      await Promise.all(unconvertedRows.map(async (record) => {
-        // 1. 創建新客戶
-        const customerData = {
-          data: {
-            name: record.attributes.name,
-            phone: record.attributes.phone,
-            email: record.attributes.email,
-            status: 'potential',
-            source: 'event',
-            notes: record.attributes.notes || `來自活動報名: ${record.attributes.event?.data?.attributes?.title || '未知活動'} - ${getSessionName(record.attributes.event?.data?.id, record.attributes.sessionIndex)}`
+      // 過濾已轉換的報名
+      const unconfirmedRegistrations = selectedRows.filter(
+        record => record.attributes.status !== 'confirmed'
+      );
+    
+      if (!unconfirmedRegistrations.length) {
+        message.warning('選擇的報名資料都已經轉換過了');
+        return;
+      }
+
+      console.log(`開始批量轉換 ${unconfirmedRegistrations.length} 筆報名資料`);
+
+      // 批量轉換
+      const results = await Promise.allSettled(
+        unconfirmedRegistrations.map(async (record) => {
+          console.log('轉換報名:', record.attributes.name);
+          
+          // 準備詳細的客戶備註資訊
+          const eventInfo = record.attributes.event?.data?.attributes;
+          const eventTitle = eventInfo?.title || '未知活動';
+          const sessionName = getSessionName(record.attributes.event?.data?.id, record.attributes.sessionIndex);
+          
+          // 組織備註內容
+          const notesContent = [
+            `活動報名資訊：`,
+            `• 活動名稱：${eventTitle}`,
+            `• 參與場次：${sessionName}`,
+            record.attributes.attendanceCount && `• 出席人數：${record.attributes.attendanceCount}`,
+            (record.attributes.notes || record.attributes.message) && `• 原始備註：${record.attributes.notes || record.attributes.message}`,
+            `• 報名時間：${new Date(record.attributes.createdAt).toLocaleString()}`
+          ].filter(Boolean).join('\n');
+          
+          const customerData = {
+            data: {
+              name: record.attributes.name,
+              phone: record.attributes.phone,
+              email: record.attributes.email,
+              has_overseas_investment: record.attributes.has_overseas_investment || false,
+              budget_range: record.attributes.budget_range || 'budget_unknown',
+              overseas_investment_notes: record.attributes.overseas_investment_notes || '',
+              notes: notesContent,
+              source: 'event',
+              status: 'potential',
+              publishedAt: new Date().toISOString(), // 添加發布狀態以符合 draftAndPublish: true
+              // 如果報名已有指派業務，同時指派給客戶
+              ...(record.attributes.sales_staff?.data?.id && {
+                sales_staff: record.attributes.sales_staff.data.id
+              })
+            }
+          };
+
+          // 創建客戶
+          const customerResponse = await fetch(`${API_BASE_URL}/api/customers`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(customerData)
+          });
+
+          const customerResult = await customerResponse.json();
+          
+          if (!customerResponse.ok) {
+            console.error(`創建客戶 ${record.attributes.name} 失敗:`, customerResult);
+            throw new Error(`創建客戶 ${record.attributes.name} 失敗: ${customerResult.error?.message || '未知錯誤'}`);
           }
-        };
 
-        const createCustomerResponse = await fetch(`${API_BASE_URL}/api/customers`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(customerData)
-        });
-
-        if (!createCustomerResponse.ok) {
-          throw new Error('創建客戶失敗');
-        }
-
-        const responseData = await createCustomerResponse.json();
-        const customerId = responseData.data.id;
-
-        // 2. 更新報名狀態
-        await fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
+          // 更新報名狀態並關聯到客戶
+          const updateData = {
             data: {
               status: 'confirmed',
-              customer: customerId
+              customer: customerResult.data.id
             }
-          })
-        });
-      }));
+          };
 
-      message.success(`成功將 ${unconvertedRows.length} 筆報名資料轉換為客戶`);
-      setSelectedRows([]);
-      await fetchRegistrations();
+          const updateResponse = await fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updateData)
+          });
+
+          if (!updateResponse.ok) {
+            const updateResult = await updateResponse.json();
+            console.error(`更新報名 ${record.attributes.name} 失敗:`, updateResult);
+            throw new Error(`更新報名 ${record.attributes.name} 失敗`);
+          }
+
+          return { success: true, name: record.attributes.name };
+        })
+      );
+
+      // 統計成功和失敗的數量
+      const successful = results.filter(result => result.status === 'fulfilled');
+      const failed = results.filter(result => result.status === 'rejected');
+
+      if (successful.length > 0) {
+        message.success(`成功轉換 ${successful.length} 筆報名資料為客戶！`);
+      }
+      
+      if (failed.length > 0) {
+        console.error('失敗的轉換:', failed);
+        message.error(`${failed.length} 筆轉換失敗，請檢查控制台了解詳情`);
+      }
+
+      setSelectedRows([]); // 清空選擇
+      fetchRegistrations(); // 重新載入報名資料
     } catch (error) {
       console.error('批量轉換失敗:', error);
-      message.error('批量轉換失敗');
-    } finally {
-      setLoading(false);
+      message.error(`批量轉換失敗: ${error.message}`);
     }
   };
 
@@ -474,11 +841,202 @@ const RegistrationManagement = () => {
     }
   };
 
+  // 監聽選擇的活動變化
+  const handleEventChange = (eventId) => {
+    setSelectedEvent(eventId);
+    const event = events[eventId];
+    if (event && event.sessions) {
+      setSelectedEventSessions(event.sessions);
+    } else {
+      setSelectedEventSessions([]);
+    }
+  };
+
+  // 處理新增報名
+  const handleAdd = async () => {
+    try {
+      const values = await addForm.validateFields();
+      
+      const registrationData = {
+        data: {
+          name: values.name,
+          phone: values.phone,
+          email: values.email,
+          has_overseas_investment: values.has_overseas_investment,
+          budget_range: values.budget_range,
+          overseas_investment_notes: values.overseas_investment_notes,
+          notes: values.notes,
+          attendanceCount: values.attendanceCount,
+          event: values.event,
+          sessionIndex: values.sessionIndex,
+          status: 'pending'
+        }
+      };
+
+      const response = await fetch(`${API_BASE_URL}/api/registrations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(registrationData)
+      });
+
+      if (!response.ok) {
+        throw new Error('新增報名失敗');
+      }
+
+      message.success('成功新增報名！');
+      setAddModalVisible(false);
+      addForm.resetFields();
+      fetchRegistrations();
+    } catch (error) {
+      console.error('新增報名失敗:', error);
+      if (error.name === 'ValidationError') {
+        message.error('請填寫必要欄位');
+      } else {
+        message.error('新增失敗，請稍後再試');
+      }
+    }
+  };
+
+  // 批量匯入報名資料
+  const handleBatchImport = async () => {
+    if (!selectedEventForImport || selectedSessionForImport === null) {
+      message.error('請選擇活動和場次');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 批量創建報名資料
+      console.log('準備匯入的資料:', previewData);
+      
+      const results = await Promise.all(previewData.map(async data => {
+        // 打印每筆資料的詳細資訊
+        console.log('匯入資料的出席人數:', data.attendanceCount);
+        console.log('匯入資料的備註:', data.notes);
+        console.log('完整的匯入資料:', data);
+        
+        // 打印每筆資料的備註
+        console.log('匯入資料的備註:', data.notes);
+        
+        const response = await fetch(`${API_BASE_URL}/api/registrations`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            data: {
+              name: data.name,
+              phone: data.phone,
+              email: data.email,
+              has_overseas_investment: data.has_overseas_investment,
+              budget_range: data.budget_range,
+              overseas_investment_notes: data.overseas_investment_notes,
+              attendanceCount: data.attendanceCount,
+              notes: data.notes,
+              event: selectedEventForImport,
+              sessionIndex: selectedSessionForImport,
+              status: 'pending'
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('匯入失敗:', errorData);
+          throw new Error(`匯入失敗: ${response.status} ${errorData?.error?.message || '未知錯誤'}`);
+        }
+
+        return await response.json();
+      }));
+
+      console.log('匯入結果:', results);
+      message.success(`成功匯入 ${results.length} 筆報名資料`);
+      setImportModalVisible(false);
+      setPreviewData([]);
+      setSelectedEventForImport(null);
+      setSelectedSessionForImport(null);
+      await fetchRegistrations();
+    } catch (error) {
+      console.error('批量匯入失敗:', error);
+      message.error(error.message || '批量匯入失敗，請檢查資料格式是否正確');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 主表格列定義
+  const columns = [
+    {
+      title: '活動名稱',
+      dataIndex: 'eventTitle',
+      key: 'eventTitle',
+      render: (text) => (
+        <Tooltip title={text}>
+          <div style={{ 
+            cursor: 'pointer', 
+            color: '#1890ff'
+          }}>
+            {text.length > 30 ? `${text.substring(0, 30)}...` : text}
+          </div>
+        </Tooltip>
+      ),
+    },
+    {
+      title: '場次',
+      dataIndex: 'sessionName',
+      key: 'sessionName',
+      render: (text) => {
+        const sessionText = typeof text === 'string' ? text : '';
+        if (sessionText.trim() === '') {
+          return <span style={{ color: '#c0c0c0' }}>未指定場次</span>;
+        }
+        const displayText = sessionText.length > 15 ? `${sessionText.substring(0, 15)}...` : sessionText;
+        return (
+          <Tooltip title={sessionText}>
+            <div style={{ cursor: 'pointer', color: '#666' }}>
+              {displayText}
+            </div>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      title: '報名總數',
+      dataIndex: 'totalCount',
+      key: 'totalCount',
+      render: (text) => (
+        <div style={{ 
+          fontSize: '16px',
+          color: '#52c41a'
+        }}>
+          {text}
+        </div>
+      ),
+    },
+    {
+      title: '已轉換數',
+      dataIndex: 'confirmedCount',
+      key: 'confirmedCount',
+      render: (text, record) => (
+        <Tag color="green" style={{ padding: '4px 8px', fontSize: '14px' }}>
+          {`${text}/${record.totalCount}`}
+        </Tag>
+      ),
+    },
+  ];
+
+  // 展開行的渲染函數
+  const expandedRowRender = (record) => {
   const columns = [
     {
       title: '姓名',
       dataIndex: ['attributes', 'name'],
       key: 'name',
+        render: (text) => (
+          <div style={{ fontWeight: 'bold' }}>{text}</div>
+        ),
     },
     {
       title: '電話',
@@ -491,27 +1049,57 @@ const RegistrationManagement = () => {
       key: 'email',
     },
     {
-      title: '活動/場次',
-      key: 'event_session',
-      width: 180,
+        title: '海外投資',
+        dataIndex: ['attributes', 'has_overseas_investment'],
+        key: 'has_overseas_investment',
+        render: (value) => (
+          <Tag color={value ? 'green' : 'default'}>
+            {value ? '有' : '無'}
+          </Tag>
+        ),
+      },
+      {
+        title: '投資預算',
+        dataIndex: ['attributes', 'budget_range'],
+        key: 'budget_range',
+        render: (value) => {
+          const budgetMap = {
+            budget_unknown: '未知',
+            budget_under_ten: '一千萬以下',
+            budget_ten_to_twenty: '一千萬到兩千萬',
+            budget_twenty_to_thirty: '兩千萬到三千萬',
+            budget_above_thirty: '三千萬以上'
+          };
+          return budgetMap[value] || '未知';
+        },
+      },
+      {
+        title: '投資說明',
+        dataIndex: ['attributes', 'overseas_investment_notes'],
+        key: 'overseas_investment_notes',
       ellipsis: true,
-      render: (_, record) => {
-        const eventTitle = record.attributes.event?.data?.attributes?.title || '未知活動';
-        const eventId = record.attributes.event?.data?.id;
-        const sessionIndex = record.attributes.sessionIndex;
-        const sessionName = getSessionName(eventId, sessionIndex);
-        
-        // 合併活動名稱和場次，使用Tooltip顯示完整信息
+        render: (text) => {
+          if (!text || text.trim() === '') {
+            return <span style={{ color: '#c0c0c0' }}>無</span>;
+          }
         return (
-          <Tooltip title={`${eventTitle} - ${sessionName}`}>
-            <div style={{ cursor: 'pointer', color: '#1890ff' }}>
-              {eventTitle.length > 10 ? `${eventTitle.substring(0, 10)}...` : eventTitle}
-              <span style={{ fontSize: '12px', color: '#888', marginLeft: '5px' }}>
-                ({sessionName})
-              </span>
+            <Tooltip title={text}>
+              <div style={{ cursor: 'pointer', color: '#666' }}>
+                {text.length > 20 ? `${text.substring(0, 20)}...` : text}
             </div>
           </Tooltip>
         );
+        },
+      },
+      {
+        title: '出席人數',
+        dataIndex: ['attributes', 'attendanceCount'],
+        key: 'attendanceCount',
+        render: (value) => {
+          // 從枚舉值中提取數字（例如：'attendance2' -> 2）
+          const match = value?.match(/\d+/);
+          const count = match ? parseInt(match[0]) : 1;
+          return `${count}人`;
       }
     },
     {
@@ -519,18 +1107,14 @@ const RegistrationManagement = () => {
       key: 'notes',
       ellipsis: true,
       render: (_, record) => {
-        const notes = record.attributes.notes;
-        if (!notes || notes.trim() === '') {
+          const notes = typeof record.attributes.notes === 'string' ? record.attributes.notes : '';
+          if (notes.trim() === '') {
           return <span style={{ color: '#c0c0c0' }}>無</span>;
         }
-        
-        // 備註顯示，類似CustomerManagement
-        const displayText = notes.length > 20 ? `${notes.substring(0, 20)}...` : notes;
-        
         return (
           <Tooltip title={notes}>
             <div style={{ cursor: 'pointer', color: '#666' }}>
-              {displayText}
+                {notes.length > 20 ? `${notes.substring(0, 20)}...` : notes}
             </div>
           </Tooltip>
         );
@@ -543,11 +1127,26 @@ const RegistrationManagement = () => {
       render: (text) => new Date(text).toLocaleString(),
     },
     {
+      title: '負責業務',
+      dataIndex: ['attributes', 'sales_staff'],
+      key: 'sales_staff',
+      render: (salesStaff) => {
+        if (!salesStaff?.data) {
+          return <Tag color="default">未指派</Tag>;
+        }
+        return (
+          <Tag color="blue">
+            {salesStaff.data.attributes.name || salesStaff.data.attributes.username}
+          </Tag>
+        );
+      },
+    },
+    {
       title: '狀態',
       dataIndex: ['attributes', 'status'],
       key: 'status',
       render: (status) => (
-        <Tag color={status === 'confirmed' ? 'green' : 'blue'}>
+          <Tag color={status === 'confirmed' ? 'green' : 'blue'} style={{ padding: '4px 8px' }}>
           {status === 'confirmed' ? '已轉換' : '未處理'}
         </Tag>
       ),
@@ -555,16 +1154,24 @@ const RegistrationManagement = () => {
     {
       title: '操作',
       key: 'action',
-      width: 170, // 設定固定寬度
+        width: 170,
       render: (_, record) => (
         <Space size="small" wrap>
           <Button 
             size="small"
+            type="primary"
             icon={<UserAddOutlined />}
             onClick={() => convertToCustomer(record)}
             disabled={record.attributes.status === 'confirmed'}
           >
             轉換
+          </Button>
+          <Button 
+            size="small"
+            icon={<UserSwitchOutlined />}
+            onClick={() => handleAssignSalesStaff(record)}
+          >
+            指派
           </Button>
           <Popconfirm
             title="確定要刪除此報名資料嗎？"
@@ -582,12 +1189,55 @@ const RegistrationManagement = () => {
     },
   ];
 
+    return (
+      <div style={{ margin: '0 -32px' }}>
+        <Table
+          columns={columns}
+          dataSource={record.registrations}
+          pagination={false}
+          rowKey={record => record.id}
+          size="small"
+          style={{ 
+            background: '#fafafa',
+            margin: '0 32px'
+          }}
+        />
+      </div>
+    );
+  };
+
   return (
     <div className={styles.registrationManagement}>
       <Card 
-        title="活動報名管理" 
+        title={
+          <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
+            活動報名管理
+          </div>
+        }
         extra={
           <Space>
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={handleTemplateDownload}
+            >
+              下載範本
+            </Button>
+            <Upload
+              accept=".xlsx,.xls"
+              showUploadList={false}
+              beforeUpload={handleExcelUpload}
+            >
+              <Button icon={<UploadOutlined />}>
+                匯入 Excel
+              </Button>
+            </Upload>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setAddModalVisible(true)}
+            >
+              新增報名
+            </Button>
             <Button
               icon={<DownloadOutlined />}
               onClick={handleExport}
@@ -597,11 +1247,18 @@ const RegistrationManagement = () => {
             </Button>
             <Button
               type="primary"
-              icon={<UserSwitchOutlined />}
+              icon={<UserAddOutlined />}
               onClick={handleBatchConvert}
               disabled={selectedRows.length === 0}
             >
               批量轉換
+            </Button>
+            <Button
+              icon={<UserSwitchOutlined />}
+              onClick={handleBatchAssignSalesStaff}
+              disabled={selectedRows.length === 0}
+            >
+              指派業務
             </Button>
             <Button
               danger
@@ -616,34 +1273,30 @@ const RegistrationManagement = () => {
       >
         <Table
           columns={columns}
-          dataSource={registrations || []}
-          rowKey={record => record.id}
-          loading={loading}
-          rowSelection={{
-            onChange: (_, rows) => setSelectedRows(rows),
-            selectedRowKeys: selectedRows.map(row => row.id),
+          dataSource={groupedData}
+          expandable={{
+            expandedRowRender,
+            expandRowByClick: true,
+            expandIcon: ({ expanded, onExpand, record }) =>
+              expanded ? (
+                <Button 
+                  type="text" 
+                  icon={<DownOutlined />} 
+                  onClick={e => onExpand(record, e)}
+                  style={{ transform: 'rotate(180deg)' }}
+                />
+              ) : (
+                <Button 
+                  type="text" 
+                  icon={<DownOutlined />} 
+                  onClick={e => onExpand(record, e)}
+                />
+              ),
           }}
+          rowKey="key"
+          loading={loading}
         />
       </Card>
-
-      <Modal
-        title="指派銷售人員"
-        open={assignModalVisible}
-        onOk={handleBatchAssign}
-        onCancel={() => setAssignModalVisible(false)}
-      >
-        <Select
-          style={{ width: '100%' }}
-          placeholder="選擇銷售人員"
-          onChange={value => setSelectedStaff(value)}
-        >
-          {(salesStaff || []).map(staff => (
-            <Option key={staff.id} value={staff.id}>
-              {staff.attributes.username}
-            </Option>
-          ))}
-        </Select>
-      </Modal>
 
       {/* 批量刪除確認 Modal */}
       <Modal
@@ -657,6 +1310,300 @@ const RegistrationManagement = () => {
       >
         <p>您確定要刪除所選的 {selectedRows.length} 筆報名資料嗎？</p>
         <p style={{ color: 'red' }}>警告：此操作無法撤銷！</p>
+      </Modal>
+
+      {/* Excel 匯入預覽 Modal */}
+      <Modal
+        title="匯入報名資料"
+        open={importModalVisible}
+        onOk={handleBatchImport}
+        onCancel={() => {
+          setImportModalVisible(false);
+          setPreviewData([]);
+          setSelectedEventForImport(null);
+          setSelectedSessionForImport(null);
+        }}
+        width={800}
+      >
+        <Form layout="vertical">
+          <Form.Item
+            label="選擇活動"
+            required
+          >
+            <Select
+              placeholder="請選擇活動"
+              onChange={(value) => {
+                setSelectedEventForImport(value);
+                setSelectedSessionForImport(null);
+              }}
+              value={selectedEventForImport}
+            >
+              {Object.entries(events).map(([id, event]) => (
+                <Option key={id} value={id}>
+                  {event.title}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="選擇場次"
+            required
+          >
+            <Select
+              placeholder="請選擇場次"
+              disabled={!selectedEventForImport}
+              onChange={(value) => setSelectedSessionForImport(value)}
+              value={selectedSessionForImport}
+            >
+              {selectedEventForImport && events[selectedEventForImport]?.sessions.map((session, index) => (
+                <Option key={index} value={index}>
+                  {session.location || `場次 ${index + 1}`}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <div style={{ marginBottom: 16 }}>
+            預覽資料（共 {previewData.length} 筆）：
+          </div>
+
+          <Table
+            dataSource={previewData}
+            columns={[
+              {
+                title: '姓名',
+                dataIndex: 'name',
+                key: 'name',
+              },
+              {
+                title: '電話',
+                dataIndex: 'phone',
+                key: 'phone',
+              },
+              {
+                title: '電子郵件',
+                dataIndex: 'email',
+                key: 'email',
+              },
+              {
+                title: '備註',
+                dataIndex: 'notes',
+                key: 'notes',
+              }
+            ]}
+            size="small"
+            pagination={{ pageSize: 5 }}
+            scroll={{ y: 200 }}
+          />
+        </Form>
+      </Modal>
+
+      {/* 指派業務 Modal */}
+      <Modal
+        title={isBatchAssign ? `批量指派業務 (${selectedRows.length} 筆)` : "指派業務"}
+        open={assignModalVisible}
+        onCancel={() => setAssignModalVisible(false)}
+        footer={null}
+        width={400}
+      >
+        <div style={{ padding: '20px 0' }}>
+          {!isBatchAssign && currentRegistration && (
+            <div style={{ marginBottom: 16, padding: 12, background: '#f5f5f5', borderRadius: 6 }}>
+              <div><strong>姓名：</strong>{currentRegistration.attributes.name}</div>
+              <div><strong>電話：</strong>{currentRegistration.attributes.phone}</div>
+              <div><strong>電子郵件：</strong>{currentRegistration.attributes.email}</div>
+            </div>
+          )}
+          
+          <div style={{ marginBottom: 16 }}>
+            <strong>選擇業務人員：</strong>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {salesStaff.map(staff => (
+              <Button
+                key={staff.id}
+                style={{ textAlign: 'left', height: 'auto', padding: '12px 16px' }}
+                onClick={() => confirmAssignSalesStaff(staff.id)}
+              >
+                <div>
+                  <div style={{ fontWeight: 'bold' }}>
+                    {staff.attributes.name || staff.attributes.username}
+                  </div>
+                  {staff.attributes.email && (
+                    <div style={{ fontSize: '12px', color: '#666' }}>
+                      {staff.attributes.email}
+                    </div>
+                  )}
+                </div>
+              </Button>
+            ))}
+            
+            {salesStaff.length === 0 && (
+              <div style={{ textAlign: 'center', color: '#999', padding: 20 }}>
+                暫無業務人員資料
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* 新增報名資料 Modal */}
+      <Modal
+        title="新增報名"
+        open={addModalVisible}
+        onCancel={() => {
+          setAddModalVisible(false);
+          addForm.resetFields();
+        }}
+        onOk={handleAdd}
+        width={800}
+      >
+        <Form
+          form={addForm}
+          layout="vertical"
+          initialValues={{
+            has_overseas_investment: false,
+            budget_range: 'budget_unknown',
+            attendanceCount: 'attendance1'
+          }}
+        >
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="event"
+                label="活動"
+                rules={[{ required: true, message: '請選擇活動' }]}
+              >
+                <Select
+                  placeholder="請選擇活動"
+                  onChange={handleEventChange}
+                >
+                  {Object.entries(events).map(([id, event]) => (
+                    <Option key={id} value={id}>
+                      {event.title}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="sessionIndex"
+                label="場次"
+                rules={[{ required: true, message: '請選擇場次' }]}
+              >
+                <Select placeholder="請選擇場次">
+                  {selectedEventSessions.map((session, index) => (
+                    <Option key={index} value={index}>
+                      {session.location || `場次 ${index + 1}`}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item
+                name="name"
+                label="姓名"
+                rules={[{ required: true, message: '請輸入姓名' }]}
+              >
+                <Input placeholder="請輸入姓名" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item
+                name="phone"
+                label="電話"
+                rules={[
+                  { required: true, message: '請輸入電話' },
+                  { pattern: /^[0-9]{8,}$/, message: '請輸入有效的電話號碼' }
+                ]}
+              >
+                <Input placeholder="請輸入電話" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item
+                name="email"
+                label="電子郵件"
+                rules={[
+                  { required: true, message: '請輸入電子郵件' },
+                  { type: 'email', message: '請輸入有效的電子郵件' }
+                ]}
+              >
+                <Input placeholder="請輸入電子郵件" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item
+                name="has_overseas_investment"
+                label="海外投資經驗"
+                valuePropName="checked"
+              >
+                <Switch checkedChildren="有" unCheckedChildren="無" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item
+                name="budget_range"
+                label="投資預算"
+              >
+                <Select>
+                  <Option value="budget_unknown">未知</Option>
+                  <Option value="budget_under_ten">一千萬以下</Option>
+                  <Option value="budget_ten_to_twenty">一千萬到兩千萬</Option>
+                  <Option value="budget_twenty_to_thirty">兩千萬到三千萬</Option>
+                  <Option value="budget_above_thirty">三千萬以上</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item
+                name="attendanceCount"
+                label="出席人數"
+                rules={[
+                  { required: true, message: '請選擇出席人數' }
+                ]}
+              >
+                <Select>
+                  <Option value="attendance1">1人</Option>
+                  <Option value="attendance2">2人</Option>
+                  <Option value="attendance3">3人</Option>
+                  <Option value="attendance4">4人</Option>
+                  <Option value="attendance5">5人</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item
+            name="overseas_investment_notes"
+            label="投資說明"
+          >
+            <Input.TextArea
+              placeholder="請輸入投資相關說明"
+              rows={4}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="notes"
+            label="備註"
+          >
+            <Input.TextArea
+              placeholder="請輸入備註"
+              rows={4}
+            />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

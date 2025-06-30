@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Events.css';
 import { useLanguage } from '../context/LanguageContext';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl } from '../utils/imageUtils';
 
 const Events = () => {
     const { language } = useLanguage();
     const navigate = useNavigate();
+    useScrollToTop(); // 確保頁面載入時滾動到頂部
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [visibleEvents, setVisibleEvents] = useState(3); // 初始顯示3個活動
@@ -206,11 +208,9 @@ const Events = () => {
                                                     {getAllSessionsInfo(event.attributes.session).map((session, index) => (
                                                         <div key={index} className="session-item">
                                                             <div className="brief-item brief-date">
-                                                                <i className="far fa-calendar-alt"></i>
                                                                 <span><strong>{currentText.date}</strong> {session.date}</span>
                                                             </div>
                                                             <div className="brief-item brief-location">
-                                                                <i className="fas fa-map-marker-alt"></i>
                                                                 <span><strong>{currentText.location}</strong> {session.location}</span>
                                                             </div>
                                                         </div>

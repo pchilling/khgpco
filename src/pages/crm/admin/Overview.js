@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Table, Select, DatePicker, Button, Spin, Alert, Divider, List, Tabs, Empty } from 'antd';
+import { Card, Row, Col, Statistic, Table, Select, DatePicker, Button, Spin, Alert, Divider, List, Tabs, Empty, Tag, Progress } from 'antd';
 import { 
   TeamOutlined, 
   DollarOutlined, 
@@ -11,12 +11,17 @@ import {
   BarChartOutlined,
   CalendarOutlined,
   MessageOutlined,
-  ShopOutlined
+  ShopOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  PhoneOutlined,
+  MailOutlined
 } from '@ant-design/icons';
 import { PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { API_BASE_URL } from '../../../utils/api';
 import styles from './Overview.module.css';
 import moment from 'moment';
+import axios from 'axios';
 
 const { RangePicker } = DatePicker;
 const { TabPane } = Tabs;
@@ -28,7 +33,7 @@ const Overview = () => {
   const [loading, setLoading] = useState(false);
   const [salesStaff, setSalesStaff] = useState([]);
   const [selectedStaff, setSelectedStaff] = useState('all');
-  const [dateRange, setDateRange] = useState([moment().subtract(30, 'days'), moment()]);
+  const [dateRange, setDateRange] = useState([moment().startOf('month'), moment()]);
   
   // 整合所有統計數據
   const [dashboardStats, setDashboardStats] = useState({
@@ -62,6 +67,14 @@ const Overview = () => {
   
   const [salesPerformance, setSalesPerformance] = useState([]);
   const [dealsByStatus, setDealsByStatus] = useState([]);
+  const [interactions, setInteractions] = useState([]);
+  const [stats, setStats] = useState({
+    totalDeals: 0,
+    totalAmount: 0,
+    conversionRate: 0,
+    activeDeals: 0
+  });
+  const [customerStages, setCustomerStages] = useState([]);
   
   // 業務績效數據範例
   const mockSalesPerformance = [
@@ -372,6 +385,149 @@ const Overview = () => {
   // 客戶來源分佈的顏色
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
+  // 獲取統計數據
+  const fetchStats = async () => {
+    try {
+      const response = await axios.get('http://localhost:1337/api/interactions', {
+        params: {
+          filters: {
+            date: {
+              $gte: dateRange[0].format('YYYY-MM-DD'),
+              $lte: dateRange[1].format('YYYY-MM-DD')
+            }
+          },
+          populate: ['customer', 'sales_staff']
+        }
+      });
+
+      const interactions = response.data.data;
+      
+      // 計算成交數和金額
+      const deals = interactions.filter(i => i.attributes.is_deal);
+      const totalAmount = deals.reduce((sum, i) => sum + (parseFloat(i.attributes.deal_amount) || 0), 0);
+      
+      // 計算轉換率
+      const uniqueCustomers = new Set(interactions.map(i => i.attributes.customer?.data?.id));
+      const uniqueDeals = new Set(deals.map(i => i.attributes.customer?.data?.id));
+      const conversionRate = (uniqueDeals.size / uniqueCustomers.size * 100) || 0;
+
+      // 計算進行中的交易
+      const activeDeals = interactions.filter(i => 
+        i.attributes.is_deal && 
+        ['negotiating', 'contract_signed'].includes(i.attributes.status)
+      ).length;
+
+      setStats({
+        totalDeals: deals.length,
+        totalAmount,
+        conversionRate,
+        activeDeals
+      });
+
+      // 處理銷售人員績效
+      const salesStats = {};
+      interactions.forEach(i => {
+        const staffId = i.attributes.sales_staff?.data?.id;
+        const staffName = i.attributes.sales_staff?.data?.attributes?.name;
+        if (staffId && i.attributes.is_deal) {
+          if (!salesStats[staffId]) {
+            salesStats[staffId] = {
+              name: staffName,
+              deals: 0,
+              amount: 0,
+              interactions: 0
+            };
+          }
+          salesStats[staffId].deals += 1;
+          salesStats[staffId].amount += parseFloat(i.attributes.deal_amount) || 0;
+        }
+      });
+      setSalesPerformance(Object.values(salesStats).sort((a, b) => b.amount - a.amount));
+
+      // 處理客戶階段分布
+      const stages = {
+        'initial_contact': 0,
+        'following_up': 0,
+        'negotiating': 0,
+        'contract_signed': 0,
+        'payment_received': 0,
+        'completed': 0,
+        'cancelled': 0
+      };
+      interactions.forEach(i => {
+        stages[i.attributes.status] = (stages[i.attributes.status] || 0) + 1;
+      });
+      setCustomerStages(Object.entries(stages).map(([stage, count]) => ({
+        stage,
+        count
+      })));
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      setLoading(false);
+    }
+  };
+
+  // 獲取最近互動
+  const fetchRecentInteractions = async () => {
+    try {
+      const response = await axios.get('http://localhost:1337/api/interactions', {
+        params: {
+          sort: 'date:desc',
+          pagination: {
+            page: 1,
+            pageSize: 5
+          },
+          populate: ['customer', 'sales_staff']
+        }
+      });
+      setInteractions(response.data.data);
+    } catch (error) {
+      console.error('Error fetching interactions:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+    fetchRecentInteractions();
+  }, [dateRange]);
+
+  // 渲染銷售業績圖表
+  const renderSalesChart = () => {
+    const data = salesPerformance.map(staff => ({
+      name: staff.name,
+      value: staff.amount
+    }));
+
+    const config = {
+      data,
+      angleField: 'value',
+      colorField: 'name',
+      radius: 0.8,
+      label: {
+        type: 'outer'
+      }
+    };
+
+    return <Pie {...config} />;
+  };
+
+  // 渲染客戶階段分布圖表
+  const renderStagesChart = () => {
+    const config = {
+      data: customerStages,
+      xField: 'stage',
+      yField: 'count',
+      point: {
+        size: 5,
+        shape: 'diamond'
+      }
+    };
+
+    return <Line {...config} />;
+  };
+
   if (isLoading) {
     return (
       <div className={styles.overview}>
@@ -398,326 +554,119 @@ const Overview = () => {
   }
 
   return (
-    <div className={styles.dashboardContainer}>
-      {/* 顯示錯誤信息（如果有） */}
-      {error && 
-        <Alert 
-          message="載入失敗" 
-          description={error} 
-          type="error" 
-          showIcon 
-          closable 
-          className={styles.errorAlert}
-        />
-      }
-      
-      {/* 頂部統計信息 */}
-      <Row gutter={[16, 16]} className={styles.statsRow}>
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Card className={styles.statCard}>
+    <div style={{ padding: '24px' }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+        <Col span={24}>
+          <RangePicker 
+            value={dateRange}
+            onChange={(dates) => setDateRange(dates)}
+            style={{ marginBottom: '16px' }}
+          />
+        </Col>
+        <Col span={6}>
+          <Card>
             <Statistic
-              title="總客戶數"
-              value={dashboardStats.totalCustomers}
+              title="總成交數"
+              value={stats.totalDeals}
               prefix={<TeamOutlined />}
-              valueStyle={{ color: '#3f8600' }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Card className={styles.statCard}>
+        <Col span={6}>
+          <Card>
             <Statistic
-              title="本月交易金額"
-              value={dashboardStats.totalSales}
-              prefix={<DollarOutlined />}
-              valueStyle={{ color: '#cf1322' }}
-              suffix="元"
+              title="總成交金額"
+              value={stats.totalAmount}
+              precision={2}
+              prefix="$"
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Card className={styles.statCard}>
-            <Statistic
-              title="平均成交週期"
-              value={dashboardStats.avgDealCycle || 0}
-              prefix={<FieldTimeOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-              suffix="天"
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Card className={styles.statCard}>
+        <Col span={6}>
+          <Card>
             <Statistic
               title="轉換率"
-              value={dashboardStats.conversionRate || 0}
-              prefix={<RiseOutlined />}
-              valueStyle={{ color: '#722ed1' }}
+              value={stats.conversionRate}
+              precision={2}
+              prefix={<ArrowUpOutlined />}
               suffix="%"
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="進行中交易"
+              value={stats.activeDeals}
+              prefix={<UserOutlined />}
             />
           </Card>
         </Col>
       </Row>
       
-      {/* 業績追蹤區域 */}
-      <Card 
-        title={
-          <div className={styles.cardTitle}>
-            <LineChartOutlined /> 業績追蹤
-          </div>
-        }
-        className={styles.dashboardCard}
-        extra={
-          <div className={styles.cardFilters}>
-            <Select 
-              defaultValue="all" 
-              style={{ width: 120, marginRight: 16 }}
-              onChange={handleStaffChange}
-            >
-              <Option value="all">所有業務</Option>
-              {salesStaff.map(staff => (
-                <Option key={staff.id} value={staff.id}>
-                  {staff.attributes?.username || `業務 ${staff.id}`}
-                </Option>
-              ))}
-            </Select>
-            <RangePicker 
-              defaultValue={dateRange}
-              onChange={handleDateRangeChange}
-              allowClear={false}
-            />
-          </div>
-        }
-      >
-        {isLoading ? (
-          <div className={styles.loadingContainer}>
-            <Spin tip="載入中..." />
-          </div>
-        ) : (
-          <div>
             <Row gutter={[16, 16]}>
-              <Col xs={24} md={8}>
-                <Card className={styles.miniCard} title="銷售業績">
-                  <Statistic
-                    title="總成交金額"
-                    value={dashboardStats.totalAmount || 0}
-                    suffix="元"
-                    precision={0}
-                  />
-                  <Statistic
-                    title="總成交數量"
-                    value={dashboardStats.totalDeals || 0}
-                    suffix="筆"
-                    className={styles.marginTop}
-                  />
+        <Col span={12}>
+          <Card title="銷售業績分布">
+            {renderSalesChart()}
                 </Card>
               </Col>
-              <Col xs={24} md={8}>
-                <Card className={styles.miniCard} title="客戶互動">
-                  <Statistic
-                    title="總聯絡次數"
-                    value={dashboardStats.contactCount || 0}
-                    suffix="次"
-                  />
-                  <Statistic
-                    title="平均回覆時間"
-                    value={dashboardStats.avgResponseTime || 0}
-                    suffix="小時"
-                    precision={1}
-                    className={styles.marginTop}
-                  />
-                </Card>
-              </Col>
-              <Col xs={24} md={8}>
-                <Card className={styles.miniCard} title="客戶滿意度">
-                  <Statistic
-                    title="平均評分"
-                    value={dashboardStats.customerSatisfaction || 0}
-                    suffix="/5"
-                    precision={1}
-                  />
-                  <Statistic
-                    title="評分人數"
-                    value={48}
-                    suffix="人"
-                    className={styles.marginTop}
-                  />
+        <Col span={12}>
+          <Card title="客戶階段分布">
+            {renderStagesChart()}
                 </Card>
               </Col>
             </Row>
             
-            <Divider orientation="left">業務績效比較</Divider>
-            
+      <Row gutter={[16, 16]} style={{ marginTop: '16px' }}>
+        <Col span={12}>
+          <Card title="銷售排行榜">
             <Table
               dataSource={salesPerformance}
-              pagination={false}
-              className={styles.performanceTable}
-              size="small"
-              rowKey="id"
               columns={[
                 {
-                  title: '業務姓名',
+                  title: '銷售人員',
                   dataIndex: 'name',
-                  key: 'name',
                 },
                 {
-                  title: '成交數量',
+                  title: '成交數',
                   dataIndex: 'deals',
-                  key: 'deals',
-                  sorter: (a, b) => a.deals - b.deals,
                 },
                 {
                   title: '成交金額',
                   dataIndex: 'amount',
-                  key: 'amount',
-                  render: amount => `${(amount / 10000).toFixed(2)}萬`,
-                  sorter: (a, b) => a.amount - b.amount,
-                },
-                {
-                  title: '聯絡次數',
-                  dataIndex: 'contacts',
-                  key: 'contacts',
-                },
-                {
-                  title: '平均回覆時間',
-                  dataIndex: 'avgResponse',
-                  key: 'avgResponse',
-                  render: time => `${time}小時`,
-                  sorter: (a, b) => a.avgResponse - b.avgResponse,
-                },
-                {
-                  title: '平均成交週期',
-                  dataIndex: 'avgCycle',
-                  key: 'avgCycle',
-                  render: days => `${days}天`,
-                },
-                {
-                  title: '客戶滿意度',
-                  dataIndex: 'satisfaction',
-                  key: 'satisfaction',
-                  render: score => `${score}/5`,
+                  render: (amount) => `$${amount.toLocaleString()}`
                 }
               ]}
+              pagination={false}
             />
-            
-            <Divider orientation="left">客戶分布</Divider>
-            
-            <Row gutter={[16, 16]} className={styles.chartsRow}>
-        <Col xs={24} lg={12}>
-                <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                      data={dealsByStatus}
-                    cx="50%"
-                    cy="50%"
-                      labelLine={false}
-                      outerRadius={100}
-                    fill="#8884d8"
-                      dataKey="count"
-                      nameKey="status"
-                      label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                      {dealsByStatus.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={getStatusColor(entry.status)} />
-                    ))}
-                  </Pie>
-                    <Tooltip 
-                      formatter={(value, name, props) => [`${value}個客戶`, `${props.payload.status}`]}
-                    />
-                    <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-        </Col>
-              
-        <Col xs={24} lg={12}>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart
-                    data={dealsByStatus}
-                  margin={{
-                      top: 5,
-                    right: 30,
-                    left: 20,
-                      bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="status" />
-                  <YAxis />
-                    <Tooltip formatter={(value) => [`${value}人`, '人數']} />
-                    <Legend />
-                    <Bar dataKey="count" name="人數" fill="#8884d8">
-                      {dealsByStatus.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={getStatusColor(entry.status)} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-              </ResponsiveContainer>
-              </Col>
-            </Row>
-              </div>
-            )}
           </Card>
-
-      {/* 最近活動 */}
-      <Card 
-        title={
-          <div className={styles.cardTitle}>
-            <CalendarOutlined /> 最近活動
-          </div>
-        }
-        className={styles.dashboardCard}
-      >
-        <Tabs defaultActiveKey="1">
-          <TabPane 
-            tab={
-              <span>
-                <MessageOutlined />
-                最近報名
-              </span>
-            }
-            key="1"
-          >
+        </Col>
+        <Col span={12}>
+          <Card title="最近互動">
             <List
-              itemLayout="horizontal"
-              dataSource={recentRegistrations}
+              dataSource={interactions}
               renderItem={item => (
                 <List.Item>
                   <List.Item.Meta
-                    title={<span>{item.name} <span className={styles.smallText}>({item.date})</span></span>}
-                    description={`電話: ${item.phone} | 電子郵件: ${item.email}`}
+                    title={`${item.attributes.customer?.data?.attributes?.name || '未知客戶'} - ${item.attributes.type}`}
+                    description={
+                      <>
+                        <Tag color={getStatusColor(item.attributes.status)}>
+                          {item.attributes.status}
+                        </Tag>
+                        {moment(item.attributes.date).format('YYYY-MM-DD HH:mm')}
+                      </>
+                    }
                   />
-                  <div className={styles.statusTag}>
-                    {getStatusDisplay(item.status)}
-                  </div>
+                  {item.attributes.is_deal && (
+                    <Tag color="green">${item.attributes.deal_amount}</Tag>
+                  )}
                 </List.Item>
               )}
-              locale={{ emptyText: '沒有最近的報名數據' }}
             />
-          </TabPane>
-          <TabPane 
-            tab={
-              <span>
-                <UserOutlined />
-                最近客戶
-              </span>
-            }
-            key="2"
-          >
-            <List
-              itemLayout="horizontal"
-              dataSource={recentCustomers}
-              renderItem={item => (
-                <List.Item>
-                  <List.Item.Meta
-                    title={<span>{item.name} <span className={styles.smallText}>({item.date})</span></span>}
-                    description={`電話: ${item.phone} | 電子郵件: ${item.email}`}
-                  />
-                </List.Item>
-              )}
-              locale={{ emptyText: '沒有最近的客戶數據' }}
-            />
-          </TabPane>
-        </Tabs>
       </Card>
+        </Col>
+      </Row>
     </div>
   );
 };

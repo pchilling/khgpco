@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import '../styles/ContactSection.css';
 import companyLogo from '../assets/logo-white.png'; // 請確保有白色版本的logo
@@ -133,7 +133,6 @@ const ContactSection = () => {
         setSubmitStatus(null);
 
         try {
-            // 準備聯絡表單數據
             const contactData = {
                 data: {
                     name: formData.name,
@@ -144,11 +143,6 @@ const ContactSection = () => {
                 }
             };
             
-            console.log('正在提交聯絡表單...');
-            console.log('API地址:', `${API_BASE_URL}/api/contact-messages`);
-            console.log('表單數據:', JSON.stringify(contactData, null, 2));
-            
-            // 使用fetch API提交
             const response = await fetch(`${API_BASE_URL}/api/contact-messages`, {
                 method: 'POST',
                 headers: {
@@ -158,17 +152,12 @@ const ContactSection = () => {
                 body: JSON.stringify(contactData)
             });
             
-            // 檢查響應狀態
             if (!response.ok) {
-                const errorData = await response.text();
-                console.error('API響應錯誤:', response.status, errorData);
                 throw new Error(`請求失敗: ${response.status}`);
             }
             
             const result = await response.json();
-            console.log('提交成功!', result);
             
-            // 清空表單並顯示成功訊息
             setFormData({
                 name: '',
                 phone: '',
@@ -191,91 +180,6 @@ const ContactSection = () => {
         line: 'https://line.me/ti/p/~@118qhydb',
         facebook: 'https://www.facebook.com/KHGlobalprop/',
         instagram: 'https://www.instagram.com/khgpco?fbclid=IwY2xjawH6k41leHRuA2FlbQIxMAABHVIrdNR3UEjJE8y2VxMTQZtnW2meWesDEX6b_wM_ozsGr_0SIjFM-Ape4g_aem_ocU0a9CE9DRUpxGNzjAIHg'
-    };
-
-    useEffect(() => {
-        // 添加調試日誌，確認組件已加載
-        console.log("ContactSection 組件已加載");
-        
-        // 添加 ID 到全局變量，方便調試
-        window.contactSectionLoaded = true;
-        
-        // 測試API連接
-        const testApiConnection = async () => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/contact-messages`);
-                const data = await response.json();
-                console.log('API測試結果:', {
-                    status: response.status,
-                    ok: response.ok,
-                    data: data
-                });
-            } catch (error) {
-                console.error('API測試失敗:', error);
-            }
-        };
-        
-        // 執行API測試
-        testApiConnection();
-        
-        // 檢查元素是否可以被找到
-        setTimeout(() => {
-            const element = document.getElementById('contact-section');
-            console.log("聯繫我們部分是否可以被找到:", element ? "是" : "否");
-            if (element) {
-                console.log("聯繫我們部分位置:", element.offsetTop);
-            }
-        }, 500);
-    }, []);
-
-    // 測試提交函數
-    const testSubmit = async () => {
-        try {
-            // 準備測試數據
-            const testData = {
-                data: {
-                    name: "測試用戶",
-                    email: "test@test.com",
-                    phone: "0912-345-678",
-                    message: "這是一條測試訊息",
-                    source: "網站測試"
-                }
-            };
-            
-            console.log('嘗試提交測試數據:');
-            console.log('API地址:', `${API_BASE_URL}/api/contact-messages`);
-            console.log('測試數據:', JSON.stringify(testData, null, 2));
-            
-            // 使用fetch API提交
-            const response = await fetch(`${API_BASE_URL}/api/contact-messages`, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(testData)
-            });
-            
-            // 處理響應
-            if (!response.ok) {
-                const errorData = await response.text();
-                console.error('測試失敗:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    data: errorData
-                });
-                message.error(`測試失敗: ${response.status} ${response.statusText}`);
-                throw new Error(`API請求失敗: ${response.status}`);
-            }
-            
-            const result = await response.json();
-            console.log('測試成功!', result);
-            message.success('測試訊息已成功發送!');
-            
-        } catch (error) {
-            console.error('測試提交出錯:', error);
-            message.error(`測試錯誤: ${error.message}`);
-        }
     };
 
     return (
@@ -350,23 +254,6 @@ const ContactSection = () => {
                                     t.submit
                                 )}
                             </button>
-                            {process.env.NODE_ENV === 'development' && (
-                                <button 
-                                    type="button"
-                                    onClick={testSubmit}
-                                    style={{ 
-                                        marginTop: '10px', 
-                                        background: '#ff5722',
-                                        color: 'white',
-                                        padding: '8px 15px',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    測試API連接
-                                </button>
-                            )}
                         </form>
                     )}
                 </div>

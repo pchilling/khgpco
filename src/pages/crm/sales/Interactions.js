@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, DatePicker, Tooltip } from 'antd';
-import { PlusOutlined, FilterOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, FilterOutlined, SearchOutlined, ReloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import { API_BASE_URL } from '../../../utils/api';
 import * as XLSX from 'xlsx';
 
@@ -22,10 +22,10 @@ const Interactions = () => {
 
   // 互動類型映射
   const interactionTypeMap = {
-    call: '通話',
+    phone_call: '通話',
     email: '電子郵件',
     meeting: '會議',
-    visit: '參觀',
+    site_visit: '參觀',
     other: '其他'
   };
 
@@ -149,6 +149,34 @@ const Interactions = () => {
     setAddModalVisible(true);
   };
 
+  // 刪除互動記錄
+  const handleDelete = (record) => {
+    Modal.confirm({
+      title: '確認刪除',
+      content: `確定要刪除與客戶「${record.attributes.customer?.data?.attributes?.name || '未知客戶'}」的互動記錄嗎？`,
+      okText: '確定刪除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/interactions/${record.id}`, {
+            method: 'DELETE',
+          });
+
+          if (!response.ok) {
+            throw new Error('刪除失敗');
+          }
+
+          message.success('互動記錄已刪除');
+          fetchInteractions(); // 重新載入資料
+        } catch (error) {
+          console.error('Error deleting interaction:', error);
+          message.error('刪除互動記錄失敗');
+        }
+      }
+    });
+  };
+
   const handleSearch = (e) => {
     setSearchKeyword(e.target.value);
   };
@@ -173,13 +201,15 @@ const Interactions = () => {
     try {
       let filtered = [...interactions];
       
-      // 關鍵字搜索
+      // 關鍵字搜索 - 搜尋客戶姓名、互動內容
       if (searchKeyword) {
         const keyword = searchKeyword.toLowerCase();
         filtered = filtered.filter(interaction => 
-          (interaction.attributes.notes && interaction.attributes.notes.toLowerCase().includes(keyword)) ||
+          // 搜尋客戶姓名
           (interaction.attributes.customer?.data?.attributes?.name && 
-            interaction.attributes.customer.data.attributes.name.toLowerCase().includes(keyword))
+            interaction.attributes.customer.data.attributes.name.toLowerCase().includes(keyword)) ||
+          // 搜尋互動內容
+          (interaction.attributes.notes && interaction.attributes.notes.toLowerCase().includes(keyword))
         );
       }
       
@@ -348,14 +378,26 @@ const Interactions = () => {
     {
       title: '操作',
       key: 'action',
+      width: 100,
+      fixed: 'right',
       render: (_, record) => (
-        <Space size="middle">
+        <Space size="small">
           <Button 
-            type="link" 
+            type="text" 
             onClick={() => handleEdit(record)}
+            size="small"
+            title="編輯互動記錄"
           >
             編輯
           </Button>
+          <Button 
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record)}
+            size="small"
+            title="刪除互動記錄"
+          />
         </Space>
       ),
     },
@@ -376,11 +418,11 @@ const Interactions = () => {
       extra={
         <Space>
           <Input
-            placeholder="搜索互動記錄"
+            placeholder="搜索客戶姓名或互動內容"
             value={searchKeyword}
             onChange={handleSearch}
             prefix={<SearchOutlined />}
-            style={{ width: 200 }}
+            style={{ width: 250 }}
           />
           <Button
             icon={<FilterOutlined />}
@@ -468,11 +510,25 @@ const Interactions = () => {
         </div>
       )}
 
+      {/* 搜尋說明 */}
+      <div style={{ 
+        marginBottom: 16, 
+        padding: '8px 12px', 
+        backgroundColor: '#f0f9ff', 
+        border: '1px solid #bae6fd',
+        borderRadius: '4px',
+        fontSize: '14px',
+        color: '#0369a1'
+      }}>
+        💡 搜尋提示：您可以搜尋「客戶姓名」或「互動內容」關鍵字來快速找到相關記錄
+      </div>
+
       <Table
         columns={columns}
         dataSource={filteredInteractions}
         rowKey={record => record.id}
         loading={loading}
+        scroll={{ x: 1000 }}
       />
 
       <Modal

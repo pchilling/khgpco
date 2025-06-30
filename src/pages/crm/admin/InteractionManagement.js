@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Space, Button, Input, Form, Select, DatePicker, message, Tag, Tooltip, Modal } from 'antd';
-import { SearchOutlined, FilterOutlined, ReloadOutlined, ExportOutlined } from '@ant-design/icons';
+import { SearchOutlined, FilterOutlined, ReloadOutlined, ExportOutlined, DeleteOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 import { API_BASE_URL } from '../../../utils/api';
+import moment from 'moment';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -16,6 +17,8 @@ const InteractionManagement = () => {
   const [filterVisible, setFilterVisible] = useState(false);
   const [filterForm] = Form.useForm();
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [selectedNotes, setSelectedNotes] = useState('');
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   // 互動類型和狀態映射
   const interactionTypeMap = {
@@ -104,13 +107,20 @@ const InteractionManagement = () => {
     try {
       let filtered = [...interactions];
       
-      // 關鍵字搜索
+      // 關鍵字搜索 - 搜尋客戶姓名、互動內容、業務人員姓名
       if (searchKeyword) {
         const keyword = searchKeyword.toLowerCase();
         filtered = filtered.filter(interaction => 
-          (interaction.attributes.notes && interaction.attributes.notes.toLowerCase().includes(keyword)) ||
+          // 搜尋客戶姓名
           (interaction.attributes.customer?.data?.attributes?.name && 
-            interaction.attributes.customer.data.attributes.name.toLowerCase().includes(keyword))
+            interaction.attributes.customer.data.attributes.name.toLowerCase().includes(keyword)) ||
+          // 搜尋互動內容
+          (interaction.attributes.notes && interaction.attributes.notes.toLowerCase().includes(keyword)) ||
+          // 搜尋業務人員姓名
+          (interaction.attributes.sales_staff?.data?.attributes?.username && 
+            interaction.attributes.sales_staff.data.attributes.username.toLowerCase().includes(keyword)) ||
+          (interaction.attributes.sales_staff?.data?.attributes?.name && 
+            interaction.attributes.sales_staff.data.attributes.name.toLowerCase().includes(keyword))
         );
       }
       
@@ -198,6 +208,69 @@ const InteractionManagement = () => {
     });
   };
 
+  const showModal = (notes) => {
+    setSelectedNotes(notes);
+    setIsModalVisible(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalVisible(false);
+  };
+
+  // 刪除互動記錄
+  const handleDelete = (record) => {
+    Modal.confirm({
+      title: '確認刪除',
+      content: `確定要刪除與客戶「${record.attributes.customer?.data?.attributes?.name || '未知客戶'}」的互動記錄嗎？`,
+      okText: '確定刪除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/interactions/${record.id}`, {
+            method: 'DELETE',
+          });
+
+          if (!response.ok) {
+            throw new Error('刪除失敗');
+          }
+
+          message.success('互動記錄已刪除');
+          fetchInteractions(); // 重新載入資料
+        } catch (error) {
+          console.error('Error deleting interaction:', error);
+          message.error('刪除互動記錄失敗');
+        }
+      }
+    });
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      'initial_contact': 'blue',
+      'following_up': 'cyan',
+      'negotiating': 'orange',
+      'contract_signed': 'gold',
+      'payment_received': 'green',
+      'completed': 'green',
+      'cancelled': 'red'
+    };
+    return colors[status] || 'default';
+  };
+
+  const getStatusText = (status) => {
+    const statusMap = {
+      'initial_contact': '初次接觸',
+      'following_up': '跟進中',
+      'negotiating': '洽談中',
+      'contract_signed': '已簽約',
+      'payment_received': '已收款',
+      'completed': '已完成',
+      'cancelled': '已取消'
+    };
+    return statusMap[status] || status;
+  };
+
   // 表格列定義
   const columns = [
     {
@@ -231,19 +304,29 @@ const InteractionManagement = () => {
       ellipsis: {
         showTitle: false,
       },
-      render: (notes) => (
-        <Tooltip placement="topLeft" title={notes}>
-          {notes || '-'}
-        </Tooltip>
-      ),
+      render: (notes) => {
+        if (!notes) return '-';
+        const displayText = notes.length > 20 ? `${notes.substring(0, 20)}...` : notes;
+        return (
+          <Tooltip title={notes.length > 20 ? notes : ''}>
+            <Button 
+              type="link" 
+              onClick={() => showModal(notes)}
+              style={{ padding: 0, height: 'auto', whiteSpace: 'normal', textAlign: 'left' }}
+            >
+              {displayText}
+            </Button>
+          </Tooltip>
+        );
+      }
     },
     {
       title: '狀態',
       dataIndex: ['attributes', 'status'],
       key: 'status',
       render: (status) => (
-        <Tag color={interactionStatusMap[status]?.color || 'default'}>
-          {interactionStatusMap[status]?.text || status}
+        <Tag color={getStatusColor(status)}>
+          {getStatusText(status)}
         </Tag>
       ),
     },
@@ -253,6 +336,22 @@ const InteractionManagement = () => {
       key: 'next_follow_up',
       render: (next_follow_up) => next_follow_up || '-',
     },
+    {
+      title: '操作',
+      key: 'action',
+      width: 80,
+      fixed: 'right',
+      render: (_, record) => (
+        <Button 
+          type="text"
+          danger
+          icon={<DeleteOutlined />}
+          onClick={() => handleDelete(record)}
+          size="small"
+          title="刪除互動記錄"
+        />
+      ),
+    },
   ];
 
   return (
@@ -261,11 +360,11 @@ const InteractionManagement = () => {
       extra={
         <Space>
           <Input
-            placeholder="搜索互動記錄"
+            placeholder="搜索客戶姓名、互動內容或業務人員"
             value={searchKeyword}
             onChange={handleSearch}
             prefix={<SearchOutlined />}
-            style={{ width: 200 }}
+            style={{ width: 250 }}
           />
           <Button
             icon={<FilterOutlined />}
@@ -361,12 +460,39 @@ const InteractionManagement = () => {
         </div>
       )}
 
+      {/* 搜尋說明 */}
+      <div style={{ 
+        marginBottom: 16, 
+        padding: '8px 12px', 
+        backgroundColor: '#f0f9ff', 
+        border: '1px solid #bae6fd',
+        borderRadius: '4px',
+        fontSize: '14px',
+        color: '#0369a1'
+      }}>
+        💡 搜尋提示：您可以搜尋「客戶姓名」、「互動內容」或「業務人員姓名」關鍵字來快速找到相關記錄
+      </div>
+
       <Table
         columns={columns}
         dataSource={filteredInteractions}
         rowKey={record => record.id}
         loading={loading}
+        scroll={{ x: 1200 }}
       />
+
+      <Modal
+        title="互動內容詳情"
+        open={isModalVisible}
+        onCancel={handleModalClose}
+        footer={[
+          <Button key="close" onClick={handleModalClose}>
+            關閉
+          </Button>
+        ]}
+      >
+        <p style={{ whiteSpace: 'pre-wrap' }}>{selectedNotes}</p>
+      </Modal>
     </Card>
   );
 };

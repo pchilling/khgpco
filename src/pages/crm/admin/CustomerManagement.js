@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, Tooltip, Checkbox, Row, Col, DatePicker, Tabs, Switch, Upload, Typography, Popconfirm, Alert, Timeline, Empty, Spin } from 'antd';
-import { EditOutlined, DeleteOutlined, ExportOutlined, UserSwitchOutlined, FileAddOutlined, FilterOutlined, SearchOutlined, ReloadOutlined, FileTextOutlined, RollbackOutlined, FileExcelOutlined, CloudUploadOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, ExportOutlined, UserSwitchOutlined, FileAddOutlined, FilterOutlined, SearchOutlined, ReloadOutlined, FileTextOutlined, RollbackOutlined, FileExcelOutlined, CloudUploadOutlined, DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 import styles from './CustomerManagement.module.css';
 import { API_BASE_URL } from '../../../utils/api';
@@ -72,6 +72,9 @@ const CustomerManagement = () => {
   const [contactRecords, setContactRecords] = useState([]);
   const [contactLoading, setContactLoading] = useState(false);
   const [pendingCustomersVisible, setPendingCustomersVisible] = useState(false);
+  const [duplicateCustomersVisible, setDuplicateCustomersVisible] = useState(false);
+  const [duplicateCustomers, setDuplicateCustomers] = useState([]);
+  const [duplicateLoading, setDuplicateLoading] = useState(false);
   const [form] = Form.useForm();
   const [filterForm] = Form.useForm();
   const [projects, setProjects] = useState([]);
@@ -80,6 +83,9 @@ const CustomerManagement = () => {
   const [displayColumns, setDisplayColumns] = useState([]);
   const isMobile = useIsMobile();
   const [contactForm] = Form.useForm();
+  // Excel匯入相關狀態
+  const [excelImportModalVisible, setExcelImportModalVisible] = useState(false);
+  const [previewData, setPreviewData] = useState([]);
 
   const statusMap = {
     potential: { text: '潛在客戶', color: 'blue' },
@@ -132,16 +138,23 @@ const CustomerManagement = () => {
     other: '其他方式'
   };
 
+  // 聯絡狀態映射
+  const contactStatusMap = {
+    initial_contact: '初次接觸',
+    following_up: '跟進中',
+    negotiating: '洽談中',
+    contract_signed: '已簽約',
+    payment_received: '已收款',
+    completed: '已完成',
+    pending: '待處理',
+    cancelled: '已取消'
+  };
+
   // 聯絡結果映射
-  const contactResultMap = {
-    interested: '有興趣',
-    considering: '考慮中',
-    callback: '要求回電',
-    meeting: '約定會面',
-    no_answer: '未接通',
-    not_interested: '無興趣',
-    wrong_number: '號碼有誤',
-    other: '其他'
+  const contactOutcomeMap = {
+    positive: '正面',
+    neutral: '中性',
+    negative: '負面'
   };
 
   // 基礎列定義
@@ -318,16 +331,93 @@ const CustomerManagement = () => {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/customers?populate=*`);
-      const data = await response.json();
-      setCustomers(data.data);
-      setFilteredCustomers(data.data);
+      console.log('開始獲取客戶資料...');
+      
+      // 獲取所有客戶數據 - 使用更大的 pageSize 或分批獲取
+      let allCustomers = [];
+      let currentPage = 1;
+      let totalPages = 1;
+      
+      do {
+        const response = await fetch(
+          `${API_BASE_URL}/api/customers?populate=*&sort=id:desc&pagination[page]=${currentPage}&pagination[pageSize]=100`
+        );
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(`API請求失敗: ${response.status}`);
+        }
+        
+        allCustomers = [...allCustomers, ...(data.data || [])];
+        totalPages = data.meta?.pagination?.pageCount || 1;
+        currentPage++;
+        
+        console.log(`獲取第 ${currentPage-1} 頁，共 ${data.data?.length || 0} 筆，總頁數: ${totalPages}`);
+        
+      } while (currentPage <= totalPages);
+      
+      console.log('客戶資料 API 回應:', {
+        totalCustomers: allCustomers.length,
+        totalPages: totalPages,
+        latestCustomerIds: allCustomers.slice(0, 5).map(c => `ID:${c.id}-${c.attributes.name}`) || []
+      });
+      
+      // 檢查數據來源統計
+      const sourceCounts = {};
+      const statusCounts = {};
+      allCustomers.forEach(customer => {
+        const source = customer.attributes.source || 'unknown';
+        const status = customer.attributes.status || 'unknown';
+        sourceCounts[source] = (sourceCounts[source] || 0) + 1;
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+      });
+      
+      console.log('客戶來源統計:', sourceCounts);
+      console.log('客戶狀態統計:', statusCounts);
+      
+      // 檢查是否有重複ID
+      const customerIds = allCustomers.map(c => c.id);
+      const uniqueIds = [...new Set(customerIds)];
+      if (customerIds.length !== uniqueIds.length) {
+        console.warn('⚠️ 發現重複的客戶ID!', {
+          總數: customerIds.length,
+          唯一ID數: uniqueIds.length,
+          重複的ID: customerIds.filter((id, index) => customerIds.indexOf(id) !== index)
+        });
+      }
+      
+      console.log('📊 最終數據設置:', {
+        allCustomers數量: allCustomers.length,
+        將設置到customers的數量: allCustomers.length,
+        將設置到filteredCustomers的數量: allCustomers.length,
+        最新10個客戶: allCustomers.slice(0, 10).map(c => `ID:${c.id}-${c.attributes.name}`)
+      });
+      
+      setCustomers(allCustomers);
+      setFilteredCustomers(allCustomers);
+      
+      message.success(`✅ 成功載入 ${allCustomers.length} 位客戶資料`);
+      
     } catch (error) {
       console.error('Error fetching customers:', error);
-      message.error('獲取客戶資料失敗');
+      message.error(`獲取客戶資料失敗: ${error.message}`);
+      setCustomers([]);
+      setFilteredCustomers([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  // 新增：定期重新載入客戶資料的函數
+  const refreshCustomers = () => {
+    console.log('手動重新載入客戶資料...');
+    // 重置搜索關鍵字
+    setSearchKeyword('');
+    // 重置篩選表單
+    filterForm.resetFields();
+    setFilterVisible(false);
+    // 重新獲取資料
+    fetchCustomers();
   };
 
   const fetchProjects = async () => {
@@ -674,6 +764,217 @@ const CustomerManagement = () => {
     setSearchKeyword(e.target.value);
   };
 
+  // 下載客戶資料範本
+  const handleTemplateDownload = () => {
+    const template = [{
+      '姓名': '(必填)',
+      '電話': '(必填，請直接輸入數字，例如：0912345678)',
+      '電子郵件': '(必填)',
+      '地址': '',
+      '狀態': 'potential/contacted/negotiating/closed/lost',
+      '來源': 'website/event/referral/other',
+      '海外投資經驗': '有/無',
+      '投資預算': '未知/一千萬以下/一千萬到兩千萬/兩千萬到三千萬/三千萬以上',
+      '投資說明': '',
+      '備註': ''
+    }];
+
+    const ws = XLSX.utils.json_to_sheet(template);
+    
+    // 設定欄位寬度
+    if (!ws['!cols']) ws['!cols'] = [];
+    ws['!cols'][1] = { wch: 20, t: 's' }; // 電話
+    ws['!cols'][2] = { wch: 25, t: 's' }; // 電子郵件
+    ws['!cols'][3] = { wch: 30, t: 's' }; // 地址
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "範本");
+    XLSX.writeFile(wb, "客戶資料範本.xlsx");
+  };
+
+  // 處理 Excel 上傳
+  const handleExcelUpload = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        
+        // 設定解析選項，將所有欄位都視為字串
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+          raw: false,
+          defval: ''
+        });
+
+        console.log('Excel 原始資料:', JSON.stringify(jsonData, null, 2));
+
+        // 轉換數據格式 - 跳過第一行標題行
+        const previewData = jsonData.slice(1).map((row, index) => {
+          console.log(`處理第 ${index + 2} 行:`, row);
+          
+          // 基本資料處理
+          const name = String(row['姓名'] || '').trim();
+          
+          // 處理電話號碼
+          const phoneValue = row['電話'] || '';
+          let phone = String(phoneValue).trim();
+          
+          // 移除所有非數字字符
+          const cleanPhone = phone.replace(/[^0-9]/g, '');
+          
+          // 根據數字長度處理電話號碼
+          if (cleanPhone.length === 9) {
+            phone = '0' + cleanPhone;
+          } else if (cleanPhone.length === 10 && cleanPhone.startsWith('0')) {
+            phone = cleanPhone;
+          } else if (cleanPhone.length === 10) {
+            phone = '0' + cleanPhone.substring(1);
+          } else {
+            phone = '';
+          }
+          
+          const email = String(row['電子郵件'] || '').trim();
+          const address = String(row['地址'] || '').trim();
+          
+          // 驗證必填欄位
+          const missingFields = [];
+          if (!name) missingFields.push('姓名');
+          if (!phone) missingFields.push('電話');
+          if (!email) missingFields.push('電子郵件');
+          
+          if (missingFields.length > 0) {
+            throw new Error(`第 ${index + 2} 行缺少必填欄位: ${missingFields.join(', ')}`);
+          }
+
+          // 驗證電子郵件格式
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(email)) {
+            throw new Error(`第 ${index + 2} 行的電子郵件格式無效: ${email}`);
+          }
+
+          // 驗證電話格式
+          if (phone.length !== 10 || !phone.startsWith('0')) {
+            throw new Error(`第 ${index + 2} 行的電話格式無效: ${phoneValue}`);
+          }
+
+          // 處理狀態
+          const statusValue = String(row['狀態'] || 'potential').trim();
+          const statusMap = {
+            'potential': 'potential',
+            '潛在客戶': 'potential',
+            'contacted': 'contacted', 
+            '已聯繫': 'contacted',
+            'negotiating': 'negotiating',
+            '洽談中': 'negotiating',
+            'closed': 'closed',
+            '已成交': 'closed',
+            'lost': 'lost',
+            '已流失': 'lost'
+          };
+          const status = statusMap[statusValue] || 'potential';
+
+          // 處理來源
+          const sourceValue = String(row['來源'] || 'website').trim();
+          const sourceMapLocal = {
+            'website': 'website',
+            '網站': 'website',
+            'event': 'event',
+            '活動': 'event', 
+            'referral': 'referral',
+            '推薦': 'referral',
+            'other': 'other',
+            '其他': 'other'
+          };
+          const source = sourceMapLocal[sourceValue] || 'website';
+
+          // 處理投資預算
+          const budgetValue = String(row['投資預算'] || '').trim();
+          const budgetMap = {
+            '未知': 'budget_unknown',
+            '一千萬以下': 'budget_under_ten',
+            '一千萬到兩千萬': 'budget_ten_to_twenty',
+            '兩千萬到三千萬': 'budget_twenty_to_thirty',
+            '三千萬以上': 'budget_above_thirty'
+          };
+          const budget_range = budgetMap[budgetValue] || 'budget_unknown';
+
+          const notes = String(row['備註'] || '').trim();
+
+          const result = {
+            name,
+            phone,
+            email,
+            address,
+            status,
+            source,
+            has_overseas_investment: String(row['海外投資經驗'] || '').includes('有'),
+            budget_range,
+            overseas_investment_notes: String(row['投資說明'] || '').trim(),
+            notes
+          };
+
+          console.log('處理結果:', result);
+          return result;
+        });
+
+        console.log('轉換後的資料:', previewData);
+        setPreviewData(previewData);
+        setExcelImportModalVisible(true);
+      } catch (error) {
+        console.error('解析 Excel 文件錯誤:', error);
+        message.error(error.message || '無法解析 Excel 文件，請確保文件格式正確');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    return false;
+  };
+
+  // 批量匯入客戶資料
+  const handleBatchImport = async () => {
+    setLoading(true);
+    try {
+      console.log('準備匯入的資料:', previewData);
+      
+      const results = await Promise.all(previewData.map(async data => {
+        console.log('匯入客戶資料:', data);
+        
+        const response = await fetch(`${API_BASE_URL}/api/customers`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            data: {
+              ...data,
+              publishedAt: new Date().toISOString() // 確保立即發布
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('匯入失敗:', errorData);
+          throw new Error(`匯入客戶 ${data.name} 失敗: ${response.status} ${errorData?.error?.message || '未知錯誤'}`);
+        }
+
+        return await response.json();
+      }));
+
+      console.log('匯入結果:', results);
+      message.success(`成功匯入 ${results.length} 筆客戶資料`);
+      setExcelImportModalVisible(false);
+      setPreviewData([]);
+      await fetchCustomers();
+    } catch (error) {
+      console.error('批量匯入失敗:', error);
+      message.error(error.message || '批量匯入失敗，請檢查資料格式是否正確');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFilter = async () => {
     try {
       const values = await filterForm.validateFields();
@@ -692,51 +993,71 @@ const CustomerManagement = () => {
 
   const applyFilters = (formValues = null) => {
     try {
+      console.log('🔍 開始應用篩選條件:', {
+        customers總數: customers.length,
+        searchKeyword: searchKeyword,
+        formValues: formValues
+      });
+      
       let filtered = [...customers];
+      let filterSteps = [];
       
       if (searchKeyword) {
         const keyword = searchKeyword.toLowerCase();
+        const beforeSearch = filtered.length;
         filtered = filtered.filter(customer => 
           (customer.attributes.name && customer.attributes.name.toLowerCase().includes(keyword)) ||
           (customer.attributes.phone && customer.attributes.phone.toString().includes(keyword)) ||
           (customer.attributes.email && customer.attributes.email.toLowerCase().includes(keyword)) ||
           (customer.attributes.address && customer.attributes.address.toLowerCase().includes(keyword))
         );
+        filterSteps.push(`搜索關鍵字"${keyword}": ${beforeSearch} → ${filtered.length}`);
       }
       
       if (formValues) {
         if (formValues.status && formValues.status.length > 0) {
+          const beforeStatus = filtered.length;
           filtered = filtered.filter(customer => 
             customer.attributes.status && formValues.status.includes(customer.attributes.status)
           );
+          filterSteps.push(`狀態篩選: ${beforeStatus} → ${filtered.length}`);
         }
         
         if (formValues.source && formValues.source.length > 0) {
+          const beforeSource = filtered.length;
           filtered = filtered.filter(customer => 
             customer.attributes.source && formValues.source.includes(customer.attributes.source)
           );
+          filterSteps.push(`來源篩選: ${beforeSource} → ${filtered.length}`);
         }
         
         if (formValues.sales_staff) {
+          const beforeStaff = filtered.length;
           filtered = filtered.filter(customer => 
             customer.attributes.sales_staff?.data?.id === formValues.sales_staff
           );
+          filterSteps.push(`業務篩選: ${beforeStaff} → ${filtered.length}`);
         }
         
         if (formValues.hasContract !== undefined && formValues.hasContract !== '') {
+          const beforeContract = filtered.length;
           const hasContract = formValues.hasContract === true || formValues.hasContract === 'true';
           filtered = filtered.filter(customer => 
             customer.attributes.hasContract === hasContract
           );
+          filterSteps.push(`合約篩選: ${beforeContract} → ${filtered.length}`);
         }
         
         if (formValues.project) {
+          const beforeProject = filtered.length;
           filtered = filtered.filter(customer => 
             customer.attributes.projects?.data?.some(p => p.id === formValues.project)
           );
+          filterSteps.push(`建案篩選: ${beforeProject} → ${filtered.length}`);
         }
         
         if (formValues.dateRange && formValues.dateRange[0] && formValues.dateRange[1]) {
+          const beforeDate = filtered.length;
           const startDate = new Date(formValues.dateRange[0].format('YYYY-MM-DD'));
           const endDate = new Date(formValues.dateRange[1].format('YYYY-MM-DD'));
           endDate.setHours(23, 59, 59, 999);
@@ -746,11 +1067,19 @@ const CustomerManagement = () => {
             const createdAt = new Date(customer.attributes.createdAt);
             return createdAt >= startDate && createdAt <= endDate;
           });
+          filterSteps.push(`日期篩選: ${beforeDate} → ${filtered.length}`);
         }
       }
       
+      console.log('📊 篩選過程:', filterSteps);
+      console.log('✅ 最終篩選結果:', {
+        原始數量: customers.length,
+        篩選後數量: filtered.length,
+        篩選步驟: filterSteps
+      });
+      
       if (filtered.length !== customers.length) {
-        message.info(`共找到 ${filtered.length} 位客戶`);
+        message.info(`篩選結果：${filtered.length} / ${customers.length} 位客戶`);
       }
       
       setFilteredCustomers(filtered);
@@ -1048,6 +1377,11 @@ const CustomerManagement = () => {
   const handleAddContactRecord = () => {
     setCurrentCustomer(null);
     contactForm.resetFields();
+    contactForm.setFieldsValue({
+      contact_date: moment(),
+      contact_status: 'initial_contact',
+      contact_outcome: 'neutral'
+    });
     setContactRecordModalVisible(true);
   };
 
@@ -1058,6 +1392,9 @@ const CustomerManagement = () => {
     contactForm.setFieldsValue({
       customer_id: customer.id,
       customer_name: customer.attributes.name,
+      contact_date: moment(),
+      contact_status: 'initial_contact',
+      contact_outcome: 'neutral'
     });
     setContactRecordModalVisible(true);
   };
@@ -1065,42 +1402,45 @@ const CustomerManagement = () => {
   // 保存聯絡記錄
   const handleSaveContactRecord = async () => {
     try {
-      const values = await contactForm.validateFields();
       setContactLoading(true);
+      const values = await contactForm.validateFields();
       
       // 構建聯絡記錄資料
       const contactData = {
-        content: values.content,
-        contact_type: values.contact_type,
-        contact_result: values.contact_result,
-        // 如果是從客戶詳情添加，使用當前客戶ID，否則使用選擇的客戶ID
+        notes: values.content,
+        type: values.contact_type,
+        status: values.contact_status,
+        outcome: values.contact_outcome,
+        date: values.contact_date ? values.contact_date.format('YYYY-MM-DD') : new Date().toISOString().split('T')[0],
+        next_follow_up: values.next_follow_up_date ? values.next_follow_up_date.format('YYYY-MM-DD') : null,
         customer: values.customer_id,
-        sales_staff: values.sales_staff,
-        contact_date: values.contact_date ? values.contact_date.format('YYYY-MM-DD') : new Date().toISOString().split('T')[0],
-        next_follow_up_date: values.next_follow_up_date ? values.next_follow_up_date.format('YYYY-MM-DD') : null,
+        sales_staff: values.sales_staff
       };
 
       // 保存聯絡記錄
-      const response = await fetch(`${API_BASE_URL}/api/contact-records`, {
+      const response = await fetch(`${API_BASE_URL}/api/interactions`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ data: contactData }),
       });
 
-      if (!response.ok) throw new Error('保存聯絡記錄失敗');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || '保存聯絡記錄失敗');
+      }
 
       message.success('聯絡記錄已保存');
       setContactRecordModalVisible(false);
       
-      // 如果當前在查看客戶的聯絡記錄，則刷新記錄
+      // 如果是在查看聯絡記錄時添加的，刷新列表
       if (contactRecordsVisible && currentCustomer) {
         fetchCustomerContactRecords(currentCustomer.id);
       }
     } catch (error) {
       console.error('Error saving contact record:', error);
-      message.error('保存聯絡記錄失敗');
+      message.error(error.message || '保存聯絡記錄失敗');
     } finally {
       setContactLoading(false);
     }
@@ -1110,16 +1450,19 @@ const CustomerManagement = () => {
   const fetchCustomerContactRecords = async (customerId) => {
     try {
       setContactLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/contact-records?filters[customer][id][$eq]=${customerId}&populate=*&sort=contact_date:desc`);
+      const response = await fetch(`${API_BASE_URL}/api/interactions?populate=*&filters[customer][id][$eq]=${customerId}&sort=date:desc`);
       
-      if (!response.ok) throw new Error('獲取聯絡記錄失敗');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || '獲取聯絡記錄失敗');
+      }
       
       const data = await response.json();
       setContactRecords(data.data || []);
       setContactRecordsVisible(true);
     } catch (error) {
       console.error('Error fetching contact records:', error);
-      message.error('獲取聯絡記錄失敗');
+      message.error(error.message || '獲取聯絡記錄失敗');
     } finally {
       setContactLoading(false);
     }
@@ -1145,6 +1488,218 @@ const CustomerManagement = () => {
     message.info(`共有 ${pending.length} 位待分配客戶`);
   };
 
+  // 查找重複客戶
+  const handleFindDuplicates = () => {
+    setDuplicateLoading(true);
+    
+    try {
+      const duplicates = findDuplicateCustomers(customers);
+      setDuplicateCustomers(duplicates);
+      setDuplicateCustomersVisible(true);
+      
+      if (duplicates.length === 0) {
+        message.success('沒有發現重複的客戶資料');
+      } else {
+        message.info(`發現 ${duplicates.length} 組重複客戶資料`);
+      }
+    } catch (error) {
+      console.error('查找重複客戶失敗:', error);
+      message.error('查找重複客戶失敗');
+    } finally {
+      setDuplicateLoading(false);
+    }
+  };
+
+  // 查找重複客戶的邏輯
+  const findDuplicateCustomers = (customerList) => {
+    const duplicates = [];
+    const processed = new Set();
+    
+    // 按姓名分組
+    const nameGroups = {};
+    customerList.forEach(customer => {
+      const name = customer.attributes.name?.trim().toLowerCase();
+      if (name) {
+        if (!nameGroups[name]) {
+          nameGroups[name] = [];
+        }
+        nameGroups[name].push(customer);
+      }
+    });
+    
+    // 按電話分組
+    const phoneGroups = {};
+    customerList.forEach(customer => {
+      const phone = customer.attributes.phone?.toString().replace(/\D/g, '');
+      if (phone && phone.length >= 8) {
+        if (!phoneGroups[phone]) {
+          phoneGroups[phone] = [];
+        }
+        phoneGroups[phone].push(customer);
+      }
+    });
+    
+    // 按電子郵件分組
+    const emailGroups = {};
+    customerList.forEach(customer => {
+      const email = customer.attributes.email?.trim().toLowerCase();
+      if (email) {
+        if (!emailGroups[email]) {
+          emailGroups[email] = [];
+        }
+        emailGroups[email].push(customer);
+      }
+    });
+    
+    // 找出重複的姓名組
+    Object.entries(nameGroups).forEach(([name, group]) => {
+      if (group.length > 1) {
+        const key = `name_${name}`;
+        if (!processed.has(key)) {
+          duplicates.push({
+            type: '姓名重複',
+            field: 'name',
+            value: name,
+            customers: group,
+            count: group.length
+          });
+          processed.add(key);
+        }
+      }
+    });
+    
+    // 找出重複的電話組
+    Object.entries(phoneGroups).forEach(([phone, group]) => {
+      if (group.length > 1) {
+        const key = `phone_${phone}`;
+        if (!processed.has(key)) {
+          duplicates.push({
+            type: '電話重複',
+            field: 'phone',
+            value: phone,
+            customers: group,
+            count: group.length
+          });
+          processed.add(key);
+        }
+      }
+    });
+    
+    // 找出重複的電子郵件組
+    Object.entries(emailGroups).forEach(([email, group]) => {
+      if (group.length > 1) {
+        const key = `email_${email}`;
+        if (!processed.has(key)) {
+          duplicates.push({
+            type: '電子郵件重複',
+            field: 'email',
+            value: email,
+            customers: group,
+            count: group.length
+          });
+          processed.add(key);
+        }
+      }
+    });
+    
+    return duplicates;
+  };
+
+  // 合併重複客戶
+  const handleMergeDuplicates = async (duplicateGroup) => {
+    try {
+      const customersToMerge = duplicateGroup.customers;
+      const primaryCustomer = customersToMerge[0]; // 保留第一個
+      const customersToDelete = customersToMerge.slice(1); // 刪除其餘的
+      
+      // 合併客戶資料（保留最完整的資訊）
+      const mergedData = { ...primaryCustomer.attributes };
+      
+      customersToMerge.forEach(customer => {
+        const attrs = customer.attributes;
+        
+        // 合併備註
+        if (attrs.notes && !mergedData.notes) {
+          mergedData.notes = attrs.notes;
+        } else if (attrs.notes && mergedData.notes) {
+          mergedData.notes = `${mergedData.notes}\n\n${attrs.notes}`;
+        }
+        
+        // 合併地址
+        if (attrs.address && !mergedData.address) {
+          mergedData.address = attrs.address;
+        }
+        
+        // 合併來源資訊
+        if (attrs.source_detail && !mergedData.source_detail) {
+          mergedData.source_detail = attrs.source_detail;
+        }
+        
+        // 保留較新的狀態
+        if (attrs.status && attrs.status !== 'potential') {
+          mergedData.status = attrs.status;
+        }
+      });
+      
+      // 更新主要客戶
+      await fetch(`${API_BASE_URL}/api/customers/${primaryCustomer.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ data: mergedData }),
+      });
+      
+      // 刪除重複客戶
+      await Promise.all(
+        customersToDelete.map(customer =>
+          fetch(`${API_BASE_URL}/api/customers/${customer.id}`, {
+            method: 'DELETE',
+          })
+        )
+      );
+      
+      message.success(`成功合併 ${customersToDelete.length} 個重複客戶`);
+      
+      // 重新載入客戶資料
+      await fetchCustomers();
+      
+      // 重新查找重複客戶
+      handleFindDuplicates();
+      
+    } catch (error) {
+      console.error('合併重複客戶失敗:', error);
+      message.error('合併重複客戶失敗');
+    }
+  };
+
+  // 刪除重複客戶
+  const handleDeleteDuplicates = async (duplicateGroup) => {
+    try {
+      const customersToDelete = duplicateGroup.customers.slice(1); // 保留第一個，刪除其餘的
+      
+      await Promise.all(
+        customersToDelete.map(customer =>
+          fetch(`${API_BASE_URL}/api/customers/${customer.id}`, {
+            method: 'DELETE',
+          })
+        )
+      );
+      
+      message.success(`成功刪除 ${customersToDelete.length} 個重複客戶`);
+      
+      // 重新載入客戶資料
+      await fetchCustomers();
+      
+      // 重新查找重複客戶
+      handleFindDuplicates();
+      
+    } catch (error) {
+      console.error('刪除重複客戶失敗:', error);
+      message.error('刪除重複客戶失敗');
+    }
+  };
+
   return (
     <div className={styles.customerManagement}>
       <Card
@@ -1164,11 +1719,27 @@ const CustomerManagement = () => {
                   新增客戶
                 </Button>
                 <Button
-                  icon={<CloudUploadOutlined />}
-                  onClick={() => setImportModalVisible(true)}
+                  icon={<ReloadOutlined />}
+                  onClick={refreshCustomers}
+                  title="重新載入客戶資料"
                 >
-                  CSV匯入
+                  刷新
                 </Button>
+                <Button
+                  icon={<DownloadOutlined />}
+                  onClick={handleTemplateDownload}
+                >
+                  下載範本
+                </Button>
+                <Upload
+                  accept=".xlsx,.xls"
+                  showUploadList={false}
+                  beforeUpload={handleExcelUpload}
+                >
+                  <Button icon={<UploadOutlined />}>
+                    匯入 Excel
+                  </Button>
+                </Upload>
                 <Button
                   icon={<FileTextOutlined />}
                   onClick={handleAddContactRecord}
@@ -1180,6 +1751,13 @@ const CustomerManagement = () => {
                   onClick={handleViewPendingCustomers}
                 >
                   待分配客戶
+                </Button>
+                <Button
+                  icon={<FilterOutlined />}
+                  onClick={handleFindDuplicates}
+                  loading={duplicateLoading}
+                >
+                  查找重複
                 </Button>
               </div>
               <div className={styles.searchAndFilterArea}>
@@ -1257,7 +1835,7 @@ const CustomerManagement = () => {
                       <Option value="">全部</Option>
                       {salesStaff.map(staff => (
                         <Option key={staff.id} value={staff.id}>
-                          {staff.attributes.username}
+                          {staff.attributes.name || staff.attributes.username}
                         </Option>
                       ))}
                     </Select>
@@ -1309,6 +1887,60 @@ const CustomerManagement = () => {
                   </Form.Item>
                 </Col>
               </Row>
+              
+              {/* 統計資訊 */}
+              {customers.length > 0 && (
+                <div style={{ 
+                  marginTop: 16,
+                  paddingTop: 16,
+                  borderTop: '1px solid #f0f0f0',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '20px',
+                  alignItems: 'center',
+                  fontSize: '14px',
+                  color: '#666'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#1890ff', fontWeight: 'bold' }}>📊</span>
+                    <span><strong>總客戶數：</strong>{customers.length}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#52c41a', fontWeight: 'bold' }}>🔍</span>
+                    <span><strong>顯示中：</strong>{filteredCustomers.length}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#fa8c16', fontWeight: 'bold' }}>📍</span>
+                    <span><strong>來源分佈：</strong>
+                      {(() => {
+                        const sources = {};
+                        customers.forEach(customer => {
+                          const source = customer.attributes.source || 'unknown';
+                          sources[source] = (sources[source] || 0) + 1;
+                        });
+                        return Object.entries(sources).map(([key, value]) => 
+                          `${key === 'event' ? '活動' : key === 'website' ? '網站' : key}(${value})`
+                        ).join('、');
+                      })()}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#722ed1', fontWeight: 'bold' }}>📈</span>
+                    <span><strong>狀態分佈：</strong>
+                      {(() => {
+                        const statuses = {};
+                        customers.forEach(customer => {
+                          const status = customer.attributes.status || 'unknown';
+                          statuses[status] = (statuses[status] || 0) + 1;
+                        });
+                        return Object.entries(statuses).map(([key, value]) => 
+                          `${key === 'potential' ? '潛在' : key === 'contacted' ? '已聯繫' : key}(${value})`
+                        ).join('、');
+                      })()}
+                    </span>
+                  </div>
+                </div>
+              )}
             </Form>
           </div>
         )}
@@ -1326,10 +1958,17 @@ const CustomerManagement = () => {
           bordered={false}
           className={styles.customerTable}
           pagination={{
-            pageSize: 15,
+            pageSize: 20,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 筆客戶資料`
+            pageSizeOptions: ['10', '20', '50', '100'],
+            showTotal: (total, range) => `第 ${range[0]}-${range[1]} 筆，共 ${total} 筆客戶資料`,
+            onChange: (page, pageSize) => {
+              console.log(`切換到第 ${page} 頁，每頁 ${pageSize} 筆`);
+            },
+            onShowSizeChange: (current, size) => {
+              console.log(`每頁顯示數量改為 ${size} 筆`);
+            }
           }}
           scroll={{ 
             x: 'max-content',
@@ -1426,7 +2065,7 @@ const CustomerManagement = () => {
                   <Select.Option value={null}>未指派</Select.Option>
               {salesStaff.map(staff => (
                     <Select.Option key={staff.id} value={staff.id}>
-                  {staff.attributes.username}
+                  {staff.attributes.name || staff.attributes.username}
                     </Select.Option>
               ))}
             </Select>
@@ -1532,7 +2171,7 @@ const CustomerManagement = () => {
         >
           {salesStaff.map(staff => (
             <Option key={staff.id} value={staff.id}>
-              {staff.attributes.username}
+              {staff.attributes.name || staff.attributes.username}
             </Option>
           ))}
         </Select>
@@ -1626,7 +2265,7 @@ const CustomerManagement = () => {
                   <Select.Option value={null}>未指派</Select.Option>
                   {salesStaff.map(staff => (
                     <Select.Option key={staff.id} value={staff.id}>
-                      {staff.attributes.username}
+                      {staff.attributes.name || staff.attributes.username}
                     </Select.Option>
                   ))}
                 </Select>
@@ -1822,12 +2461,23 @@ const CustomerManagement = () => {
             </Select>
           </Form.Item>
           <Form.Item
-            name="contact_result"
+            name="contact_status"
+            label="聯絡狀態"
+            rules={[{ required: true, message: '請選擇聯絡狀態' }]}
+          >
+            <Select>
+              {Object.entries(contactStatusMap).map(([value, text]) => (
+                <Option key={value} value={value}>{text}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name="contact_outcome"
             label="聯絡結果"
             rules={[{ required: true, message: '請選擇聯絡結果' }]}
           >
             <Select>
-              {Object.entries(contactResultMap).map(([value, text]) => (
+              {Object.entries(contactOutcomeMap).map(([value, text]) => (
                 <Option key={value} value={value}>{text}</Option>
               ))}
             </Select>
@@ -1854,7 +2504,7 @@ const CustomerManagement = () => {
             <Select>
               {salesStaff.map(staff => (
                 <Option key={staff.id} value={staff.id}>
-                  {staff.attributes.username}
+                  {staff.attributes.name || staff.attributes.username}
                 </Option>
               ))}
             </Select>
@@ -2017,28 +2667,31 @@ const CustomerManagement = () => {
                 return (
                   <Timeline.Item 
                     key={record.id}
-                    color={getTimelineColor(data.contact_result)}
+                    color={getContactStatusColor(data.status)}
                   >
                     <div className={styles.contactRecord}>
                       <div className={styles.contactRecordHeader}>
                         <span className={styles.contactDate}>
-                          {new Date(data.contact_date).toLocaleDateString()}
+                          {new Date(data.date).toLocaleDateString()}
                         </span>
-                        <Tag color={getContactTypeColor(data.contact_type)}>
-                          {contactTypeMap[data.contact_type] || data.contact_type}
+                        <Tag color={getContactTypeColor(data.type)}>
+                          {contactTypeMap[data.type] || data.type}
                         </Tag>
-                        <Tag color={getContactResultColor(data.contact_result)}>
-                          {contactResultMap[data.contact_result] || data.contact_result}
+                        <Tag color={getContactOutcomeColor(data.outcome)}>
+                          {contactOutcomeMap[data.outcome] || data.outcome}
+                        </Tag>
+                        <Tag color={getContactStatusColor(data.status)}>
+                          {contactStatusMap[data.status] || data.status}
                         </Tag>
                       </div>
                       <div className={styles.contactContent}>
-                        {data.content}
+                        {data.notes}
                       </div>
                       <div className={styles.contactRecordFooter}>
                         <span>業務：{data.sales_staff?.data?.attributes?.username || '未指派'}</span>
-                        {data.next_follow_up_date && (
+                        {data.next_follow_up && (
                           <span>
-                            下次跟進：{new Date(data.next_follow_up_date).toLocaleDateString()}
+                            下次跟進：{new Date(data.next_follow_up).toLocaleDateString()}
                           </span>
                         )}
                       </div>
@@ -2047,6 +2700,274 @@ const CustomerManagement = () => {
                 );
               })}
             </Timeline>
+          </div>
+        )}
+      </Modal>
+
+      {/* 重複客戶管理 Modal */}
+      <Modal
+        title="重複客戶管理"
+        open={duplicateCustomersVisible}
+        onOk={() => setDuplicateCustomersVisible(false)}
+        onCancel={() => setDuplicateCustomersVisible(false)}
+        okText="關閉"
+        cancelButtonProps={{ style: { display: 'none' } }}
+        width={1000}
+        footer={[
+          <Button 
+            key="close" 
+            onClick={() => setDuplicateCustomersVisible(false)}
+          >
+            關閉
+          </Button>
+        ]}
+      >
+        {duplicateLoading ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <Spin tip="查找重複客戶中..." />
+          </div>
+        ) : duplicateCustomers.length === 0 ? (
+          <Empty description="沒有發現重複的客戶資料" />
+        ) : (
+          <div>
+            <Alert 
+              message={`發現 ${duplicateCustomers.length} 組重複客戶資料`} 
+              type="warning" 
+              showIcon 
+              style={{ marginBottom: 16 }}
+              description="系統會根據姓名、電話或電子郵件來識別重複客戶。您可以選擇合併或刪除重複的客戶資料。"
+            />
+            
+            {duplicateCustomers.map((group, index) => (
+              <Card 
+                key={index} 
+                size="small" 
+                style={{ marginBottom: 16 }}
+                title={
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>
+                      <Tag color="orange">{group.type}</Tag>
+                      <span style={{ marginLeft: 8 }}>
+                        {group.field === 'name' ? '姓名' : group.field === 'phone' ? '電話' : '電子郵件'}: {group.value}
+                      </span>
+                    </span>
+                    <div>
+                      <Button 
+                        type="primary" 
+                        size="small"
+                        onClick={() => handleMergeDuplicates(group)}
+                        style={{ marginRight: 8 }}
+                      >
+                        合併 ({group.count - 1} 個)
+                      </Button>
+                      <Popconfirm
+                        title="確定要刪除重複客戶嗎？"
+                        description="此操作會保留第一個客戶，刪除其餘重複客戶。此操作無法撤銷！"
+                        onConfirm={() => handleDeleteDuplicates(group)}
+                        okText="確定"
+                        cancelText="取消"
+                      >
+                        <Button 
+                          danger 
+                          size="small"
+                        >
+                          刪除重複
+                        </Button>
+                      </Popconfirm>
+                    </div>
+                  </div>
+                }
+              >
+                <Table
+                  dataSource={group.customers}
+                  columns={[
+                    {
+                      title: '姓名',
+                      dataIndex: ['attributes', 'name'],
+                      key: 'name',
+                      width: 120,
+                    },
+                    {
+                      title: '電話',
+                      dataIndex: ['attributes', 'phone'],
+                      key: 'phone',
+                      width: 120,
+                      render: (phone) => (
+                        <Tooltip title={phone}>
+                          {maskPhone(phone)}
+                        </Tooltip>
+                      ),
+                    },
+                    {
+                      title: '電子郵件',
+                      dataIndex: ['attributes', 'email'],
+                      key: 'email',
+                      width: 180,
+                      render: (email) => (
+                        <Tooltip title={email}>
+                          {maskEmail(email)}
+                        </Tooltip>
+                      ),
+                    },
+                    {
+                      title: '狀態',
+                      dataIndex: ['attributes', 'status'],
+                      key: 'status',
+                      width: 100,
+                      render: (status) => (
+                        <CustomTag 
+                          color={statusMap[status]?.color} 
+                          text={statusMap[status]?.text}
+                          round={true}
+                          isMobile={isMobile}
+                        />
+                      ),
+                    },
+                    {
+                      title: '來源',
+                      dataIndex: ['attributes', 'source'],
+                      key: 'source',
+                      width: 100,
+                      render: (source) => sourceMap[source],
+                    },
+                    {
+                      title: '備註',
+                      dataIndex: ['attributes', 'notes'],
+                      key: 'notes',
+                      width: 150,
+                      ellipsis: true,
+                      render: (notes) => {
+                        if (!notes || notes.trim() === '') {
+                          return <span style={{ color: '#c0c0c0' }}>無</span>;
+                        }
+                        return (
+                          <Tooltip title={notes}>
+                            <div style={{ cursor: 'pointer' }}>
+                              {notes.length > 15 ? `${notes.substring(0, 15)}...` : notes}
+                            </div>
+                          </Tooltip>
+                        );
+                      }
+                    },
+                    {
+                      title: '創建時間',
+                      dataIndex: ['attributes', 'createdAt'],
+                      key: 'createdAt',
+                      width: 120,
+                      render: (date) => new Date(date).toLocaleDateString(),
+                    }
+                  ]}
+                  rowKey={record => record.id}
+                  size="small"
+                  pagination={false}
+                  scroll={{ x: 800 }}
+                />
+              </Card>
+            ))}
+          </div>
+        )}
+      </Modal>
+
+      {/* Excel匯入預覽 Modal */}
+      <Modal
+        title="匯入客戶資料"
+        open={excelImportModalVisible}
+        onOk={handleBatchImport}
+        onCancel={() => {
+          setExcelImportModalVisible(false);
+          setPreviewData([]);
+        }}
+        okText="確認匯入"
+        cancelText="取消"
+        width={1000}
+        okButtonProps={{ loading: loading }}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Alert
+            message="Excel匯入預覽"
+            description={`共找到 ${previewData.length} 筆客戶資料，請確認資料正確後點擊「確認匯入」。`}
+            type="info"
+            showIcon
+          />
+        </div>
+        
+        <div style={{ marginBottom: 16 }}>
+          <strong>資料預覽（前5筆）：</strong>
+        </div>
+        
+        <Table
+          dataSource={previewData.slice(0, 5)}
+          columns={[
+            {
+              title: '姓名',
+              dataIndex: 'name',
+              key: 'name',
+              width: 100,
+            },
+            {
+              title: '電話',
+              dataIndex: 'phone',
+              key: 'phone',
+              width: 120,
+            },
+            {
+              title: '電子郵件',
+              dataIndex: 'email',
+              key: 'email',
+              width: 180,
+              ellipsis: true,
+            },
+            {
+              title: '地址',
+              dataIndex: 'address',
+              key: 'address',
+              width: 150,
+              ellipsis: true,
+              render: (address) => address || <span style={{ color: '#ccc' }}>未填寫</span>
+            },
+            {
+              title: '狀態',
+              dataIndex: 'status',
+              key: 'status',
+              width: 100,
+              render: (status) => (
+                <Tag color={statusMap[status]?.color}>
+                  {statusMap[status]?.text}
+                </Tag>
+              ),
+            },
+            {
+              title: '來源',
+              dataIndex: 'source',
+              key: 'source',
+              width: 100,
+              render: (source) => sourceMap[source],
+            },
+            {
+              title: '投資經驗',
+              dataIndex: 'has_overseas_investment',
+              key: 'has_overseas_investment',
+              width: 100,
+              render: (value) => value ? '有' : '無',
+            },
+            {
+              title: '備註',
+              dataIndex: 'notes',
+              key: 'notes',
+              width: 150,
+              ellipsis: true,
+              render: (notes) => notes || <span style={{ color: '#ccc' }}>無</span>
+            }
+          ]}
+          rowKey={(record, index) => index}
+          size="small"
+          pagination={false}
+          scroll={{ x: 1000 }}
+        />
+        
+        {previewData.length > 5 && (
+          <div style={{ marginTop: 8, color: '#666', textAlign: 'center' }}>
+            ... 還有 {previewData.length - 5} 筆資料
           </div>
         )}
       </Modal>
@@ -2068,33 +2989,28 @@ const getContactTypeColor = (type) => {
 };
 
 // 獲取聯絡結果顏色
-const getContactResultColor = (result) => {
+const getContactOutcomeColor = (outcome) => {
   const colorMap = {
-    interested: 'green',
-    considering: 'cyan',
-    callback: 'blue',
-    meeting: 'geekblue',
-    no_answer: 'orange',
-    not_interested: 'red',
-    wrong_number: 'volcano',
-    other: 'gray'
+    positive: 'green',
+    neutral: 'cyan',
+    negative: 'red'
   };
-  return colorMap[result] || 'default';
+  return colorMap[outcome] || 'default';
 };
 
-// 獲取時間軸顏色
-const getTimelineColor = (result) => {
+// 獲取聯絡狀態顏色
+const getContactStatusColor = (status) => {
   const colorMap = {
-    interested: 'green',
-    considering: 'blue',
-    callback: 'blue',
-    meeting: 'green',
-    no_answer: 'orange',
-    not_interested: 'red',
-    wrong_number: 'red',
-    other: 'gray'
+    initial_contact: 'blue',
+    following_up: 'cyan',
+    negotiating: 'orange',
+    contract_signed: 'green',
+    payment_received: 'geekblue',
+    completed: 'purple',
+    pending: 'volcano',
+    cancelled: 'red'
   };
-  return colorMap[result] || 'blue';
+  return colorMap[status] || 'default';
 };
 
 export default CustomerManagement; 

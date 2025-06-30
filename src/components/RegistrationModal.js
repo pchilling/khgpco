@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Form, Input, message, Result, Button } from 'antd';
+import { Modal, Form, Input, message, Result, Button, Select, Switch } from 'antd';
 import { API_BASE_URL } from '../utils/api';
 import '../styles/RegistrationModal.css';
 
@@ -8,6 +8,23 @@ const RegistrationModal = ({ isOpen, onClose, eventId, sessionIndex, onSuccess }
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [hasOverseasInvestment, setHasOverseasInvestment] = useState(false);
+
+    const attendanceOptions = [
+        { value: 'attendance1', label: '1人' },
+        { value: 'attendance2', label: '2人' },
+        { value: 'attendance3', label: '3人' },
+        { value: 'attendance4', label: '4人' },
+        { value: 'attendance5', label: '5人' }
+    ];
+
+    const budgetOptions = [
+        { value: 'budget_unknown', label: '未知' },
+        { value: 'budget_under_ten', label: '一千萬以下' },
+        { value: 'budget_ten_to_twenty', label: '一千萬到兩千萬' },
+        { value: 'budget_twenty_to_thirty', label: '兩千萬到三千萬' },
+        { value: 'budget_above_thirty', label: '三千萬以上' }
+    ];
 
     const handleSubmit = async () => {
         try {
@@ -26,7 +43,11 @@ const RegistrationModal = ({ isOpen, onClose, eventId, sessionIndex, onSuccess }
                     notes: values.notes,
                     event: eventId,
                     sessionIndex: sessionIndex,
-                    status: 'pending'
+                    attendanceCount: values.attendanceCount,
+                    status: 'pending',
+                    has_overseas_investment: values.has_overseas_investment,
+                    overseas_investment_notes: values.overseas_investment_notes,
+                    budget_range: values.budget_range
                 }
             };
 
@@ -53,9 +74,13 @@ const RegistrationModal = ({ isOpen, onClose, eventId, sessionIndex, onSuccess }
 
             // 顯示成功訊息
             setSubmitted(true);
+            message.success('報名成功！');
 
+            // 延遲調用 onSuccess 回調
             if (onSuccess) {
+                setTimeout(() => {
                 onSuccess();
+                }, 1000);
             }
         } catch (error) {
             console.error('Error submitting registration:', error);
@@ -72,9 +97,18 @@ const RegistrationModal = ({ isOpen, onClose, eventId, sessionIndex, onSuccess }
     };
 
     const handleClose = () => {
+        // 如果已經提交成功，延遲關閉 modal
+        if (submitted) {
+            setTimeout(() => {
+                setSubmitted(false);
+                form.resetFields();
+                onClose();
+            }, 1500);
+        } else {
         setSubmitted(false);
         form.resetFields();
         onClose();
+        }
     };
 
     return (
@@ -110,14 +144,16 @@ const RegistrationModal = ({ isOpen, onClose, eventId, sessionIndex, onSuccess }
                         form={form}
                         layout="vertical"
                         name="registration_form"
+                        initialValues={{ 
+                            attendanceCount: 'attendance1',
+                            has_overseas_investment: false,
+                            budget_range: 'budget_unknown'
+                        }}
                     >
                         <Form.Item
                             name="name"
                             label="姓名"
-                            rules={[
-                                { required: true, message: '請輸入姓名' },
-                                { max: 50, message: '姓名不能超過50個字符' }
-                            ]}
+                            rules={[{ required: true, message: '請輸入姓名' }]}
                         >
                             <Input placeholder="請輸入您的姓名" />
                         </Form.Item>
@@ -125,10 +161,7 @@ const RegistrationModal = ({ isOpen, onClose, eventId, sessionIndex, onSuccess }
                         <Form.Item
                             name="phone"
                             label="電話"
-                            rules={[
-                                { required: true, message: '請輸入電話號碼' },
-                                { pattern: /^[0-9+\-()]*$/, message: '請輸入有效的電話號碼' }
-                            ]}
+                            rules={[{ required: true, message: '請輸入電話號碼' }]}
                         >
                             <Input placeholder="請輸入您的電話號碼" />
                         </Form.Item>
@@ -145,31 +178,55 @@ const RegistrationModal = ({ isOpen, onClose, eventId, sessionIndex, onSuccess }
                         </Form.Item>
 
                         <Form.Item
-                            name="notes"
-                            label="備註"
-                            rules={[
-                                { max: 500, message: '備註不能超過500個字符' }
-                            ]}
+                            name="attendanceCount"
+                            label="總出席人數"
+                            rules={[{ required: true, message: '請選擇總出席人數' }]}
                         >
-                            <Input.TextArea 
-                                placeholder="如有特殊需求請在此說明"
-                                rows={4}
+                            <Select options={attendanceOptions} />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="has_overseas_investment"
+                            label="是否有海外投資經驗"
+                            valuePropName="checked"
+                        >
+                            <Switch 
+                                checkedChildren="有" 
+                                unCheckedChildren="無"
+                                onChange={(checked) => setHasOverseasInvestment(checked)}
                             />
                         </Form.Item>
-                    </Form>
-                    <div className="form-footer">
-                        <Button onClick={handleClose} disabled={submitting}>
-                            取消
-                        </Button>
+
+                        <Form.Item
+                            name="budget_range"
+                            label="投資預算"
+                        >
+                            <Select options={budgetOptions} />
+                        </Form.Item>
+
+                        {hasOverseasInvestment && (
+                            <Form.Item
+                                name="overseas_investment_notes"
+                                label="投資說明"
+                            >
+                                <Input.TextArea 
+                                    rows={4}
+                                    placeholder="請簡述您的海外投資經驗"
+                                />
+                            </Form.Item>
+                        )}
+
+                        <Form.Item>
                         <Button 
                             type="primary" 
                             onClick={handleSubmit} 
                             loading={submitting}
-                            disabled={submitting}
+                                block
                         >
                             確認報名
                         </Button>
-                    </div>
+                        </Form.Item>
+                    </Form>
                 </>
             )}
         </Modal>

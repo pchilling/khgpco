@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     FiMapPin, FiHome, FiDollarSign, FiBriefcase, FiLayers, FiX, 
@@ -33,6 +34,8 @@ const LoadingSkeleton = () => (
 const ProjectHero = ({ project, images }) => {
     const [currentImage, setCurrentImage] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [touchStart, setTouchStart] = useState(null);
+    const [touchEnd, setTouchEnd] = useState(null);
 
     const nextImage = () => {
         setCurrentImage((prev) => (prev + 1) % images.length);
@@ -40,6 +43,32 @@ const ProjectHero = ({ project, images }) => {
 
     const prevImage = () => {
         setCurrentImage((prev) => (prev - 1 + images.length) % images.length);
+    };
+
+    // 觸控滑動邏輯
+    const minSwipeDistance = 50;
+
+    const onTouchStart = (e) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isLeftSwipe && images.length > 1) {
+            nextImage();
+        }
+        if (isRightSwipe && images.length > 1) {
+            prevImage();
+        }
     };
 
     return (
@@ -50,7 +79,12 @@ const ProjectHero = ({ project, images }) => {
             transition={{ duration: 0.5 }}
         >
             <div className="main-gallery">
-                <motion.div className="gallery-main-image">
+                <motion.div 
+                    className="gallery-main-image"
+                    onTouchStart={onTouchStart}
+                    onTouchMove={onTouchMove}
+                    onTouchEnd={onTouchEnd}
+                >
                     <motion.img
                         key={currentImage}
                         src={images[currentImage]}
@@ -59,20 +93,22 @@ const ProjectHero = ({ project, images }) => {
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.3 }}
                     />
-                    <div className="gallery-controls">
-                        <button 
-                            className="gallery-control prev" 
-                            onClick={prevImage}
-                        >
-                            <FiChevronLeft />
-                        </button>
-                        <button 
-                            className="gallery-control next"
-                            onClick={nextImage}
-                        >
-                            <FiChevronRight />
-                        </button>
-                    </div>
+                    {images.length > 1 && (
+                        <div className="gallery-controls">
+                            <button 
+                                className="gallery-control prev" 
+                                onClick={prevImage}
+                            >
+                                <FiChevronLeft />
+                            </button>
+                            <button 
+                                className="gallery-control next"
+                                onClick={nextImage}
+                            >
+                                <FiChevronRight />
+                            </button>
+                        </div>
+                    )}
                     <div className="hero-overlay">
                         <motion.h1 
                             initial={{ y: 20, opacity: 0 }}
@@ -90,9 +126,11 @@ const ProjectHero = ({ project, images }) => {
                             <FiMapPin /> {project?.attributes?.location?.address}
                         </motion.div>
                     </div>
-                    <div className="image-counter">
-                        {currentImage + 1} / {images.length}
-                    </div>
+                    {images.length > 1 && (
+                        <div className="image-counter">
+                            {currentImage + 1} / {images.length}
+                        </div>
+                    )}
                 </motion.div>
             </div>
         </motion.div>
@@ -463,6 +501,7 @@ const BasicInfoSection = ({ id, attributes, t, language }) => {
 const ProjectDetail = () => {
     const { id } = useParams();
     const { language } = useLanguage();
+    useScrollToTop(); // 確保頁面載入時滾動到頂部
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);

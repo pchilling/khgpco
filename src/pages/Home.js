@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useLocation } from 'react-router-dom';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 import '../styles/Home.css';  // We'll create this next
 import ContactSection from '../components/ContactSection';
 import Partners from '../components/Partners';
@@ -11,6 +12,15 @@ import Testimonials from '../components/Testimonials';
 const Home = () => {
     const { language } = useLanguage();
     const location = useLocation();
+    
+    // 檢查是否需要滾動到聯繫我們部分
+    const shouldScrollToContact = () => {
+        return window.location.hash === '#contact-section' || 
+               (location.state && location.state.scrollToContact);
+    };
+    
+    // 只有在不需要滾動到聯繫我們部分時，才使用 useScrollToTop
+    useScrollToTop(!shouldScrollToContact());
 
     const translations = {
         'zh-TW': {
