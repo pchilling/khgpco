@@ -258,4 +258,158 @@
     .news-detail-page .company-info p {
         justify-content: center;
     }
+}
+
+/* 600px 以下優化 - 修復重疊問題 */
+@media (max-width: 600px) {
+    .news-detail-page {
+        padding: 90px 12px 30px;
+    }
+
+    .news-detail-header {
+        text-align: left;
+        margin-bottom: 25px;
+        padding-bottom: 20px;
+    }
+
+    .news-detail-header h1 {
+        font-size: 1.6rem;
+        line-height: 1.4;
+        margin-bottom: 20px;
+        word-wrap: break-word;
+        hyphens: auto;
+    }
+
+    .news-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-top: 15px;
+    }
+
+    .news-detail-header .news-category {
+        margin: 0;
+        align-self: flex-start;
+        font-size: 0.8rem;
+        padding: 6px 12px;
+        height: auto;
+        min-height: 24px;
+        white-space: nowrap;
+    }
+
+    .news-date,
+    .news-author {
+        font-size: 0.8rem;
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .news-detail-image {
+        height: 250px;
+        margin: 15px 0;
+        border-radius: 6px;
+    }
+
+    .news-detail-content {
+        font-size: 0.95rem;
+        margin-top: 20px;
+    }
+
+    .news-content {
+        padding: 0 5px;
+    }
+
+    .news-content p {
+        font-size: 1.1rem;
+        line-height: 1.7;
+        margin: 0.7em 0;
+    }
+
+    .news-content h1 { font-size: 1.6em; }
+    .news-content h2 { font-size: 1.4em; }
+    .news-content h3 { font-size: 1.2em; }
+    .news-content h4 { font-size: 1.1em; }
+    .news-content h5 { font-size: 1em; }
+    .news-content h6 { font-size: 0.95em; }
+
+    .news-detail-page .company-info {
+        margin-top: 40px;
+        padding: 20px 15px;
+        gap: 20px;
+    }
+
+    .company-info-logo {
+        width: 100px;
+    }
+
+    .company-info-content {
+        gap: 10px;
+    }
+
+    .news-detail-page .company-info p {
+        font-size: 0.9rem;
+    }
+
+    .news-detail-page .company-info p:first-child {
+        font-size: 1rem;
+    }
+}
+
+/* 480px 以下進一步優化 */
+@media (max-width: 480px) {
+    .news-detail-page {
+        padding: 85px 10px 25px;
+    }
+
+    .news-detail-header h1 {
+        font-size: 1.4rem;
+        line-height: 1.5;
+        margin-bottom: 18px;
+    }
+
+    .news-meta {
+        gap: 10px;
+    }
+
+    .news-detail-header .news-category {
+        font-size: 0.75rem;
+        padding: 5px 10px;
+        border-radius: 15px;
+    }
+
+    .news-date,
+    .news-author {
+        font-size: 0.75rem;
+    }
+
+    .news-detail-image {
+        height: 200px;
+        margin: 12px 0;
+    }
+
+    .news-content p {
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+
+    .news-content h1 { font-size: 1.4em; }
+    .news-content h2 { font-size: 1.2em; }
+    .news-content h3 { font-size: 1.1em; }
+    .news-content h4 { font-size: 1em; }
+    .news-content h5 { font-size: 0.95em; }
+    .news-content h6 { font-size: 0.9em; }
+
+    .news-detail-page .company-info {
+        margin-top: 30px;
+        padding: 15px 12px;
+    }
+
+    .company-info-logo {
+        width: 80px;
+    }
+
+    .news-detail-page .company-info p {
+        font-size: 0.85rem;
+    }
 } 
