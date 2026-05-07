@@ -1,5 +1,5 @@
 .salesStaffManagement {
-  padding: 24px;
+  /* outer spacing handled by AdminDashboard.contentWrapper */
 }
 
 .salesStaffManagement :global(.ant-card) {

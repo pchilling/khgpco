@@ -1,7 +1,5 @@
 .customerManagement {
-  padding: 24px;
-  width: 100%;
-  margin: 20px;
+  /* outer spacing handled by AdminDashboard.contentWrapper */
 }
 
 .customerManagement :global(.ant-card) {

@@ -43,8 +43,15 @@
 }
 
 .contentWrapper {
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 20px;
+  background-color: #f0f2f5;
+  min-height: 100%;
+}
+
+.contentWrapper > * {
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* 響應式設計 */

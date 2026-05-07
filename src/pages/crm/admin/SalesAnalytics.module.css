@@ -1,5 +1,5 @@
 .salesAnalytics {
-  padding: 20px 0;
+  /* outer spacing handled by AdminDashboard.contentWrapper */
 }
 
 .mainCard {

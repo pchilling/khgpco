@@ -1,5 +1,5 @@
 .registrationManagement {
-  padding: 24px;
+  /* outer spacing handled by AdminDashboard.contentWrapper */
 }
 
 .registrationManagement :global(.ant-card) {
