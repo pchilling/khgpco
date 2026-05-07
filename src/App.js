@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { Spin } from 'antd';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import About from './pages/About';
@@ -16,26 +17,31 @@ import ProjectDetail from './pages/ProjectDetail';
 import ContactButton from './components/ContactButton';
 import EventDetail from './pages/EventDetail';
 
-// CRM Pages
-import CRMLogin from './pages/crm/auth/Login';
-import SalesDashboard from './pages/crm/sales/SalesDashboard';
-import Profile from './pages/crm/profile/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
-import AdminDashboard from './pages/crm/admin/AdminDashboard';
-import Overview from './pages/crm/admin/Overview';
-import RegistrationManagement from './pages/crm/admin/RegistrationManagement';
-import CustomerManagement from './pages/crm/admin/CustomerManagement';
-import SalesStaffManagement from './pages/crm/admin/SalesStaffManagement';
-import SalesAnalytics from './pages/crm/admin/SalesAnalytics';
-import MyCustomers from './pages/crm/sales/MyCustomers';
-import InteractionManagement from './pages/crm/admin/InteractionManagement';
-import ContactMessages from './pages/crm/admin/ContactMessages';
-import PerformanceDashboard from './pages/crm/admin/PerformanceDashboard';
 
-// 添加互動記錄組件的引入
-import Interactions from './pages/crm/sales/Interactions';
-import SalesOverview from './pages/crm/sales/SalesOverview';
-import SalesRegistrationManagement from './pages/crm/sales/RegistrationManagement';
+// Lazy-load CRM pages so login + public site don't pay for them up-front.
+// Each chunk loads only when the user navigates to it.
+const CRMLogin = lazy(() => import('./pages/crm/auth/Login'));
+const SalesDashboard = lazy(() => import('./pages/crm/sales/SalesDashboard'));
+const Profile = lazy(() => import('./pages/crm/profile/Profile'));
+const AdminDashboard = lazy(() => import('./pages/crm/admin/AdminDashboard'));
+const Overview = lazy(() => import('./pages/crm/admin/Overview'));
+const RegistrationManagement = lazy(() => import('./pages/crm/admin/RegistrationManagement'));
+const CustomerManagement = lazy(() => import('./pages/crm/admin/CustomerManagement'));
+const SalesStaffManagement = lazy(() => import('./pages/crm/admin/SalesStaffManagement'));
+const SalesAnalytics = lazy(() => import('./pages/crm/admin/SalesAnalytics'));
+const MyCustomers = lazy(() => import('./pages/crm/sales/MyCustomers'));
+const InteractionManagement = lazy(() => import('./pages/crm/admin/InteractionManagement'));
+const ContactMessages = lazy(() => import('./pages/crm/admin/ContactMessages'));
+const Interactions = lazy(() => import('./pages/crm/sales/Interactions'));
+const SalesOverview = lazy(() => import('./pages/crm/sales/SalesOverview'));
+const SalesRegistrationManagement = lazy(() => import('./pages/crm/sales/RegistrationManagement'));
+
+const RouteFallback = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+    <Spin size="large" />
+  </div>
+);
 
 // 創建一個 ScrollToTop 組件，確保每次頁面切換時滾動到頂部
 function ScrollToTop() {
@@ -128,6 +134,7 @@ function App() {
     return (
         <LanguageProvider>
             <Router>
+                <Suspense fallback={<RouteFallback />}>
                 <Routes>
                     {/* CRM 路由 */}
                     <Route path="/crm/login" element={<CRMLogin />} />
@@ -172,6 +179,7 @@ function App() {
                     {/* 主網站路由 */}
                     <Route path="/*" element={<MainLayout />} />
                 </Routes>
+                </Suspense>
             </Router>
         </LanguageProvider>
     );
