@@ -21,3 +21,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# local tooling / one-off scripts (not part of the app)
+.claude/
+fill_form.py
