@@ -25,7 +25,6 @@ const SalesStaffManagement = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/sales-staffs?populate=*`);
       const data = await response.json();
-      console.log('Fetched sales staff:', data);
       setSalesStaff(data.data || []);
       setError(null);
     } catch (err) {

@@ -17,6 +17,8 @@
     "cloudinary-react": "^1.8.1",
     "cors": "^2.8.5",
     "cra-template": "1.2.0",
+    "echarts": "^5.6.0",
+    "echarts-for-react": "^3.0.6",
     "express": "^4.21.2",
     "framer-motion": "^12.4.10",
     "lucide-react": "^0.474.0",

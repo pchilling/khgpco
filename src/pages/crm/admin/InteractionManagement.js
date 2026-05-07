@@ -1,458 +1,389 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Table, Space, Button, Input, Form, Select, DatePicker, message, Tag, Tooltip, Modal } from 'antd';
-import { SearchOutlined, FilterOutlined, ReloadOutlined, ExportOutlined, DeleteOutlined } from '@ant-design/icons';
-import * as XLSX from 'xlsx';
-import { API_BASE_URL } from '../../../utils/api';
-import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 
+import React, { useEffect, useState } from 'react';
+import { Card, Table, Button, Space, Modal, Form, Input, Select, DatePicker, Tag, Tooltip, message, Switch, InputNumber } from 'antd';
+import { PlusOutlined, FilterOutlined, SearchOutlined, ReloadOutlined, DeleteOutlined, EditOutlined, ExportOutlined, SmileTwoTone, MehTwoTone, FrownTwoTone, QuestionCircleTwoTone } from '@ant-design/icons';
+import { API_BASE_URL } from '../../../utils/api';
+import * as XLSX from 'xlsx';
+
+const { TextArea } = Input;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
-const InteractionManagement = () => {
+const interactionTypeMap = {
+  phone_call: '電話聯絡',
+  email: '電子郵件',
+  meeting: '會議拜訪',
+  site_visit: '現場參觀',
+  other: '其他'
+};
+
+const interactionStatusMap = {
+  initial_contact: { text: '初次接觸', color: 'blue' },
+  following_up: { text: '跟進中', color: 'cyan' },
+  negotiating: { text: '洽談中', color: 'orange' },
+  contract_signed: { text: '已簽約', color: 'gold' },
+  payment_received: { text: '已收款', color: 'green' },
+  completed: { text: '已完成', color: 'green' },
+  pending: { text: '待處理', color: 'default' },
+  cancelled: { text: '已取消', color: 'red' }
+};
+
+const getTypeColor = (t) => ({ phone_call: 'blue', email: 'geekblue', meeting: 'purple', site_visit: 'cyan', other: 'default' }[t] || 'default');
+
+export default function InteractionManagement() {
+  const [loading, setLoading] = useState(false);
   const [interactions, setInteractions] = useState([]);
   const [filteredInteractions, setFilteredInteractions] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [salesStaff, setSalesStaff] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [salesStaff, setSalesStaff] = useState([]);
+
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [filterVisible, setFilterVisible] = useState(false);
   const [filterForm] = Form.useForm();
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [selectedNotes, setSelectedNotes] = useState('');
-  const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // 互動類型和狀態映射（key 需與 Strapi enum 一致）
-  const interactionTypeMap = {
-    phone_call: '通話',
-    email: '電子郵件',
-    meeting: '會議',
-    site_visit: '參觀',
-    other: '其他'
+  const [editing, setEditing] = useState(null); // record or null
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form] = Form.useForm();
+
+  const normalizeDate = (val) => {
+    if (!val) return null;
+    try {
+      if (typeof val.format === 'function') return val.format('YYYY-MM-DD');
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+    } catch {}
+    return null;
   };
 
-  const interactionStatusMap = {
-    pending: { text: '待處理', color: 'orange' },
-    completed: { text: '已完成', color: 'green' },
-    canceled: { text: '已取消', color: 'red' },
-    follow_up: { text: '需跟進', color: 'blue' }
+  const toDateOnlyString = (val) => {
+    if (!val) return undefined;
+    if (typeof val === 'string') return val.slice(0, 10);
+    try {
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    } catch {}
+    return undefined;
   };
 
-  useEffect(() => {
-    fetchInteractions();
-    fetchSalesStaff();
-    fetchCustomers();
-  }, []);
+  const fetchAll = async (baseUrl) => {
+    let all = [];
+    let page = 1;
+    let pageCount = 1;
+    do {
+      const url = `${baseUrl}&pagination[page]=${page}&pagination[pageSize]=1000`;
+      const resp = await fetch(url);
+      const json = await resp.json();
+      all = all.concat(json?.data || []);
+      pageCount = json?.meta?.pagination?.pageCount || 1;
+      page += 1;
+    } while (page <= pageCount);
+    return all;
+  };
 
-  useEffect(() => {
-    applyFilters();
-  }, [interactions, searchKeyword]);
-
-  const fetchInteractions = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const all = await fetchAllStrapi(API_BASE_URL, '/api/interactions?populate=*&sort=date:desc');
-      setInteractions(all);
-      setFilteredInteractions(all);
-    } catch (error) {
-      console.error('Error fetching interactions:', error);
-      message.error('獲取互動記錄失敗');
+      const [ints, custs, staff, projs] = await Promise.all([
+        fetchAll(`${API_BASE_URL}/api/interactions?populate[]=customer&populate[]=sales_staff&populate[]=project&sort[0]=date:desc`),
+        fetchAll(`${API_BASE_URL}/api/customers?populate=sales_staff&sort=updatedAt:desc`),
+        fetchAll(`${API_BASE_URL}/api/sales-staffs?populate=*`),
+        fetchAll(`${API_BASE_URL}/api/projects?populate=*`)
+      ]);
+      setInteractions(ints || []);
+      setFilteredInteractions(ints || []);
+      setCustomers(custs || []);
+      setSalesStaff(staff || []);
+      setProjects(projs || []);
+    } catch (e) {
+      console.error('Load interactions failed', e);
+      message.error('載入聯絡記錄失敗');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchSalesStaff = async () => {
-    try {
-      const all = await fetchAllStrapi(API_BASE_URL, '/api/sales-staffs');
-      setSalesStaff(all);
-    } catch (error) {
-      console.error('Error fetching sales staff:', error);
-    }
-  };
+  useEffect(() => { loadData(); }, []);
 
-  const fetchCustomers = async () => {
-    try {
-      const all = await fetchAllStrapi(API_BASE_URL, '/api/customers?populate=*');
-      setCustomers(all);
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-    }
-  };
-
-  // 搜索和過濾函數
-  const handleSearch = (e) => {
-    setSearchKeyword(e.target.value);
-  };
-
-  const handleFilter = async () => {
-    try {
-      const values = await filterForm.validateFields();
-      applyFilters(values);
-    } catch (error) {
-      console.error('Filter form validation error:', error);
-    }
-  };
-
-  const handleResetFilter = () => {
-    filterForm.resetFields();
-    setSearchKeyword('');
-    setFilteredInteractions(interactions);
-    setFilterVisible(false);
-  };
+  useEffect(() => { applyFilters(); }, [interactions, searchKeyword]);
 
   const applyFilters = (formValues = null) => {
     try {
-      let filtered = [...interactions];
-      
-      // 關鍵字搜索 - 搜尋客戶姓名、互動內容、業務人員姓名
+      let list = [...interactions];
       if (searchKeyword) {
-        const keyword = searchKeyword.toLowerCase();
-        filtered = filtered.filter(interaction => 
-          // 搜尋客戶姓名
-          (interaction.attributes.customer?.data?.attributes?.name && 
-            interaction.attributes.customer.data.attributes.name.toLowerCase().includes(keyword)) ||
-          // 搜尋互動內容
-          (interaction.attributes.notes && interaction.attributes.notes.toLowerCase().includes(keyword)) ||
-          // 搜尋業務人員姓名
-          (interaction.attributes.sales_staff?.data?.attributes?.username && 
-            interaction.attributes.sales_staff.data.attributes.username.toLowerCase().includes(keyword)) ||
-          (interaction.attributes.sales_staff?.data?.attributes?.name && 
-            interaction.attributes.sales_staff.data.attributes.name.toLowerCase().includes(keyword))
-        );
+        const k = searchKeyword.toLowerCase();
+        list = list.filter(r => {
+          const a = r.attributes || {};
+          const name = a.customer?.data?.attributes?.name || '';
+          const notes = a.notes || '';
+          const staffName = a.sales_staff?.data?.attributes?.name || a.sales_staff?.data?.attributes?.username || '';
+          return name.toLowerCase().includes(k) || notes.toLowerCase().includes(k) || staffName.toLowerCase().includes(k);
+        });
       }
-      
-      // 表單篩選
       if (formValues) {
-        // 業務人員篩選
         if (formValues.sales_staff) {
-          filtered = filtered.filter(interaction => 
-            interaction.attributes.sales_staff?.data?.id === formValues.sales_staff
-          );
+          list = list.filter(r => r.attributes?.sales_staff?.data?.id === formValues.sales_staff);
         }
-        
-        // 互動類型篩選
         if (formValues.type && formValues.type.length > 0) {
-          filtered = filtered.filter(interaction => 
-            interaction.attributes.type && formValues.type.includes(interaction.attributes.type)
-          );
+          list = list.filter(r => r.attributes?.type && formValues.type.includes(r.attributes.type));
         }
-        
-        // 互動狀態篩選
         if (formValues.status && formValues.status.length > 0) {
-          filtered = filtered.filter(interaction => 
-            interaction.attributes.status && formValues.status.includes(interaction.attributes.status)
-          );
+          list = list.filter(r => r.attributes?.status && formValues.status.includes(r.attributes.status));
         }
-        
-        // 客戶篩選
         if (formValues.customer) {
-          filtered = filtered.filter(interaction => 
-            interaction.attributes.customer?.data?.id === formValues.customer
-          );
+          list = list.filter(r => r.attributes?.customer?.data?.id === formValues.customer);
         }
-        
-        // 日期範圍篩選
         if (formValues.dateRange && formValues.dateRange[0] && formValues.dateRange[1]) {
-          const startDate = new Date(formValues.dateRange[0].format('YYYY-MM-DD'));
-          const endDate = new Date(formValues.dateRange[1].format('YYYY-MM-DD'));
+          const startRaw = formValues.dateRange[0];
+          const endRaw = formValues.dateRange[1];
+          const startDate = new Date(normalizeDate(startRaw));
+          const endDate = new Date(normalizeDate(endRaw));
           endDate.setHours(23, 59, 59, 999);
-          
-          filtered = filtered.filter(interaction => {
-            if (!interaction.attributes.date) return false;
-            const interactionDate = new Date(interaction.attributes.date);
-            return interactionDate >= startDate && interactionDate <= endDate;
+          list = list.filter(r => {
+            const d = r.attributes?.date ? new Date(r.attributes.date) : null;
+            return d && d >= startDate && d <= endDate;
           });
         }
       }
-      
-      setFilteredInteractions(filtered);
-      if (filtered.length !== interactions.length) {
-        message.info(`共找到 ${filtered.length} 筆互動記錄`);
+      setFilteredInteractions(list);
+      if (list.length !== interactions.length) {
+        message.info(`共找到 ${list.length} 筆聯絡記錄`);
       }
-    } catch (error) {
-      console.error('Error applying filters:', error);
+    } catch (e) {
+      console.error('applyFilters failed', e);
       message.error('過濾出錯，請重試');
       setFilteredInteractions(interactions);
     }
   };
 
-  // 導出到Excel
   const exportToExcel = () => {
+    const isFiltered = filteredInteractions.length !== interactions.length;
+    const confirmMessage = isFiltered
+      ? `確定要導出篩選後的 ${filteredInteractions.length} 筆記錄嗎？`
+      : `確定要導出全部 ${interactions.length} 筆記錄嗎？`;
     Modal.confirm({
       title: '導出確認',
-      content: `確定要導出${filteredInteractions.length}筆互動記錄嗎？`,
-      okText: '確定',
+      content: confirmMessage,
+      okText: '確定導出',
       cancelText: '取消',
       onOk: () => {
         const exportData = filteredInteractions.map(interaction => ({
-          '銷售人員': interaction.attributes.sales_staff?.data?.attributes?.username || '',
+          '銷售人員': interaction.attributes.sales_staff?.data?.attributes?.name || interaction.attributes.sales_staff?.data?.attributes?.username || '',
           '客戶': interaction.attributes.customer?.data?.attributes?.name || '',
-          '互動類型': interactionTypeMap[interaction.attributes.type] || interaction.attributes.type,
-          '互動日期': interaction.attributes.date,
-          '互動內容': interaction.attributes.notes,
-          '互動狀態': interactionStatusMap[interaction.attributes.status]?.text || interaction.attributes.status,
-          '跟進日期': interaction.attributes.next_follow_up || '',
+          '聯絡類型': interactionTypeMap[interaction.attributes.type] || interaction.attributes.type,
+          '聯絡日期': interaction.attributes.date,
+          '聯絡內容': interaction.attributes.notes,
+          '聯絡狀態': interactionStatusMap[interaction.attributes.status]?.text || interaction.attributes.status,
+          '聯絡結果': interaction.attributes.outcome || '',
+          '相關建案': interaction.attributes.project?.data?.attributes?.name || '',
+          '是否成交': interaction.attributes.is_deal ? '是' : '否',
+          '成交金額': interaction.attributes.is_deal ? interaction.attributes.deal_amount : '',
+          '入帳日期': interaction.attributes.is_deal ? interaction.attributes.payment_date : '',
+          '下次跟進日期': interaction.attributes.next_follow_up || '',
           '創建時間': new Date(interaction.attributes.createdAt).toLocaleString(),
+          '更新時間': new Date(interaction.attributes.updatedAt).toLocaleString(),
         }));
-
         const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, '互動記錄');
-        XLSX.writeFile(wb, `互動記錄_${new Date().toISOString().split('T')[0]}.xlsx`);
-        
-        message.success(`成功導出 ${exportData.length} 筆互動記錄`);
+        XLSX.utils.book_append_sheet(wb, ws, '聯絡記錄');
+        const fileName = isFiltered
+          ? `聯絡記錄_篩選結果_${new Date().toISOString().split('T')[0]}.xlsx`
+          : `聯絡記錄_全部_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        message.success(`成功導出 ${exportData.length} 筆聯絡記錄`);
       }
     });
   };
 
-  const showModal = (notes) => {
-    setSelectedNotes(notes);
-    setIsModalVisible(true);
+  const openAdd = () => {
+    setEditing(null);
+    form.resetFields();
+    setModalOpen(true);
   };
 
-  const handleModalClose = () => {
-    setIsModalVisible(false);
+  const openEdit = (record) => {
+    const a = record.attributes || {};
+    setEditing(record);
+    form.setFieldsValue({
+      customer: a.customer?.data?.id,
+      sales_staff: a.sales_staff?.data?.id,
+      project: a.project?.data?.id,
+      type: a.type,
+      status: a.status,
+      outcome: a.outcome,
+      date: toDateOnlyString(a.date),
+      next_follow_up: toDateOnlyString(a.next_follow_up),
+      notes: a.notes,
+      is_deal: !!a.is_deal,
+      deal_amount: a.deal_amount ? Number(a.deal_amount) : undefined,
+      payment_date: toDateOnlyString(a.payment_date)
+    });
+    setModalOpen(true);
   };
 
-  // 刪除互動記錄
-  const handleDelete = (record) => {
+  const handleDelete = async (record) => {
     Modal.confirm({
-      title: '確認刪除',
-      content: `確定要刪除與客戶「${record.attributes.customer?.data?.attributes?.name || '未知客戶'}」的互動記錄嗎？`,
-      okText: '確定刪除',
+      title: '刪除確認',
+      content: '確定要刪除此聯絡記錄嗎？',
       okType: 'danger',
-      cancelText: '取消',
       onOk: async () => {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/interactions/${record.id}`, {
-            method: 'DELETE',
-          });
-
-          if (!response.ok) {
-            throw new Error('刪除失敗');
-          }
-
-          message.success('互動記錄已刪除');
-          fetchInteractions(); // 重新載入資料
-        } catch (error) {
-          console.error('Error deleting interaction:', error);
-          message.error('刪除互動記錄失敗');
+          const resp = await fetch(`${API_BASE_URL}/api/interactions/${record.id}`, { method: 'DELETE' });
+          if (!resp.ok) throw new Error('刪除失敗');
+          message.success('已刪除');
+          loadData();
+        } catch (e) {
+          console.error(e);
+          message.error('刪除失敗');
         }
       }
     });
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      'pending': 'orange',
-      'initial_contact': 'blue',
-      'following_up': 'cyan',
-      'negotiating': 'orange',
-      'contract_signed': 'gold',
-      'payment_received': 'green',
-      'completed': 'green',
-      'cancelled': 'red',
-      'canceled': 'red',
-    };
-    return colors[status] || 'default';
+  const submit = async () => {
+    try {
+      const v = await form.validateFields();
+      const payload = {
+        customer: Number(v.customer),
+        ...(v.sales_staff ? { sales_staff: Number(v.sales_staff) } : {}),
+        ...(v.project ? { project: Number(v.project) } : {}),
+        type: v.type,
+        status: v.status,
+        ...(v.outcome ? { outcome: v.outcome } : {}),
+        date: normalizeDate(v.date) || new Date().toISOString().split('T')[0],
+        ...(v.next_follow_up ? { next_follow_up: normalizeDate(v.next_follow_up) } : {}),
+        ...(v.notes ? { notes: v.notes } : {}),
+        ...(v.is_deal ? { is_deal: true, deal_amount: Number(v.deal_amount || 0), payment_date: normalizeDate(v.payment_date) } : { is_deal: false })
+      };
+
+      const isEdit = !!editing;
+      const url = isEdit ? `${API_BASE_URL}/api/interactions/${editing.id}` : `${API_BASE_URL}/api/interactions`;
+      const method = isEdit ? 'PUT' : 'POST';
+      const resp = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: payload }) });
+      if (!resp.ok) throw new Error(isEdit ? '更新失敗' : '新增失敗');
+      message.success(isEdit ? '已更新' : '已新增');
+      setModalOpen(false);
+      setEditing(null);
+      loadData();
+    } catch (e) {
+      if (e?.errorFields) return; // 表單驗證錯誤已由 AntD 顯示
+      console.error(e);
+      message.error(e.message || '提交失敗');
+    }
   };
 
-  const getStatusText = (status) => {
-    const statusMap = {
-      'pending': '待處理',
-      'initial_contact': '初次接觸',
-      'following_up': '跟進中',
-      'negotiating': '洽談中',
-      'contract_signed': '已簽約',
-      'payment_received': '已收款',
-      'completed': '已完成',
-      'cancelled': '已取消',
-      'canceled': '已取消',
-    };
-    return statusMap[status] || status;
-  };
-
-  // 表格列定義
   const columns = [
+    { title: '客戶', key: 'customer', render: (_, r) => r.attributes?.customer?.data?.attributes?.name || '-' },
+    { title: '負責業務', key: 'sales_staff', render: (_, r) => r.attributes?.sales_staff?.data?.attributes?.name || r.attributes?.sales_staff?.data?.attributes?.username || '-' },
+    { title: '聯絡類型', dataIndex: ['attributes', 'type'], key: 'type', render: (type) => (<Tag color={getTypeColor(type)}>{interactionTypeMap[type] || type}</Tag>) },
+    { title: '聯絡日期', dataIndex: ['attributes', 'date'], key: 'date', render: (date) => date || '-' },
+    { title: '聯絡內容', dataIndex: ['attributes', 'notes'], key: 'notes', ellipsis: { showTitle: false }, render: (notes) => (
+      <Tooltip placement="topLeft" title={notes}>
+        {notes || '-'}
+      </Tooltip>
+    ) },
+    { title: '狀態', dataIndex: ['attributes', 'status'], key: 'status', render: (status) => (
+      <Tag color={interactionStatusMap[status]?.color || 'default'}>
+        {interactionStatusMap[status]?.text || status}
+      </Tag>
+    ) },
+    { title: '聯絡結果', dataIndex: ['attributes', 'outcome'], key: 'outcome', render: (outcome) => {
+      const map = {
+        positive: { icon: <SmileTwoTone twoToneColor="#52c41a" />, text: '正向' },
+        neutral: { icon: <MehTwoTone twoToneColor="#faad14" />, text: '中性' },
+        negative: { icon: <FrownTwoTone twoToneColor="#ff4d4f" />, text: '負向' },
+      };
+      const item = map[outcome] || { icon: <QuestionCircleTwoTone twoToneColor="#8c8c8c" />, text: '-' };
+      return (
+        <Tooltip title={item.text}>
+          <span>{item.icon}</span>
+        </Tooltip>
+      );
+    } },
+    { title: '相關建案', key: 'project', render: (_, r) => r.attributes?.project?.data?.attributes?.name || '-' },
+    { title: '是否成交', dataIndex: ['attributes', 'is_deal'], key: 'is_deal', render: (is_deal) => is_deal ? '是' : '否' },
+    { title: '成交金額', dataIndex: ['attributes', 'deal_amount'], key: 'deal_amount', render: (deal_amount) => deal_amount || '-' },
+    { title: '入帳日期', dataIndex: ['attributes', 'payment_date'], key: 'payment_date', render: (payment_date) => payment_date || '-' },
     {
-      title: '銷售人員',
-      dataIndex: ['attributes', 'sales_staff', 'data', 'attributes', 'username'],
-      key: 'sales_staff',
-      render: (text) => text || '未知'
-    },
-    {
-      title: '客戶',
-      dataIndex: ['attributes', 'customer', 'data', 'attributes', 'name'],
-      key: 'customer',
-      render: (_, record) => record.attributes.customer?.data?.attributes?.name || '-'
-    },
-    {
-      title: '互動類型',
-      dataIndex: ['attributes', 'type'],
-      key: 'type',
-      render: (type) => interactionTypeMap[type] || type,
-    },
-    {
-      title: '互動日期',
-      dataIndex: ['attributes', 'date'],
-      key: 'date',
-      render: (date) => date || '-',
-    },
-    {
-      title: '互動內容',
-      dataIndex: ['attributes', 'notes'],
-      key: 'notes',
-      ellipsis: {
-        showTitle: false,
-      },
-      render: (notes) => {
-        if (!notes) return '-';
-        const displayText = notes.length > 20 ? `${notes.substring(0, 20)}...` : notes;
-        return (
-          <Tooltip title={notes.length > 20 ? notes : ''}>
-            <Button 
-              type="link" 
-              onClick={() => showModal(notes)}
-              style={{ padding: 0, height: 'auto', whiteSpace: 'normal', textAlign: 'left' }}
-            >
-              {displayText}
-            </Button>
-          </Tooltip>
-        );
-      }
-    },
-    {
-      title: '狀態',
-      dataIndex: ['attributes', 'status'],
-      key: 'status',
-      render: (status) => (
-        <Tag color={getStatusColor(status)}>
-          {getStatusText(status)}
-        </Tag>
-      ),
-    },
-    {
-      title: '跟進日期',
-      dataIndex: ['attributes', 'next_follow_up'],
-      key: 'next_follow_up',
-      render: (next_follow_up) => next_follow_up || '-',
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 80,
-      fixed: 'right',
+      title: '操作', key: 'action', width: 120, fixed: 'right',
       render: (_, record) => (
-        <Button 
-          type="text"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() => handleDelete(record)}
-          size="small"
-          title="刪除互動記錄"
-        />
+        <Space>
+          <Tooltip title="編輯">
+            <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+          </Tooltip>
+          <Tooltip title="刪除">
+            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)} />
+          </Tooltip>
+        </Space>
       ),
     },
   ];
 
   return (
     <Card
-      title="互動記錄管理"
+      title="聯絡記錄管理"
       extra={
         <Space>
           <Input
-            placeholder="搜索客戶姓名、互動內容或業務人員"
+            placeholder="搜索客戶姓名、聯絡內容或業務人員"
             value={searchKeyword}
-            onChange={handleSearch}
+            onChange={(e) => setSearchKeyword(e.target.value)}
             prefix={<SearchOutlined />}
-            style={{ width: 250 }}
+            style={{ width: 280 }}
           />
-          <Button
-            icon={<FilterOutlined />}
-            onClick={() => setFilterVisible(!filterVisible)}
-          >
-            篩選
-          </Button>
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={() => fetchInteractions()}
-          >
-            刷新
-          </Button>
-          <Button
-            icon={<ExportOutlined />}
-            onClick={exportToExcel}
-          >
-            導出Excel
-          </Button>
+          <Button icon={<FilterOutlined />} onClick={() => setFilterVisible(!filterVisible)}>篩選</Button>
+          <Button icon={<ReloadOutlined />} onClick={() => loadData()}>刷新</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>新增聯絡</Button>
+          <Button icon={<ExportOutlined />} onClick={exportToExcel}>導出Excel</Button>
         </Space>
       }
     >
       {filterVisible && (
-        <div className="filter-panel" style={{ 
+        <div className="filter-panel" style={{
           backgroundColor: '#f8f8f8',
           borderRadius: '6px',
           padding: '16px',
           marginBottom: '16px',
           border: '1px solid #e8e8e8'
         }}>
-          <Form
-            form={filterForm}
-            layout="horizontal"
-            onFinish={handleFilter}
-          >
+          <Form form={filterForm} layout="horizontal" onFinish={applyFilters}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
               <Form.Item name="sales_staff" label="銷售人員" style={{ minWidth: '200px' }}>
-                <Select placeholder="選擇銷售人員" style={{ width: '200px' }}>
-                  <Option value="">全部</Option>
+                <Select placeholder="選擇銷售人員" style={{ width: '200px' }} allowClear>
                   {salesStaff.map(staff => (
                     <Option key={staff.id} value={staff.id}>
-                      {staff.attributes.username}
+                      {staff.attributes?.name || staff.attributes?.username}
                     </Option>
                   ))}
                 </Select>
               </Form.Item>
-              <Form.Item name="type" label="互動類型" style={{ minWidth: '200px' }}>
-                <Select mode="multiple" placeholder="選擇互動類型" style={{ width: '200px' }}>
+              <Form.Item name="type" label="聯絡類型" style={{ minWidth: '200px' }}>
+                <Select mode="multiple" placeholder="選擇聯絡類型" style={{ width: '200px' }}>
                   {Object.entries(interactionTypeMap).map(([value, text]) => (
                     <Option key={value} value={value}>{text}</Option>
                   ))}
                 </Select>
               </Form.Item>
-              <Form.Item name="status" label="互動狀態" style={{ minWidth: '200px' }}>
-                <Select mode="multiple" placeholder="選擇互動狀態" style={{ width: '200px' }}>
+              <Form.Item name="status" label="聯絡狀態" style={{ minWidth: '200px' }}>
+                <Select mode="multiple" placeholder="選擇聯絡狀態" style={{ width: '200px' }}>
                   {Object.entries(interactionStatusMap).map(([value, { text }]) => (
                     <Option key={value} value={value}>{text}</Option>
                   ))}
                 </Select>
               </Form.Item>
               <Form.Item name="customer" label="客戶" style={{ minWidth: '200px' }}>
-                <Select 
-                  placeholder="選擇客戶" 
-                  style={{ width: '200px' }}
-                  showSearch
-                  filterOption={(input, option) =>
-                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-                  }
-                >
-                  <Option value="">全部</Option>
+                <Select placeholder="選擇客戶" style={{ width: '200px' }} showSearch filterOption={(input, option) => (option?.children ?? '').toLowerCase().includes(input.toLowerCase())} allowClear>
                   {customers.map(customer => (
-                    <Option key={customer.id} value={customer.id}>
-                      {customer.attributes.name}
-                    </Option>
+                    <Option key={customer.id} value={customer.id}>{customer.attributes?.name}</Option>
                   ))}
                 </Select>
               </Form.Item>
-              <Form.Item name="dateRange" label="互動日期" style={{ minWidth: '300px' }}>
+              <Form.Item name="dateRange" label="聯絡日期" style={{ minWidth: '300px' }}>
                 <RangePicker />
               </Form.Item>
               <Form.Item style={{ marginLeft: 'auto' }}>
                 <Space>
-                  <Button type="primary" htmlType="submit">
-                    篩選
-                  </Button>
-                  <Button onClick={handleResetFilter}>
-                    重置
-                  </Button>
+                  <Button type="primary" htmlType="submit">篩選</Button>
                 </Space>
               </Form.Item>
             </div>
@@ -460,41 +391,91 @@ const InteractionManagement = () => {
         </div>
       )}
 
-      {/* 搜尋說明 */}
-      <div style={{ 
-        marginBottom: 16, 
-        padding: '8px 12px', 
-        backgroundColor: '#f0f9ff', 
+      <div style={{
+        marginBottom: 16,
+        padding: '8px 12px',
+        backgroundColor: '#f0f9ff',
         border: '1px solid #bae6fd',
         borderRadius: '4px',
         fontSize: '14px',
         color: '#0369a1'
       }}>
-        💡 搜尋提示：您可以搜尋「客戶姓名」、「互動內容」或「業務人員姓名」關鍵字來快速找到相關記錄
+        提示：可搜尋「客戶姓名」、「聯絡內容」或「業務人員姓名」關鍵字來快速找到相關記錄
       </div>
 
-      <Table
-        columns={columns}
-        dataSource={filteredInteractions}
-        rowKey={record => record.id}
-        loading={loading}
-        scroll={{ x: 1200 }}
-      />
+      <Table columns={columns} dataSource={filteredInteractions} rowKey={record => record.id} loading={loading} scroll={{ x: 1200 }} />
 
-      <Modal
-        title="互動內容詳情"
-        open={isModalVisible}
-        onCancel={handleModalClose}
-        footer={[
-          <Button key="close" onClick={handleModalClose}>
-            關閉
-          </Button>
-        ]}
-      >
-        <p style={{ whiteSpace: 'pre-wrap' }}>{selectedNotes}</p>
+      <Modal title={editing ? '編輯聯絡記錄' : '新增聯絡記錄'} open={modalOpen} onCancel={() => { setModalOpen(false); setEditing(null); }} onOk={submit} okText="保存" cancelText="取消" width={720}>
+        <Form form={form} layout="vertical">
+          <Form.Item name="customer" label="客戶" rules={[{ required: true, message: '請選擇客戶' }]}>
+            <Select placeholder="輸入客戶名稱搜尋" showSearch optionFilterProp="children" filterOption={(input, option) => (option?.children ?? '').toLowerCase().includes(input.toLowerCase())}>
+              {customers.map(customer => (
+                <Option key={customer.id} value={customer.id}>{customer.attributes?.name}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="sales_staff" label="負責業務">
+            <Select placeholder="選擇業務" allowClear>
+              {salesStaff.map(s => (<Option key={s.id} value={s.id}>{s.attributes?.name || s.attributes?.username}</Option>))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="type" label="聯絡類型" rules={[{ required: true, message: '請選擇聯絡類型' }]}>
+            <Select placeholder="選擇聯絡類型">
+              {Object.entries(interactionTypeMap).map(([value, text]) => (
+                <Option key={value} value={value}>{text}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="date" label="聯絡日期" rules={[{ required: true, message: '請選擇聯絡日期' }]}>
+            <Input type="date" />
+          </Form.Item>
+          <Form.Item name="notes" label="聯絡內容" rules={[{ required: true, message: '請輸入聯絡內容' }]}>
+            <TextArea rows={4} />
+          </Form.Item>
+          <Form.Item name="status" label="聯絡狀態" rules={[{ required: true, message: '請選擇聯絡狀態' }]}>
+            <Select placeholder="選擇聯絡狀態">
+              {Object.entries(interactionStatusMap).map(([value, { text }]) => (
+                <Option key={value} value={value}>{text}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="outcome" label="聯絡結果">
+            <Select placeholder="選擇聯絡結果" allowClear>
+              <Option value="positive">正向</Option>
+              <Option value="neutral">中性</Option>
+              <Option value="negative">負向</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="project" label="相關建案（選填）">
+            <Select allowClear placeholder="輸入建案名稱搜尋" showSearch optionFilterProp="children" filterOption={(input, option) => (option?.children ?? '').toLowerCase().includes(input.toLowerCase())}>
+              {projects.map(p => (
+                <Option key={p.id} value={p.id}>{p.attributes?.name || `建案 ${p.id}`}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="next_follow_up" label="下次跟進日期">
+            <Input type="date" />
+          </Form.Item>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <Form.Item name="is_deal" label="是否成交" valuePropName="checked" initialValue={false}>
+              <Switch />
+            </Form.Item>
+            <Form.Item shouldUpdate={(prev, curr) => prev.is_deal !== curr.is_deal}>
+              {({ getFieldValue }) => getFieldValue('is_deal') ? (
+                <div style={{ display: 'contents' }}>
+                  <Form.Item name="deal_amount" label="成交金額" rules={[{ required: true, message: '請輸入成交金額' }]}>
+                    <InputNumber style={{ width: '100%' }} min={0} step={10000} placeholder="輸入金額（元）" />
+                  </Form.Item>
+                  <Form.Item name="payment_date" label="入帳日期" rules={[{ required: true, message: '請選擇入帳日期' }]}>
+                    <Input type="date" />
+                  </Form.Item>
+                </div>
+              ) : null}
+            </Form.Item>
+          </div>
+        </Form>
       </Modal>
     </Card>
   );
-};
-
-export default InteractionManagement; 
+} 

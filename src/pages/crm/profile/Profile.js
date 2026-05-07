@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Form, Input, Button, message } from 'antd';
 import { UserOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import styles from './Profile.module.css';
+import { API_BASE_URL } from '../../../utils/api';
 
 const Profile = () => {
   const [form] = Form.useForm();
@@ -9,24 +10,49 @@ const Profile = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // 從 localStorage 獲取用戶信息
     const userData = JSON.parse(localStorage.getItem('user'));
     setUser(userData);
-    if (userData) {
+    if (!userData) return;
+
+    // 先顯示不可編輯的 username
+    form.setFieldsValue({ username: userData.username });
+
+    // 從後端取回 email/phone 並預填
+    (async () => {
+      try {
+        const resp = await fetch(`${API_BASE_URL}/api/sales-staffs/${userData.id}`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const attrs = data?.data?.attributes || {};
       form.setFieldsValue({
-        username: userData.username,
-        email: userData.email || '',
-        phone: userData.phone || ''
+          email: attrs.email || '',
+          phone: attrs.phone || ''
       });
+      } catch (e) {
+        console.error('載入個人資料失敗:', e);
     }
+    })();
   }, [form]);
 
   const onFinish = async (values) => {
+    if (!user) return;
     setLoading(true);
     try {
-      // TODO: 實現更新個人資料的 API 調用
+      const payload = { data: { email: values.email || null, phone: values.phone || null } };
+      const resp = await fetch(`${API_BASE_URL}/api/sales-staffs/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!resp.ok) throw new Error('更新失敗');
+
+      // 同步到 localStorage，讓下次開啟仍能看到
+      const stored = JSON.parse(localStorage.getItem('user') || 'null') || {};
+      localStorage.setItem('user', JSON.stringify({ ...stored, email: values.email || null, phone: values.phone || null }));
+
       message.success('個人資料更新成功');
     } catch (error) {
+      console.error('更新個人資料失敗:', error);
       message.error('更新失敗，請稍後再試');
     } finally {
       setLoading(false);

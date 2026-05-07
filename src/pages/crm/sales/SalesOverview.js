@@ -1,32 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Table, List, Tag, DatePicker, Progress } from 'antd';
-import { 
-  UserOutlined, 
-  PhoneOutlined, 
-  ClockCircleOutlined, 
-  DollarOutlined,
-  ArrowUpOutlined
-} from '@ant-design/icons';
-import { Line } from '@ant-design/plots';
-import dayjs from 'dayjs';
-import axios from 'axios';
+import { Card, Row, Col, Statistic, Space, Spin, Empty, message, DatePicker } from 'antd';
+import { UserOutlined, InteractionOutlined, DollarOutlined } from '@ant-design/icons';
+import ReactECharts from 'echarts-for-react';
 import { API_BASE_URL } from '../../../utils/api';
+import styles from './SalesOverview.module.css';
 
-const { RangePicker } = DatePicker;
+// 所有可能的客戶階段及對應顏色
+// 僅使用 Customer.status 的真實枚舉值
+const ALL_STAGES = {
+  potential: { name: '潛在客戶', color: '#1890ff' },
+  contacted: { name: '已聯繫', color: '#722ed1' },
+  negotiating: { name: '洽談中', color: '#fa8c16' },
+  closed: { name: '已成交', color: '#13c2c2' },
+  lost: { name: '已流失', color: '#f5222d' }
+};
 
 const SalesOverview = () => {
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState([dayjs().startOf('month'), dayjs()]);
-  const [stats, setStats] = useState({
+  const [overviewData, setOverviewData] = useState({
     totalCustomers: 0,
-    activeDeals: 0,
-    totalAmount: 0,
-    conversionRate: 0
+    totalInteractions: 0,
+    totalDeals: 0,
+    totalRevenue: 0,
+    customerStages: [],
+    customerSources: []
   });
-  const [interactions, setInteractions] = useState([]);
-  const [upcomingFollowUps, setUpcomingFollowUps] = useState([]);
-  const [performanceTrend, setPerformanceTrend] = useState([]);
-  const [customerStages, setCustomerStages] = useState([]);
+  const [dateRange, setDateRange] = useState(null); // [dayjs, dayjs]
+  const { RangePicker } = DatePicker;
 
   // 獲取當前登入用戶資訊
   const getCurrentUser = () => {
@@ -42,280 +42,283 @@ const SalesOverview = () => {
     return null;
   };
 
-  const fetchSalesData = async () => {
+  const fetchOverviewData = async () => {
+    setLoading(true);
     try {
       const currentUser = getCurrentUser();
       if (!currentUser) {
-        console.error('未找到用戶資訊');
-        setLoading(false);
+        message.error('未找到用戶資訊，請重新登入');
         return;
       }
 
-      console.log('當前用戶:', currentUser);
-      console.log('日期範圍:', dateRange[0].format('YYYY-MM-DD'), '到', dateRange[1].format('YYYY-MM-DD'));
-
-      // 獲取該銷售的所有互動記錄
-      const url = `${API_BASE_URL}/api/interactions?filters[sales_staff][id]=${currentUser.id}&filters[date][$gte]=${dateRange[0].format('YYYY-MM-DD')}&filters[date][$lte]=${dateRange[1].format('YYYY-MM-DD')}&populate[]=customer&populate[]=project`;
-      
-      console.log('請求 URL:', url);
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`API 請求失敗: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log('API 回應:', data);
-      
-      const interactions = data.data || [];
-      
-      // 計算統計數據
-      const uniqueCustomers = new Set(interactions.map(i => i.attributes.customer?.data?.id));
-      const deals = interactions.filter(i => i.attributes.is_deal);
-      const uniqueDeals = new Set(deals.map(i => i.attributes.customer?.data?.id));
-      const totalAmount = deals.reduce((sum, i) => sum + (parseFloat(i.attributes.deal_amount) || 0), 0);
-      
-      // 計算進行中的交易
-      const activeDeals = interactions.filter(i => 
-        i.attributes.is_deal && 
-        ['negotiating', 'contract_signed'].includes(i.attributes.status)
-      ).length;
-
-      setStats({
-        totalCustomers: uniqueCustomers.size,
-        activeDeals,
-        totalAmount,
-        conversionRate: (uniqueDeals.size / uniqueCustomers.size * 100) || 0
-      });
-
-      // 設置最近互動記錄
-      setInteractions(interactions);
-
-      // 獲取待跟進客戶
-      const followUps = interactions.filter(i => 
-        i.attributes.next_follow_up && 
-        dayjs(i.attributes.next_follow_up).isAfter(dayjs())
-      ).sort((a, b) => dayjs(a.attributes.next_follow_up) - dayjs(b.attributes.next_follow_up));
-      
-      setUpcomingFollowUps(followUps);
-
-      // 生成業績趨勢數據
-      const trendData = {};
-      const days = dateRange[1].diff(dateRange[0], 'days') + 1;
-      
-      for (let i = 0; i < days; i++) {
-        const date = dayjs(dateRange[0]).add(i, 'days').format('YYYY-MM-DD');
-        trendData[date] = {
-          date,
-          amount: 0,
-          interactions: 0
-        };
-      }
-
-      interactions.forEach(i => {
-        const date = dayjs(i.attributes.date).format('YYYY-MM-DD');
-        if (trendData[date]) {
-          trendData[date].interactions += 1;
-          if (i.attributes.is_deal) {
-            trendData[date].amount += parseFloat(i.attributes.deal_amount) || 0;
-          }
-        }
-      });
-
-      setPerformanceTrend(Object.values(trendData));
-
-      // 處理客戶階段分布
-      const stages = {
-        'initial_contact': 0,
-        'following_up': 0,
-        'negotiating': 0,
-        'contract_signed': 0,
-        'payment_received': 0,
-        'completed': 0,
-        'cancelled': 0
+      const fetchAll = async (baseUrl) => {
+        let all = [];
+        let page = 1;
+        let pageCount = 1;
+        do {
+          const url = `${baseUrl}&pagination[page]=${page}&pagination[pageSize]=1000`;
+          const resp = await fetch(url);
+          if (!resp.ok) throw new Error(`Fetch failed: ${url}`);
+          const json = await resp.json();
+          all = all.concat(json?.data || []);
+          pageCount = json?.meta?.pagination?.pageCount || 1;
+          page += 1;
+        } while (page <= pageCount);
+        return all;
       };
 
-      interactions.forEach(i => {
-        stages[i.attributes.status] = (stages[i.attributes.status] || 0) + 1;
+      // 獲取該銷售人員的所有客戶與互動（分頁抓滿）
+      const customers = await fetchAll(`${API_BASE_URL}/api/customers?filters[sales_staff][id]=${currentUser.id}&populate=sales_staff`);
+      const interactions = await fetchAll(`${API_BASE_URL}/api/interactions?filters[sales_staff][id]=${currentUser.id}&populate=customer,sales_staff`);
+
+      const hasRange = Array.isArray(dateRange) && dateRange[0] && dateRange[1];
+      const rangeStart = hasRange ? new Date(dateRange[0].startOf('day').toDate()) : null;
+      const rangeEnd = hasRange ? new Date(dateRange[1].endOf('day').toDate()) : null;
+      const inRange = (dateStr) => {
+        if (!hasRange) return true;
+        if (!dateStr) return false;
+        const d = new Date(dateStr);
+        return d >= rangeStart && d <= rangeEnd;
+      };
+      
+      // 階段分布
+      const stages = {}; Object.keys(ALL_STAGES).forEach(s => stages[s] = 0);
+      customers.forEach(c => { const s = c?.attributes?.status; if (s && stages.hasOwnProperty(s)) stages[s]++; });
+      const customerStages = Object.entries(ALL_STAGES).map(([k, v]) => {
+        const count = stages[k] || 0; const percentage = customers.length > 0 ? ((count / customers.length) * 100).toFixed(1) : '0.0';
+        return { stage: v.name, count, percentage };
       });
 
-      setCustomerStages(Object.entries(stages).map(([stage, count]) => ({
-        stage,
-        count
-      })));
+      // 來源分布
+      const sourceCount = {};
+      customers.forEach(c => { const src = c?.attributes?.source; const txt = src ? getSourceText(src) : '其他'; sourceCount[txt] = (sourceCount[txt] || 0) + 1; });
+      const customerSources = Object.entries(sourceCount).map(([source, count]) => ({ source, count, percentage: customers.length > 0 ? ((count / customers.length) * 100).toFixed(1) : '0.0' })).sort((a,b)=>b.count-a.count);
 
-      setLoading(false);
+      // 成交相關（依日期範圍）
+      const deals = interactions.filter(i => i?.attributes?.is_deal && i?.attributes?.deal_amount && (!hasRange || inRange(i?.attributes?.payment_date)));
+      const totalRevenue = deals.reduce((s, d) => s + (parseFloat(d?.attributes?.deal_amount) || 0), 0);
+      const totalDeals = deals.length;
+
+      setOverviewData({
+        totalCustomers: customers.length,
+        totalInteractions: interactions.filter(i => !hasRange || inRange(i?.attributes?.date)).length,
+        totalDeals,
+        totalRevenue,
+        customerStages,
+        customerSources
+      });
     } catch (error) {
-      console.error('Error fetching sales data:', error);
+      console.error('獲取總覽資料失敗:', error);
+      message.error('獲取資料失敗，請稍後再試');
+    } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => { fetchOverviewData(); }, []);
+  useEffect(() => { fetchOverviewData(); }, [dateRange]);
+
+  // 修正首次進入總覽不顯示：數據載入完成後強制觸發一次 resize 讓圖表重算尺寸
   useEffect(() => {
-    fetchSalesData();
-  }, [dateRange]);
+    if (!loading) {
+      setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('resize'));
+        }
+      }, 0);
+    }
+  }, [loading]);
 
-  // 渲染業績趨勢圖表
-  const renderTrendChart = () => {
-    const config = {
-      data: performanceTrend,
-      xField: 'date',
-      yField: 'amount',
-      seriesField: 'type',
-      point: {
-        size: 5,
-        shape: 'diamond'
+  const getSourceText = (source) => {
+    const sourceMap = { 'website': '官網', 'referral': '轉介紹', 'social_media': '社群媒體', 'event': '活動', 'advertisement': '廣告', 'other': '其他', 'unknown': '未知' };
+    return sourceMap[source] || source;
+  };
+
+  const toWan = (amount) => Number(((Number(amount) || 0) / 10000).toFixed(1));
+
+  // 色盤與資料轉換
+  const stageColorMap = {
+    潛在客戶: '#1890ff',
+    已聯繫: '#722ed1',
+    洽談中: '#fa8c16',
+    已成交: '#13c2c2',
+    已流失: '#f5222d'
+  };
+
+  const stageBarData = (overviewData.customerStages || []).map(d => ({
+    stageLabel: d.stage || '—',
+    count: Number(d.count || 0),
+    percentage: d.percentage || '0.0'
+  }));
+
+  const stageBarOption = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (params) => {
+        const p = params && params[0];
+        const name = p?.name || '—';
+        const count = p?.value ?? 0;
+        const rec = stageBarData.find(d => d.stageLabel === name) || {};
+        const percentage = rec.percentage || '0.0';
+        return `${name}<br/>${count} 人（${percentage}%）`;
       }
-    };
-
-    return <Line {...config} />;
-  };
-
-  // 渲染客戶階段分布圖表
-  const renderStagesChart = () => {
-    const config = {
-      data: customerStages,
-      xField: 'stage',
-      yField: 'count',
-      point: {
-        size: 5,
-        shape: 'diamond'
+    },
+    grid: { left: 120, right: 40, top: 10, bottom: 10, containLabel: true },
+    xAxis: { type: 'value', boundaryGap: [0, 0.01] },
+    yAxis: { type: 'category', data: stageBarData.map(d => d.stageLabel) },
+    series: [
+      {
+        type: 'bar',
+        data: stageBarData.map(d => d.count),
+        itemStyle: {
+          color: (p) => {
+            const label = stageBarData[p.dataIndex]?.stageLabel;
+            return stageColorMap[label] || '#91caff';
+          },
+          borderRadius: [4, 4, 4, 4]
+        },
+        label: {
+          show: true,
+          position: 'right',
+          formatter: (p) => {
+            const rec = stageBarData[p.dataIndex] || {};
+            return `${rec.count || 0} 人（${rec.percentage || '0.0'}%）`;
+          }
+        }
       }
-    };
-
-    return <Line {...config} />;
+    ]
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      'initial_contact': 'blue',
-      'following_up': 'cyan',
-      'negotiating': 'orange',
-      'contract_signed': 'gold',
-      'payment_received': 'green',
-      'completed': 'green',
-      'cancelled': 'red'
-    };
-    return colors[status] || 'default';
+  const sourceData = (overviewData.customerSources || []).map(d => ({
+    source: d.source || '未知',
+    count: Number(d.count || 0),
+    percentage: d.percentage || '0.0'
+  }));
+
+  const totalCustomersForSource = sourceData.reduce((a, b) => a + (b.count || 0), 0);
+
+  const sourceDonutOption = {
+    tooltip: {
+      trigger: 'item',
+      formatter: (p) => {
+        const name = p?.name || '未知';
+        const count = p?.value ?? 0;
+        const rec = sourceData.find(d => d.source === name) || {};
+        const percentage = rec.percentage || '0.0';
+        return `${name}<br/>${count} 人（${percentage}%）`;
+      }
+    },
+    legend: { orient: 'vertical', right: 0, top: 'middle' },
+    series: [
+      {
+        name: '來源',
+        type: 'pie',
+        radius: ['50%', '76%'],
+        center: ['38%', '50%'],
+        avoidLabelOverlap: false,
+        label: {
+          show: true,
+          position: 'inner',
+          formatter: (p) => `${p?.name || '未知'}\n${p?.value ?? 0} 人`,
+          fontSize: 12
+        },
+        labelLine: { show: false },
+        data: sourceData.map(d => ({ name: d.source, value: d.count }))
+      }
+    ],
+    graphic: [{
+      type: 'text',
+      left: '38%',
+      top: 'middle',
+      style: {
+        text: `總客戶數\n${totalCustomersForSource}`,
+        textAlign: 'center',
+        fill: '#595959',
+        fontSize: 14
+      }
+    }]
   };
+
+  if (loading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <Spin size="large" />
+        <p>載入中...</p>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col span={24}>
-          <RangePicker 
-            value={dateRange}
-            onChange={(dates) => setDateRange(dates)}
-            style={{ marginBottom: '16px' }}
-          />
-        </Col>
-        <Col span={6}>
-          <Card>
+    <div className={styles.overview}>
+      <div className={styles.overviewContainer}>
+        <div className={styles.pageTitle}>
+          <h2>銷售總覽</h2>
+        </div>
+        <Space style={{ marginBottom: 16 }}>
+          <RangePicker onChange={(range) => setDateRange(range)} />
+        </Space>
+        
+        <Row gutter={[16, 16]} className={styles.statsCards}>
+          <Col xs={24} sm={12} md={8}>
+            <Card className={styles.statCard}>
             <Statistic
-              title="我的客戶數"
-              value={stats.totalCustomers}
+                title="總客戶數"
+                value={overviewData.totalCustomers}
               prefix={<UserOutlined />}
+                valueStyle={{ color: '#3f8600' }}
             />
           </Card>
         </Col>
-        <Col span={6}>
-          <Card>
+          <Col xs={24} sm={12} md={8}>
+            <Card className={styles.statCard}>
             <Statistic
-              title="進行中交易"
-              value={stats.activeDeals}
-              prefix={<ClockCircleOutlined />}
+                title="總互動次數"
+                value={overviewData.totalInteractions}
+                prefix={<InteractionOutlined />}
+                valueStyle={{ color: '#1890ff' }}
             />
           </Card>
         </Col>
-        <Col span={6}>
-          <Card>
+          <Col xs={24} sm={12} md={8}>
+            <Card className={styles.statCard}>
             <Statistic
               title="成交金額"
-              value={stats.totalAmount}
-              precision={2}
+                value={toWan(overviewData.totalRevenue)}
+                precision={1}
+                suffix="萬"
               prefix={<DollarOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="轉換率"
-              value={stats.conversionRate}
-              precision={2}
-              prefix={<ArrowUpOutlined />}
-              suffix="%"
+                valueStyle={{ color: '#faad14' }}
             />
           </Card>
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]}>
-        <Col span={12}>
-          <Card title="業績趨勢">
-            {renderTrendChart()}
+      <Row gutter={[16, 16]} className={styles.chartsRow}>
+        <Col xs={24} md={12}>
+          <Card title="客戶階段分布" className={styles.chartCard}>
+            {overviewData.customerStages.length > 0 ? (
+              <ReactECharts option={stageBarOption} style={{ height: 320 }} notMerge lazyUpdate />
+            ) : (
+              <div className={styles.emptyChartContainer}>
+                <Empty description="暫無數據" />
+              </div>
+              )}
           </Card>
         </Col>
-        <Col span={12}>
-          <Card title="客戶階段分布">
-            {renderStagesChart()}
+        <Col xs={24} md={12}>
+          <Card title="客戶來源分布" className={styles.chartCard}>
+            {overviewData.customerSources.length > 0 ? (
+              <ReactECharts option={sourceDonutOption} style={{ height: 320 }} notMerge lazyUpdate />
+            ) : (
+              <div className={styles.emptyChartContainer}>
+                <Empty description="暫無數據" />
+              </div>
+              )}
           </Card>
         </Col>
       </Row>
-
-      <Row gutter={[16, 16]} style={{ marginTop: '16px' }}>
-        <Col span={12}>
-          <Card title="待跟進客戶">
-            <List
-              dataSource={upcomingFollowUps}
-              renderItem={item => (
-                <List.Item>
-                  <List.Item.Meta
-                    title={`${item.attributes.customer?.data?.attributes?.name || '未知客戶'}`}
-                    description={
-                      <>
-                        <Tag color={getStatusColor(item.attributes.status)}>
-                          {item.attributes.status}
-                        </Tag>
-                        下次跟進: {dayjs(item.attributes.next_follow_up).format('YYYY-MM-DD')}
-                      </>
-                    }
-                  />
-                  {item.attributes.is_deal && (
-                    <Tag color="green">${item.attributes.deal_amount}</Tag>
-                  )}
-                </List.Item>
-              )}
-            />
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card title="最近互動">
-            <List
-              dataSource={interactions.slice(0, 5)}
-              renderItem={item => (
-                <List.Item>
-                  <List.Item.Meta
-                    title={`${item.attributes.customer?.data?.attributes?.name || '未知客戶'} - ${item.attributes.type}`}
-                    description={
-                      <>
-                        <Tag color={getStatusColor(item.attributes.status)}>
-                          {item.attributes.status}
-                        </Tag>
-                        {dayjs(item.attributes.date).format('YYYY-MM-DD HH:mm')}
-                      </>
-                    }
-                  />
-                  {item.attributes.is_deal && (
-                    <Tag color="green">${item.attributes.deal_amount}</Tag>
-                  )}
-                </List.Item>
-              )}
-            />
-          </Card>
-        </Col>
-      </Row>
+      </div>
     </div>
   );
 };

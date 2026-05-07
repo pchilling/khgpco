@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, Tooltip, DatePicker, Checkbox } from 'antd';
+import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, Tooltip, DatePicker, Checkbox, Switch, InputNumber, Timeline, Spin, Empty } from 'antd';
 import { EditOutlined, FileAddOutlined, PhoneOutlined, MailOutlined, SearchOutlined, FilterOutlined, ReloadOutlined, InteractionOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 import { API_BASE_URL } from '../../../utils/api';
-import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -13,17 +12,22 @@ const MyCustomers = () => {
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [selectedRows, setSelectedRows] = useState([]);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [contractModalVisible, setContractModalVisible] = useState(false);
   const [interactionModalVisible, setInteractionModalVisible] = useState(false);
   const [currentCustomer, setCurrentCustomer] = useState(null);
   const [form] = Form.useForm();
-  const [contractForm] = Form.useForm();
   const [interactionForm] = Form.useForm();
   const [projects, setProjects] = useState([]);
   const [filterVisible, setFilterVisible] = useState(false);
   const [filterForm] = Form.useForm();
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [contactRecordModalVisible, setContactRecordModalVisible] = useState(false);
+  const [contactRecordsVisible, setContactRecordsVisible] = useState(false);
+  const [contactRecords, setContactRecords] = useState([]);
+  const [contactLoading, setContactLoading] = useState(false);
+  const [currentCustomerName, setCurrentCustomerName] = useState('');
 
   const statusMap = {
     potential: { text: '潛在客戶', color: 'blue' },
@@ -41,19 +45,23 @@ const MyCustomers = () => {
   };
 
   const interactionTypeMap = {
-    call: '通話',
+    phone_call: '電話聯絡',
     email: '電子郵件',
-    meeting: '會議',
-    visit: '參觀',
+    meeting: '會議拜訪',
+    site_visit: '現場參觀',
     other: '其他'
   };
 
-  // 添加互動狀態映射
+  // 與 Sales Interactions 一致的狀態枚舉
   const interactionStatusMap = {
-    pending: { text: '待處理', color: 'orange' },
+    initial_contact: { text: '初次接觸', color: 'blue' },
+    following_up: { text: '跟進中', color: 'cyan' },
+    negotiating: { text: '洽談中', color: 'orange' },
+    contract_signed: { text: '已簽約', color: 'gold' },
+    payment_received: { text: '已收款', color: 'green' },
     completed: { text: '已完成', color: 'green' },
-    canceled: { text: '已取消', color: 'red' },
-    follow_up: { text: '需跟進', color: 'blue' }
+    pending: { text: '待處理', color: 'default' },
+    cancelled: { text: '已取消', color: 'red' }
   };
 
   useEffect(() => {
@@ -68,16 +76,35 @@ const MyCustomers = () => {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      // 獲取當前登錄的銷售人員信息
-      const user = JSON.parse(localStorage.getItem('user'));
-      
+      // 獲取當前登錄的銷售人員信息 - 與SalesOverview保持一致
+      const user = JSON.parse(localStorage.getItem('salesStaff'));
+
+      if (!user) {
+        message.error('未找到用戶資訊，請重新登入');
+        return;
+      }
+
+      // 分頁抓取所有客戶資料，與SalesOverview.js保持一致
+      const fetchAll = async (baseUrl) => {
+        let all = [];
+        let page = 1;
+        let pageCount = 1;
+        do {
+          const url = `${baseUrl}&pagination[page]=${page}&pagination[pageSize]=1000`;
+          const resp = await fetch(url);
+          if (!resp.ok) throw new Error(`Fetch failed: ${url}`);
+          const json = await resp.json();
+          all = all.concat(json?.data || []);
+          pageCount = json?.meta?.pagination?.pageCount || 1;
+          page += 1;
+        } while (page <= pageCount);
+        return all;
+      };
+
       // 只獲取分配給當前銷售人員的客戶
-      const all = await fetchAllStrapi(
-        API_BASE_URL,
-        `/api/customers?filters[sales_staff][id][$eq]=${user.id}&populate=*`
-      );
-      setCustomers(all);
-      setFilteredCustomers(all);
+      const customers = await fetchAll(`${API_BASE_URL}/api/customers?filters[sales_staff][id][$eq]=${user.id}&populate=*`);
+      setCustomers(customers);
+      setFilteredCustomers(customers);
     } catch (error) {
       console.error('Error fetching customers:', error);
       message.error('獲取客戶資料失敗');
@@ -88,7 +115,7 @@ const MyCustomers = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/projects`);
+      const response = await fetch(`${API_BASE_URL}/api/projects?pagination[pageSize]=1000`);
       const data = await response.json();
       setProjects(data.data || []);
     } catch (error) {
@@ -137,50 +164,15 @@ const MyCustomers = () => {
     }
   };
 
-  const handleContract = (record) => {
-    setCurrentCustomer(record);
-    // 設置現有的合約資料到表單中
-    contractForm.setFieldsValue({
-      contractInfo: record.attributes.contractInfo || '',
-      contractDate: record.attributes.contractDate || null,
-    });
-    setContractModalVisible(true);
-  };
-
-  const handleContractSubmit = async () => {
-    try {
-      const values = await contractForm.validateFields();
-      
-      message.loading('更新合約資訊中...', 1);
-      
-      const response = await fetch(`${API_BASE_URL}/api/customers/${currentCustomer.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          data: {
-            hasContract: true,
-            contractInfo: values.contractInfo,
-            contractDate: values.contractDate
-          }
-        }),
-      });
-
-      if (!response.ok) throw new Error('更新失敗');
-
-      message.success('合約信息已更新');
-      setContractModalVisible(false);
-      fetchCustomers();
-    } catch (error) {
-      console.error('Error saving contract info:', error);
-      message.error('更新合約信息失敗');
-    }
-  };
-
   const handleInteraction = (record) => {
     setCurrentCustomer(record);
     interactionForm.resetFields();
+    interactionForm.setFieldsValue({
+      date: new Date().toISOString().split('T')[0],
+      next_follow_up: undefined,
+      status: 'pending',
+      is_deal: false,
+    });
     setInteractionModalVisible(true);
   };
 
@@ -189,25 +181,42 @@ const MyCustomers = () => {
       const values = await interactionForm.validateFields();
       
       // 獲取當前登錄的銷售人員信息
-      const user = JSON.parse(localStorage.getItem('user'));
+      const user = JSON.parse(localStorage.getItem('salesStaff'));
+      
+      const normalizeDate = (val) => {
+        if (!val) return null;
+        try {
+          if (typeof val.format === 'function') return val.format('YYYY-MM-DD');
+          const d = new Date(val);
+          if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+        } catch {}
+        return null;
+      };
       
       // 創建新的互動記錄
+      const payload = {
+        customer: Number(currentCustomer.id),
+        sales_staff: Number(user.id),
+        type: values.type,
+        ...(values.notes ? { notes: values.notes } : {}),
+        date: normalizeDate(values.date) || new Date().toISOString().split('T')[0],
+        status: values.status || 'pending',
+        ...(values.next_follow_up ? { next_follow_up: normalizeDate(values.next_follow_up) } : {}),
+        ...(values.outcome ? { outcome: values.outcome } : {}),
+        ...(values.project ? { project: Number(values.project) } : {}),
+        ...(values.is_deal ? { is_deal: true, deal_amount: Number(values.deal_amount || 0), payment_date: normalizeDate(values.payment_date) } : { is_deal: false })
+      };
+
+      const tokenRaw = localStorage.getItem('jwt') || localStorage.getItem('token') || '';
+      const bearer = tokenRaw && tokenRaw.includes('.') ? `Bearer ${tokenRaw}` : undefined;
+
       const response = await fetch(`${API_BASE_URL}/api/interactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(bearer ? { Authorization: bearer } : {}),
         },
-        body: JSON.stringify({
-          data: {
-            customer: currentCustomer.id,
-            sales_staff: user.id,
-            type: values.type,
-            notes: values.notes,
-            date: values.date,
-            next_follow_up: values.next_follow_up || null,
-            status: values.status || 'pending'
-          }
-        }),
+        body: JSON.stringify({ data: payload }),
       });
 
       if (!response.ok) {
@@ -216,13 +225,13 @@ const MyCustomers = () => {
         throw new Error('創建互動記錄失敗');
       }
 
-      message.success('互動記錄已添加');
+      message.success('聯絡記錄已添加');
       setInteractionModalVisible(false);
       // 刷新客戶列表以顯示最新的互動狀態
       fetchCustomers();
     } catch (error) {
       console.error('Error adding interaction:', error);
-      message.error('添加互動記錄失敗');
+      message.error('添加聯絡記錄失敗');
     }
   };
 
@@ -253,12 +262,33 @@ const MyCustomers = () => {
     return `${nameMasked}@${domainMasked}.${domainParts.slice(1).join('.')}`;
   };
 
-  const exportToExcel = () => {
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (selectedKeys, selectedRows) => {
+      setSelectedRowKeys(selectedKeys);
+      setSelectedRows(selectedRows);
+    }
+  };
+
+  const exportToExcel = (selectedOnly = false) => {
+    // 根據選擇模式決定要導出的數據
+    let dataToExport = selectedOnly 
+      ? filteredCustomers.filter(customer => selectedRowKeys.includes(customer.id))
+      : filteredCustomers;
+    const totalCount = dataToExport.length;
+    
+    // 如果是選中模式但沒有選擇任何客戶，顯示提示
+    if (selectedOnly && totalCount === 0) {
+      message.warning('請先選擇要導出的客戶');
+      return;
+    }
+
     // 顯示導出的記錄數量
-    const isFiltered = filteredCustomers.length !== customers.length;
-    const confirmMessage = isFiltered 
-      ? `確定要導出篩選後的 ${filteredCustomers.length} 筆記錄嗎？`
-      : `確定要導出全部 ${customers.length} 筆記錄嗎？`;
+    const confirmMessage = selectedOnly
+      ? `確定要導出選中的 ${totalCount} 筆記錄嗎？`
+      : filteredCustomers.length !== customers.length
+        ? `確定要導出篩選後的 ${totalCount} 筆記錄嗎？`
+        : `確定要導出全部 ${totalCount} 筆記錄嗎？`;
     
     Modal.confirm({
       title: '導出確認',
@@ -268,7 +298,7 @@ const MyCustomers = () => {
       onOk: () => {
         message.loading('正在生成Excel文件...', 1);
         
-        const exportData = filteredCustomers.map(customer => ({
+        const exportData = dataToExport.map(customer => ({
           '姓名': customer.attributes.name,
           '電話': customer.attributes.phone,
           '電子郵件': customer.attributes.email,
@@ -278,9 +308,7 @@ const MyCustomers = () => {
           '來源': sourceMap[customer.attributes.source],
           '創建時間': new Date(customer.attributes.createdAt).toLocaleString(),
           '更新時間': new Date(customer.attributes.updatedAt).toLocaleString(),
-          '房產合約': customer.attributes.hasContract ? '有' : '無',
-          '合約資訊': customer.attributes.contractInfo || '',
-          '合約日期': customer.attributes.contractDate || '',
+          
           '相關建案': customer.attributes.projects?.data?.map(p => p.attributes.name || `建案 ${p.id}`).join(', ') || '',
         }));
 
@@ -289,7 +317,9 @@ const MyCustomers = () => {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, '我的客戶');
         
-        const fileName = isFiltered 
+        const fileName = selectedOnly
+          ? `我的客戶_選中記錄_${new Date().toISOString().split('T')[0]}.xlsx`
+          : filteredCustomers.length !== customers.length
           ? `我的客戶_篩選結果_${new Date().toISOString().split('T')[0]}.xlsx`
           : `我的客戶_全部_${new Date().toISOString().split('T')[0]}.xlsx`;
           
@@ -299,7 +329,6 @@ const MyCustomers = () => {
       }
     });
   };
-
   const handleSearch = (e) => {
     setSearchKeyword(e.target.value);
   };
@@ -347,13 +376,6 @@ const MyCustomers = () => {
           );
         }
         
-        if (formValues.hasContract !== undefined && formValues.hasContract !== '') {
-          const hasContract = formValues.hasContract === true || formValues.hasContract === 'true';
-          filtered = filtered.filter(customer => 
-            customer.attributes.hasContract === hasContract
-          );
-        }
-        
         if (formValues.project) {
           filtered = filtered.filter(customer => 
             customer.attributes.projects?.data?.some(p => p.id === formValues.project)
@@ -383,6 +405,31 @@ const MyCustomers = () => {
       message.error('過濾出錯，請重試');
       setFilteredCustomers(customers);
     }
+  };
+
+  const fetchCustomerContactRecords = async (customerId) => {
+    try {
+      setContactLoading(true);
+      const resp = await fetch(`${API_BASE_URL}/api/interactions?populate=*&filters[customer][id][$eq]=${customerId}&sort=date:desc`);
+      if (!resp.ok) {
+        const err = await resp.json().catch(()=>({}));
+        throw new Error(err?.error?.message || '獲取聯絡記錄失敗');
+      }
+      const data = await resp.json();
+      setContactRecords(data?.data || []);
+      setContactRecordsVisible(true);
+    } catch (e) {
+      console.error('Error fetching contact records:', e);
+      message.error(e.message || '獲取聯絡記錄失敗');
+    } finally {
+      setContactLoading(false);
+    }
+  };
+
+  const handleViewContactRecords = (customer) => {
+    setCurrentCustomer(customer);
+    setCurrentCustomerName(customer?.attributes?.name || '');
+    fetchCustomerContactRecords(customer.id);
   };
 
   const columns = [
@@ -417,16 +464,7 @@ const MyCustomers = () => {
         </Tag>
       ),
     },
-    {
-      title: '合約',
-      dataIndex: ['attributes', 'hasContract'],
-      key: 'hasContract',
-      render: (hasContract) => (
-        <Tag color={hasContract ? 'green' : 'gray'}>
-          {hasContract ? '已簽約' : '未簽約'}
-        </Tag>
-      ),
-    },
+
     {
       title: '相關建案',
       key: 'projects',
@@ -449,17 +487,17 @@ const MyCustomers = () => {
               onClick={() => handleEdit(record)} 
             />
           </Tooltip>
-          <Tooltip title="添加合約">
+          <Tooltip title="聯絡記錄">
+            <Button 
+              type="text"
+              icon={<InteractionOutlined />}
+              onClick={() => handleViewContactRecords(record)}
+            />
+          </Tooltip>
+          <Tooltip title="新增聯絡紀錄">
             <Button 
               type="text" 
               icon={<FileAddOutlined />} 
-              onClick={() => handleContract(record)} 
-            />
-          </Tooltip>
-          <Tooltip title="添加互動記錄">
-            <Button 
-              type="text" 
-              icon={<InteractionOutlined />} 
               onClick={() => handleInteraction(record)} 
             />
           </Tooltip>
@@ -493,11 +531,18 @@ const MyCustomers = () => {
             刷新
           </Button>
           <Button
-            type="primary"
-            onClick={exportToExcel}
+            onClick={() => exportToExcel(false)}
           >
-            導出Excel
+            導出全部
           </Button>
+          {selectedRowKeys.length > 0 && (
+            <Button
+              type="primary"
+              onClick={() => exportToExcel(true)}
+            >
+              導出選中 ({selectedRowKeys.length})
+            </Button>
+          )}
         </Space>
       }
     >
@@ -529,13 +574,7 @@ const MyCustomers = () => {
                   ))}
                 </Select>
               </Form.Item>
-              <Form.Item name="hasContract" label="合約狀態" style={{ minWidth: '200px' }}>
-                <Select placeholder="選擇合約狀態" style={{ width: '200px' }}>
-                  <Option value="">全部</Option>
-                  <Option value={true}>已簽約</Option>
-                  <Option value={false}>未簽約</Option>
-                </Select>
-              </Form.Item>
+
               <Form.Item name="project" label="相關建案" style={{ minWidth: '200px' }}>
                 <Select 
                   placeholder="選擇建案" 
@@ -577,7 +616,50 @@ const MyCustomers = () => {
         dataSource={filteredCustomers}
         rowKey={record => record.id}
         loading={loading}
+        rowSelection={rowSelection}
       />
+
+      {/* 聯絡記錄檢視 */}
+      <Modal
+        title={`${currentCustomerName || '客戶'} 的聯絡記錄`}
+        open={contactRecordsVisible}
+        onCancel={() => setContactRecordsVisible(false)}
+        footer={[
+          <Button key="add" type="primary" onClick={() => currentCustomer && handleInteraction(currentCustomer)}>新增聯絡記錄</Button>,
+          <Button key="close" onClick={() => setContactRecordsVisible(false)}>關閉</Button>,
+        ]}
+        width={800}
+      >
+        {contactLoading ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <Spin tip="載入中..." />
+          </div>
+        ) : (contactRecords || []).length === 0 ? (
+          <Empty description="暫無聯絡記錄" />
+        ) : (
+          <Timeline>
+            {(contactRecords || []).map(item => {
+              const data = item?.attributes || {};
+              const when = data.date ? new Date(data.date).toLocaleString() : '-';
+              const typeText = interactionTypeMap[data.type] || data.type || '—';
+              const statusText = interactionStatusMap[data.status]?.text || data.status || '—';
+              return (
+                <Timeline.Item key={item.id}>
+                  <div style={{ marginBottom: 6, color: '#999' }}>{when}</div>
+                  <div style={{ marginBottom: 6 }}>
+                    <Tag color="blue">{typeText}</Tag>
+                    <Tag color={interactionStatusMap[data.status]?.color || 'default'}>{statusText}</Tag>
+                    {data.project?.data?.attributes?.name && (
+                      <Tag>{data.project.data.attributes.name}</Tag>
+                    )}
+                  </div>
+                  <div style={{ whiteSpace: 'pre-wrap' }}>{data.notes || '—'}</div>
+                </Timeline.Item>
+              );
+            })}
+          </Timeline>
+        )}
+      </Modal>
 
       <Modal
         title="編輯客戶資料"
@@ -660,45 +742,9 @@ const MyCustomers = () => {
         </Form>
       </Modal>
 
+      {/* 已移除：在客戶列表快速添加聯絡記錄，請改至聯絡記錄頁管理 */}
       <Modal
-        title="添加房產合約"
-        open={contractModalVisible}
-        onOk={handleContractSubmit}
-        onCancel={() => setContractModalVisible(false)}
-        okText="保存"
-        cancelText="取消"
-      >
-        <Form
-          form={contractForm}
-          layout="vertical"
-        >
-          <Form.Item
-            name="contractInfo"
-            label="合約信息"
-            rules={[{ required: true, message: '請輸入合約信息' }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="contractDate"
-            label="合約日期"
-          >
-            <Input type="date" />
-          </Form.Item>
-          <Form.Item
-            name="contract"
-            label="上傳合約文件"
-          >
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png" />
-            <div style={{ marginTop: 8 }}>
-              支持 .pdf, .jpg, .jpeg, .png 格式文件
-            </div>
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title="添加互動記錄"
+        title="新增聯絡記錄"
         open={interactionModalVisible}
         onOk={handleInteractionSubmit}
         onCancel={() => setInteractionModalVisible(false)}
@@ -711,7 +757,7 @@ const MyCustomers = () => {
         >
           <Form.Item
             name="type"
-            label="互動類型"
+            label="聯絡類型"
             rules={[{ required: true, message: '請選擇互動類型' }]}
           >
             <Select>
@@ -724,14 +770,14 @@ const MyCustomers = () => {
           </Form.Item>
           <Form.Item
             name="notes"
-            label="互動內容"
+            label="聯絡內容"
             rules={[{ required: true, message: '請輸入互動內容' }]}
           >
             <TextArea rows={4} />
           </Form.Item>
           <Form.Item
             name="date"
-            label="互動日期"
+            label="聯絡日期"
             rules={[{ required: true, message: '請選擇互動日期' }]}
             initialValue={new Date().toISOString().split('T')[0]}
           >
@@ -740,7 +786,6 @@ const MyCustomers = () => {
           <Form.Item
             name="next_follow_up"
             label="跟進日期"
-            initialValue={new Date().toISOString().split('T')[0]}
           >
             <Input type="date" />
           </Form.Item>
@@ -757,6 +802,45 @@ const MyCustomers = () => {
               ))}
             </Select>
           </Form.Item>
+          <Form.Item name="outcome" label="聯絡結果">
+            <Select placeholder="選擇聯絡結果">
+              <Option value="positive">正向</Option>
+              <Option value="neutral">中性</Option>
+              <Option value="negative">負向</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="project" label="相關建案（選填）">
+            <Select
+              allowClear
+              placeholder="輸入建案名稱搜尋"
+              showSearch
+              optionFilterProp="children"
+              filterOption={(input, option) => (option?.children ?? '').toLowerCase().includes(input.toLowerCase())}
+            >
+              {projects.map(project => (
+                <Select.Option key={project.id} value={project.id}>
+                  {project.attributes.name || `建案 ${project.id}`}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <Form.Item name="is_deal" label="是否成交" valuePropName="checked" initialValue={false}>
+              <Switch />
+            </Form.Item>
+            <Form.Item shouldUpdate={(prev, curr) => prev.is_deal !== curr.is_deal}>
+              {({ getFieldValue }) => getFieldValue('is_deal') ? (
+                <div style={{ display: 'contents' }}>
+                  <Form.Item name="deal_amount" label="成交金額" rules={[{ required: true, message: '請輸入成交金額' }]}>
+                    <InputNumber style={{ width: '100%' }} min={0} step={10000} placeholder="輸入金額（元）" />
+                  </Form.Item>
+                  <Form.Item name="payment_date" label="入帳日期" rules={[{ required: true, message: '請選擇入帳日期' }]}>
+                    <Input type="date" />
+                  </Form.Item>
+                </div>
+              ) : null}
+            </Form.Item>
+          </div>
         </Form>
       </Modal>
     </Card>

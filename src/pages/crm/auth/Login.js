@@ -34,7 +34,7 @@ const Login = () => {
         
         // 根據用戶角色導向不同頁面
         if (response.user.role === 'manager') {
-          navigate('/crm/admin/dashboard');
+          navigate('/crm/admin/overview');
         } else {
           navigate('/crm/sales');
         }

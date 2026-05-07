@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Table, Card, Button, Space, Tag, Modal, Select, message, Popconfirm, Tooltip, Form, Input, DatePicker, Row, Col, Switch, Alert, Empty, Spin } from 'antd';
 import { UserAddOutlined, UserSwitchOutlined, DownloadOutlined, DeleteOutlined, DownOutlined, PlusOutlined, SearchOutlined, FilterOutlined, ReloadOutlined } from '@ant-design/icons';
 import { API_BASE_URL } from '../../../utils/api';
-import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import styles from './RegistrationManagement.module.css';
 import * as XLSX from 'xlsx';
+import moment from 'moment';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -28,6 +28,9 @@ const SalesRegistrationManagement = () => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [filterVisible, setFilterVisible] = useState(false);
   const [filterForm] = Form.useForm();
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editForm] = Form.useForm();
+  const [editingRegistration, setEditingRegistration] = useState(null);
 
   const statusMap = {
     pending: { text: '未處理', color: 'blue' },
@@ -53,11 +56,9 @@ const SalesRegistrationManagement = () => {
       
       if (userStr) {
         const user = JSON.parse(userStr);
-        console.log('Sales Registration 當前用戶:', user);
         return user;
       }
       
-      console.log('localStorage 中沒有用戶資訊');
       return null;
     } catch (error) {
       console.error('解析用戶資訊失敗:', error);
@@ -86,19 +87,7 @@ const SalesRegistrationManagement = () => {
         sessionName = `場次 ${sessionIndex + 1}`;
       }
       
-      console.log('Sales processRegistrations 場次處理:', { 
-        eventId, 
-        sessionIndex, 
-        sessionObj, 
-        sessionName 
-      });
       const key = `${eventId}-${sessionIndex}`;
-
-      // 場次日期（用於排序）
-      const sessionDateRaw = (typeof sessionObj === 'object' && sessionObj)
-        ? (sessionObj.datetime || sessionObj.startDateTime || sessionObj.date || sessionObj.eventDate)
-        : null;
-      const sessionDate = sessionDateRaw ? new Date(sessionDateRaw) : null;
 
       if (!grouped[key]) {
         grouped[key] = {
@@ -107,7 +96,6 @@ const SalesRegistrationManagement = () => {
           sessionIndex,
           eventTitle,
           sessionName,
-          sessionDate,
           registrations: [],
           totalCount: 0,
           confirmedCount: 0
@@ -121,18 +109,11 @@ const SalesRegistrationManagement = () => {
       }
     });
 
-    // 依場次日期排序，最新在最上面（沒日期的群組排到最後）
+    // 轉換為數組格式並按活動名稱和場次排序
     const groupedArray = Object.values(grouped).sort((a, b) => {
-      const at = a.sessionDate ? a.sessionDate.getTime() : null;
-      const bt = b.sessionDate ? b.sessionDate.getTime() : null;
-      if (at === null && bt === null) {
-        const titleCompare = a.eventTitle.localeCompare(b.eventTitle);
-        if (titleCompare !== 0) return titleCompare;
-        return a.sessionIndex - b.sessionIndex;
-      }
-      if (at === null) return 1;
-      if (bt === null) return -1;
-      return bt - at;
+      const titleCompare = a.eventTitle.localeCompare(b.eventTitle);
+      if (titleCompare !== 0) return titleCompare;
+      return a.sessionIndex - b.sessionIndex;
     });
     
     setGroupedData(groupedArray);
@@ -142,9 +123,7 @@ const SalesRegistrationManagement = () => {
   const fetchRegistrations = async () => {
     try {
       setLoading(true);
-      // 獲取當前登錄的銷售人員信息 - 使用統一的獲取方式
       const user = getCurrentUser();
-      console.log('當前用戶:', user);
       
       if (!user) {
         console.error('無法獲取用戶資訊');
@@ -152,18 +131,25 @@ const SalesRegistrationManagement = () => {
         return;
       }
       
-      // 獲取當前業務負責的報名資料
       const userId = user.id || user.attributes?.id;
-      console.log('使用的用戶ID:', userId);
-      
-      const allData = await fetchAllStrapi(
-        API_BASE_URL,
-        `/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&filters[sales_staff][id][$eq]=${userId}&sort=createdAt:desc`
-      );
-      console.log('報名資料總數:', allData.length);
-      setRegistrations(allData);
-      setFilteredRegistrations(allData);
-      processRegistrations(allData);
+
+      // 分頁抓滿我的報名資料
+      const base = `${API_BASE_URL}/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&filters[sales_staff][id][$eq]=${userId}&sort=createdAt:desc`;
+      let all = [];
+      let page = 1;
+      let pageCount = 1;
+      do {
+        const resp = await fetch(`${base}&pagination[page]=${page}&pagination[pageSize]=1000`);
+        const data = await resp.json();
+        if (!resp.ok) throw new Error('獲取報名資料失敗');
+        all = all.concat(data?.data || []);
+        pageCount = data?.meta?.pagination?.pageCount || 1;
+        page += 1;
+      } while (page <= pageCount);
+
+      setRegistrations(all);
+      setFilteredRegistrations(all);
+      processRegistrations(all);
     } catch (error) {
       console.error('Error fetching registrations:', error);
       message.error('獲取報名資料失敗');
@@ -175,23 +161,30 @@ const SalesRegistrationManagement = () => {
   // 獲取活動資料
   const fetchEvents = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/events?populate=*`);
-      const data = await response.json();
+      // 分頁抓滿活動，只取需要欄位
+      const base = `${API_BASE_URL}/api/events?populate[session]=*&fields[0]=title`;
+      let all = [];
+      let page = 1;
+      let pageCount = 1;
+      do {
+        const resp = await fetch(`${base}&pagination[page]=${page}&pagination[pageSize]=1000`);
+        const data = await resp.json();
+        if (!resp.ok) throw new Error('獲取活動資料失敗');
+        all = all.concat(data?.data || []);
+        pageCount = data?.meta?.pagination?.pageCount || 1;
+        page += 1;
+      } while (page <= pageCount);
       
-      if (response.ok) {
-        const eventsMap = {};
-        (data.data || []).forEach(event => {
-          eventsMap[event.id] = {
-            ...event.attributes,
-            sessions: Array.isArray(event.attributes.session) 
-              ? event.attributes.session 
-              : event.attributes.session?.data?.map(s => s.attributes.name) || []
-          };
-        });
-        setEvents(eventsMap);
-      } else {
-        console.error('獲取活動資料失敗:', data);
-      }
+      const eventsMap = {};
+      (all || []).forEach(event => {
+        eventsMap[event.id] = {
+          ...event.attributes,
+          sessions: Array.isArray(event.attributes.session) 
+            ? event.attributes.session 
+            : []
+        };
+      });
+      setEvents(eventsMap);
     } catch (error) {
       console.error('獲取活動資料錯誤:', error);
     }
@@ -213,34 +206,27 @@ const SalesRegistrationManagement = () => {
 
   // 根據sessionIndex獲取場次名稱
   const getSessionName = (eventId, sessionIndex) => {
-    console.log('Sales getSessionName 調用:', { eventId, sessionIndex, events });
     
     if (!eventId || sessionIndex === undefined || sessionIndex === null) {
-      console.log('eventId或sessionIndex無效:', { eventId, sessionIndex });
       return '未指定場次';
     }
 
     const event = events[eventId];
     if (!event) {
-      console.log('找不到活動:', eventId, '可用活動:', Object.keys(events));
       return '未知活動';
     }
 
     const sessions = event.sessions || [];
-    console.log('活動場次數據:', { eventId, sessions, sessionIndex });
     
     if (!sessions || !sessions.length) {
-      console.log('沒有場次數據，返回默認名稱');
       return `場次 ${sessionIndex + 1}`;
     }
 
     if (sessionIndex < 0 || sessionIndex >= sessions.length) {
-      console.log('sessionIndex超出範圍:', { sessionIndex, sessionsLength: sessions.length });
       return `場次 ${sessionIndex + 1}`;
     }
 
     const sessionName = sessions[sessionIndex];
-    console.log('獲取到的場次名稱:', sessionName);
     
     // 如果session是對象，取location屬性
     if (typeof sessionName === 'object' && sessionName?.location) {
@@ -258,7 +244,6 @@ const SalesRegistrationManagement = () => {
   // 轉換為客戶
   const convertToCustomer = async (record) => {
     try {
-      console.log('業務轉換客戶，報名資料:', record);
       
       // 準備詳細的客戶備註資訊
       const eventInfo = record.attributes.event?.data?.attributes;
@@ -296,11 +281,9 @@ const SalesRegistrationManagement = () => {
         }
       };
 
-      console.log('客戶資料準備完成:', customerData);
 
       // 檢查認證 token
       const token = localStorage.getItem('token');
-      console.log('Token:', token ? '存在' : '不存在');
 
       // 創建客戶 - 嘗試多種認證方式
       const headers = {
@@ -312,10 +295,6 @@ const SalesRegistrationManagement = () => {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      console.log('請求標頭:', headers);
-      console.log('請求 URL:', `${API_BASE_URL}/api/customers`);
-      console.log('請求方法: POST');
-      console.log('請求 Body:', JSON.stringify(customerData, null, 2));
 
       let customerResponse = await fetch(`${API_BASE_URL}/api/customers`, {
         method: 'POST',
@@ -325,7 +304,6 @@ const SalesRegistrationManagement = () => {
 
       // 如果第一次請求失敗 (401)，嘗試不帶認證的請求
       if (customerResponse.status === 401) {
-        console.log('🔄 嘗試不帶認證的請求...');
         customerResponse = await fetch(`${API_BASE_URL}/api/customers`, {
           method: 'POST',
           headers: {
@@ -336,7 +314,6 @@ const SalesRegistrationManagement = () => {
       }
 
       const customerResult = await customerResponse.json();
-      console.log('客戶創建回應:', customerResult);
 
       if (!customerResponse.ok) {
         console.error('創建客戶失敗:', customerResult);
@@ -351,7 +328,6 @@ const SalesRegistrationManagement = () => {
         }
       };
 
-      console.log('準備更新報名:', updateData);
 
       const updateResponse = await fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
         method: 'PUT',
@@ -362,7 +338,6 @@ const SalesRegistrationManagement = () => {
       });
 
       const updateResult = await updateResponse.json();
-      console.log('報名更新回應:', updateResult);
 
       if (!updateResponse.ok) {
         console.error('更新報名狀態失敗:', updateResult);
@@ -398,11 +373,9 @@ const SalesRegistrationManagement = () => {
         return;
       }
 
-      console.log(`業務批量轉換 ${unconfirmedRegistrations.length} 筆報名資料`);
 
       const results = await Promise.allSettled(
         unconfirmedRegistrations.map(async (record) => {
-          console.log('轉換報名:', record.attributes.name);
           
           // 準備詳細的客戶備註資訊
           const eventInfo = record.attributes.event?.data?.attributes;
@@ -722,7 +695,8 @@ const SalesRegistrationManagement = () => {
         key: 'notes',
         ellipsis: true,
         render: (_, record) => {
-          const notes = typeof record.attributes.notes === 'string' ? record.attributes.notes : '';
+          const rawNotes = record?.attributes?.notes || record?.attributes?.message || '';
+          const notes = typeof rawNotes === 'string' ? rawNotes : '';
           if (notes.trim() === '') {
             return <span style={{ color: '#c0c0c0' }}>無</span>;
           }
@@ -757,6 +731,24 @@ const SalesRegistrationManagement = () => {
         width: 120,
         render: (_, record) => (
           <Space size="small" wrap>
+            <Button 
+              size="small"
+              onClick={() => {
+                setEditingRegistration(record);
+                const attMatch = (record.attributes.attendanceCount || '').toString().match(/\d+/);
+                const attNum = attMatch ? parseInt(attMatch[0]) : 1;
+                editForm.setFieldsValue({
+                  name: record.attributes.name || '',
+                  phone: record.attributes.phone || '',
+                  email: record.attributes.email || '',
+                  attendance: attNum,
+                  notes: record.attributes.notes || record.attributes.message || ''
+                });
+                setEditModalVisible(true);
+              }}
+            >
+              編輯
+            </Button>
             <Button 
               size="small"
               type="primary"
@@ -936,6 +928,72 @@ const SalesRegistrationManagement = () => {
           }}
         />
       </Card>
+      <Modal
+        title="編輯報名資料"
+        open={editModalVisible}
+        onCancel={() => { setEditModalVisible(false); setEditingRegistration(null); }}
+        onOk={async () => {
+          try {
+            const vals = await editForm.validateFields();
+            if (!editingRegistration) return;
+            const attNum = Number(vals.attendance || 1);
+            const payload = {
+              data: {
+                name: vals.name?.trim(),
+                phone: vals.phone?.toString().trim(),
+                ...(vals.email ? { email: vals.email.trim() } : { email: undefined }),
+                attendanceCount: `attendance${isNaN(attNum) ? 1 : attNum}`,
+                notes: vals.notes || '',
+                message: vals.notes || ''
+              }
+            };
+
+            const tokenRaw = localStorage.getItem('jwt') || localStorage.getItem('token') || '';
+            const bearer = tokenRaw && tokenRaw.includes('.') ? `Bearer ${tokenRaw}` : undefined;
+
+            const resp = await fetch(`${API_BASE_URL}/api/registrations/${editingRegistration.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', ...(bearer ? { Authorization: bearer } : {}) },
+              body: JSON.stringify(payload)
+            });
+            const json = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+              console.error('更新報名失敗:', json);
+              throw new Error(json?.error?.message || '更新失敗');
+            }
+            message.success('更新成功');
+            setEditModalVisible(false);
+            setEditingRegistration(null);
+            fetchRegistrations();
+          } catch (e) {
+            if (e?.errorFields) return; // 表單驗證錯誤由 AntD 顯示
+            console.error('保存報名失敗:', e);
+            message.error(e.message || '保存失敗');
+          }
+        }}
+        okText="保存"
+        cancelText="取消"
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item name="name" label="姓名" rules={[{ required: true, message: '請輸入姓名' }]}>
+            <Input placeholder="姓名" />
+          </Form.Item>
+          <Form.Item name="phone" label="電話" rules={[{ required: true, message: '請輸入電話' }]}>
+            <Input placeholder="電話" />
+          </Form.Item>
+          <Form.Item name="email" label="電子郵件" rules={[{ type: 'email', message: 'Email 格式不正確' }]}>
+            <Input placeholder="電子郵件（選填）" />
+          </Form.Item>
+          <Form.Item name="attendance" label="出席人數" rules={[{ required: true, message: '請輸入出席人數' }]}>
+            <Select placeholder="選擇人數">
+              {[1,2,3,4,5].map(n => (<Option key={n} value={n}>{n} 人</Option>))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="notes" label="備註">
+            <Input.TextArea rows={3} placeholder="備註" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

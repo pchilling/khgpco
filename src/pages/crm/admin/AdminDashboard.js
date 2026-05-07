@@ -23,6 +23,17 @@ const AdminDashboard = () => {
   const location = useLocation();
   const user = JSON.parse(localStorage.getItem('user'));
 
+  // 首次進入或舊書籤到 /dashboard 時，自動導向 overview
+  React.useEffect(() => {
+    const hash = location.pathname + (location.search || '');
+    if (location.pathname.endsWith('/crm/admin') || location.pathname.endsWith('/crm/admin/')) {
+      navigate('/crm/admin/overview', { replace: true });
+    }
+    if (location.pathname.includes('/crm/admin/dashboard')) {
+      navigate('/crm/admin/overview', { replace: true });
+    }
+  }, [location.pathname, navigate]);
+
   const handleLogout = () => {
     logout();
   };
@@ -77,7 +88,7 @@ const AdminDashboard = () => {
             {
               key: '5',
               icon: <MessageOutlined />,
-              label: '互動記錄管理',
+              label: '聯絡記錄管理',
               onClick: () => navigate('/crm/admin/interactions')
             },
             {

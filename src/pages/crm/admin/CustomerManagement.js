@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, Tooltip, Checkbox, Row, Col, DatePicker, Tabs, Switch, Upload, Typography, Popconfirm, Alert, Timeline, Empty, Spin } from 'antd';
-import { EditOutlined, DeleteOutlined, ExportOutlined, UserSwitchOutlined, FileAddOutlined, FilterOutlined, SearchOutlined, ReloadOutlined, FileTextOutlined, RollbackOutlined, FileExcelOutlined, CloudUploadOutlined, DownloadOutlined, UploadOutlined } from '@ant-design/icons';
+import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, Tooltip, Checkbox, Row, Col, DatePicker, Tabs, Switch, Upload, Typography, Popconfirm, Alert, Timeline, Empty, Spin, InputNumber } from 'antd';
+import { EditOutlined, DeleteOutlined, ExportOutlined, UserSwitchOutlined, FileAddOutlined, FilterOutlined, SearchOutlined, ReloadOutlined, FileTextOutlined, RollbackOutlined, FileExcelOutlined, CloudUploadOutlined, DownloadOutlined, UploadOutlined, PlusOutlined } from '@ant-design/icons';
+import { SmileTwoTone, MehTwoTone, FrownTwoTone, QuestionCircleTwoTone } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 import styles from './CustomerManagement.module.css';
 import { API_BASE_URL } from '../../../utils/api';
-import { fetchAllStrapi } from '../../../utils/strapiPaginate';
-import dayjs from 'dayjs';
+import moment from 'moment';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -63,6 +63,7 @@ const CustomerManagement = () => {
   const [currentCustomerName, setCurrentCustomerName] = useState('');
   const [currentCustomer, setCurrentCustomer] = useState(null);
   const [selectedRows, setSelectedRows] = useState([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [contractFile, setContractFile] = useState(null);
   const [csvFile, setCsvFile] = useState(null);
@@ -76,6 +77,7 @@ const CustomerManagement = () => {
   const [duplicateCustomersVisible, setDuplicateCustomersVisible] = useState(false);
   const [duplicateCustomers, setDuplicateCustomers] = useState([]);
   const [duplicateLoading, setDuplicateLoading] = useState(false);
+  const [duplicateAssignStaff, setDuplicateAssignStaff] = useState({});
   const [form] = Form.useForm();
   const [filterForm] = Form.useForm();
   const [projects, setProjects] = useState([]);
@@ -131,11 +133,10 @@ const CustomerManagement = () => {
 
   // 聯絡類型映射
   const contactTypeMap = {
-    phone: '電話聯絡',
+    phone_call: '電話聯絡',
     email: '電子郵件',
     meeting: '面對面會議',
-    video: '視訊會議',
-    social: '社群媒體',
+    site_visit: '實地拜訪',
     other: '其他方式'
   };
 
@@ -195,12 +196,9 @@ const CustomerManagement = () => {
       key: 'status',
       width: 100,
       render: (status) => (
-        <CustomTag 
-          color={statusMap[status]?.color} 
-          text={statusMap[status]?.text}
-          round={true}
-          isMobile={isMobile}
-        />
+          <Tag color={statusMap[status]?.color}>
+            {statusMap[status]?.text}
+          </Tag>
       ),
       filters: Object.entries(statusMap).map(([value, { text }]) => ({
         text,
@@ -244,19 +242,7 @@ const CustomerManagement = () => {
         );
       }
     },
-    {
-      title: '合約',
-      dataIndex: ['attributes', 'hasContract'],
-      key: 'hasContract',
-      width: 100,
-      render: (hasContract) => (
-        <CustomTag 
-          color={hasContract ? '#52c41a' : '#87878a'} 
-          text={hasContract ? '已簽約' : '未簽約'}
-          isMobile={isMobile}
-        />
-      ),
-    },
+
     {
       title: '負責業務',
       dataIndex: ['attributes', 'sales_staff', 'data', 'attributes', 'username'],
@@ -291,6 +277,7 @@ const CustomerManagement = () => {
         !['email'].includes(col.key)
       );
       
+      
       // 在iPad上調整操作欄位的寬度
       updatedColumns.forEach(col => {
         if (col.key === 'action') {
@@ -309,6 +296,11 @@ const CustomerManagement = () => {
         
         // 縮小備註欄寬度
         if (col.key === 'notes') {
+          col.width = 80;
+        }
+        
+        // 縮小業務欄寬度
+        if (col.key === 'sales_staff') {
           col.width = 80;
         }
       });
@@ -332,15 +324,29 @@ const CustomerManagement = () => {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      console.log('開始獲取客戶資料...');
       
-      // 並行抓取所有客戶數據
-      const allCustomers = await fetchAllStrapi(API_BASE_URL, '/api/customers?populate=*&sort=id:desc');
+      // 獲取所有客戶數據 - 使用更大的 pageSize 或分批獲取
+      let allCustomers = [];
+      let currentPage = 1;
+      let totalPages = 1;
       
-      console.log('客戶資料 API 回應:', {
-        totalCustomers: allCustomers.length,
-        latestCustomerIds: allCustomers.slice(0, 5).map(c => `ID:${c.id}-${c.attributes.name}`) || []
-      });
+      do {
+        const response = await fetch(
+          `${API_BASE_URL}/api/customers?populate=*&sort=updatedAt:desc&pagination[page]=${currentPage}&pagination[pageSize]=100`
+        );
+      const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(`API請求失敗: ${response.status}`);
+        }
+        
+        allCustomers = [...allCustomers, ...(data.data || [])];
+        totalPages = data.meta?.pagination?.pageCount || 1;
+        currentPage++;
+        
+        
+      } while (currentPage <= totalPages);
+      
       
       // 檢查數據來源統計
       const sourceCounts = {};
@@ -352,8 +358,6 @@ const CustomerManagement = () => {
         statusCounts[status] = (statusCounts[status] || 0) + 1;
       });
       
-      console.log('客戶來源統計:', sourceCounts);
-      console.log('客戶狀態統計:', statusCounts);
       
       // 檢查是否有重複ID
       const customerIds = allCustomers.map(c => c.id);
@@ -366,12 +370,9 @@ const CustomerManagement = () => {
         });
       }
       
-      console.log('📊 最終數據設置:', {
-        allCustomers數量: allCustomers.length,
-        將設置到customers的數量: allCustomers.length,
-        將設置到filteredCustomers的數量: allCustomers.length,
-        最新10個客戶: allCustomers.slice(0, 10).map(c => `ID:${c.id}-${c.attributes.name}`)
-      });
+      
+      // 依 updatedAt 降序（保險再排一次）
+      allCustomers.sort((a, b) => new Date(b.attributes.updatedAt) - new Date(a.attributes.updatedAt));
       
       setCustomers(allCustomers);
       setFilteredCustomers(allCustomers);
@@ -390,7 +391,6 @@ const CustomerManagement = () => {
 
   // 新增：定期重新載入客戶資料的函數
   const refreshCustomers = () => {
-    console.log('手動重新載入客戶資料...');
     // 重置搜索關鍵字
     setSearchKeyword('');
     // 重置篩選表單
@@ -402,7 +402,7 @@ const CustomerManagement = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/projects`);
+      const response = await fetch(`${API_BASE_URL}/api/projects?pagination[pageSize]=1000`);
       const data = await response.json();
       setProjects(data.data || []);
     } catch (error) {
@@ -432,8 +432,6 @@ const CustomerManagement = () => {
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      console.log('準備更新客戶，ID:', currentCustomer.id);
-      console.log('表單數據:', values);
       
       // 簡化API數據
       const apiData = {
@@ -444,18 +442,18 @@ const CustomerManagement = () => {
           status: values.status,
           source: values.source,
           notes: values.notes || null,
-          address: values.address || null
+          address: values.address || null,
+          sales_staff: values.sales_staff || null
         }
       };
       
-      // 移除所有undefined和null值
+      // 移除所有undefined和null值，但保留sales_staff的null值（用於取消指派）
       Object.keys(apiData.data).forEach(key => {
-        if (apiData.data[key] === undefined || apiData.data[key] === null) {
+        if (apiData.data[key] === undefined || (apiData.data[key] === null && key !== 'sales_staff')) {
           delete apiData.data[key];
         }
       });
       
-      console.log('API請求數據:', JSON.stringify(apiData, null, 2));
       
       const response = await fetch(`${API_BASE_URL}/api/customers/${currentCustomer.id}`, {
         method: 'PUT',
@@ -481,6 +479,21 @@ const CustomerManagement = () => {
     }
   };
 
+  // 先刪除該客戶的所有聯絡紀錄
+  const deleteCustomerInteractions = async (customerId) => {
+    try {
+      const listResp = await fetch(`${API_BASE_URL}/api/interactions?filters[customer][id][$eq]=${customerId}&pagination[pageSize]=1000`);
+      const listData = await listResp.json();
+      const toDelete = (listData?.data || []).map(it => it.id);
+      if (!toDelete.length) return;
+      await Promise.all(
+        toDelete.map(id => fetch(`${API_BASE_URL}/api/interactions/${id}`, { method: 'DELETE' }))
+      );
+    } catch (e) {
+      console.error('刪除客戶聯絡紀錄失敗:', e);
+    }
+  };
+
   const handleDelete = (record) => {
     Modal.confirm({
       title: '確認刪除',
@@ -489,6 +502,8 @@ const CustomerManagement = () => {
       cancelText: '取消',
       onOk: async () => {
         try {
+          // 先刪聯絡紀錄
+          await deleteCustomerInteractions(record.id);
           const response = await fetch(`${API_BASE_URL}/api/customers/${record.id}`, {
             method: 'DELETE',
           });
@@ -512,7 +527,6 @@ const CustomerManagement = () => {
     }
 
     try {
-      console.log(`批量分配客戶給業務ID: ${selectedStaff}, 共 ${selectedRows.length} 筆`);
       
       await Promise.all(selectedRows.map(record => {
         // 準備API數據 - 最簡化
@@ -522,7 +536,6 @@ const CustomerManagement = () => {
           }
         };
         
-        console.log(`更新客戶ID: ${record.id}, 數據:`, JSON.stringify(apiData, null, 2));
         
         return fetch(`${API_BASE_URL}/api/customers/${record.id}`, {
         method: 'PUT',
@@ -537,7 +550,24 @@ const CustomerManagement = () => {
       setBatchAssignModalVisible(false);
       setSelectedRows([]);
       setSelectedStaff(null);
-      fetchCustomers();
+      
+      // 重新獲取客戶資料後再檢查是否還有待分配客戶
+      await fetchCustomers();
+      
+      // 檢查是否還有待分配客戶
+      const updatedCustomers = await fetch(`${API_BASE_URL}/api/customers?populate=*`).then(res => res.json());
+      const remainingPending = updatedCustomers.data.filter(customer => 
+        !customer.attributes.sales_staff?.data
+      );
+      
+      if (remainingPending.length > 0) {
+        // 還有待分配客戶，重新打開modal並更新列表
+        setFilteredCustomers(remainingPending);
+        setPendingCustomersVisible(true);
+      } else {
+        // 沒有待分配客戶了，顯示完成訊息
+        message.info('所有客戶都已分配完成！');
+      }
     } catch (error) {
       console.error('Error batch assigning:', error);
       message.error('批量指派失敗');
@@ -552,7 +582,6 @@ const CustomerManagement = () => {
       cancelText: '取消',
       onOk: async () => {
         try {
-          console.log(`批量收回 ${selectedRows.length} 筆客戶的業務分配`);
           
           await Promise.all(selectedRows.map(record => {
             // 準備API數據 - 最簡化
@@ -562,7 +591,6 @@ const CustomerManagement = () => {
               }
             };
             
-            console.log(`取消客戶ID: ${record.id} 的業務分配, 數據:`, JSON.stringify(apiData, null, 2));
             
             return fetch(`${API_BASE_URL}/api/customers/${record.id}`, {
           method: 'PUT',
@@ -601,8 +629,10 @@ const CustomerManagement = () => {
       const values = await form.validateFields();
       setLoading(true);
       
-      console.log('準備新增客戶');
-      console.log('表單數據:', values);
+      
+      // 先記錄選取的關聯（業務、人員與建案）
+      const selectedSalesStaffId = values.sales_staff != null ? Number(values.sales_staff) : undefined;
+      const selectedProjectIds = Array.isArray(values.projects) ? values.projects.map(id => Number(id)).filter(Boolean) : [];
       
       // 簡化API數據
       const apiData = {
@@ -613,7 +643,9 @@ const CustomerManagement = () => {
           status: values.status,
           source: values.source,
           notes: values.notes || null,
-          address: values.address || null
+          address: values.address || null,
+          // 關聯：負責業務（manyToOne 可直接在 Customer 上設定為 ID）
+          ...(selectedSalesStaffId ? { sales_staff: selectedSalesStaffId } : {})
         }
       };
       
@@ -624,7 +656,6 @@ const CustomerManagement = () => {
         }
       });
       
-      console.log('API請求數據:', JSON.stringify(apiData, null, 2));
       
       const response = await fetch(`${API_BASE_URL}/api/customers`, {
         method: 'POST',
@@ -639,6 +670,49 @@ const CustomerManagement = () => {
         const errorText = await response.text();
         console.error('API錯誤詳情:', errorText);
         throw new Error(`新增失敗 (${response.status}): ${response.statusText}`);
+      }
+
+      const created = await response.json();
+      const newCustomerId = created?.data?.id;
+
+      // 若使用者選了相關建案，需逐一更新 Project 的 customer（因為 Project.customer 是 manyToOne）
+      if (newCustomerId && selectedProjectIds.length > 0) {
+        // 兼容不同登入流程：優先使用 'jwt'，若無再使用 'token'（且必須像 JWT 一樣包含'.'）
+        const storedJwt = localStorage.getItem('jwt') || '';
+        const storedToken = localStorage.getItem('token') || '';
+        const envApiToken = process.env.REACT_APP_STRAPI_API_TOKEN || '';
+        const pickToken = storedJwt && storedJwt.includes('.')
+          ? storedJwt
+          : (storedToken && storedToken.includes('.') ? storedToken : envApiToken);
+        const headers = pickToken
+          ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${pickToken}` }
+          : { 'Content-Type': 'application/json' };
+        if (!pickToken) {
+          console.warn('未找到可用的 JWT 或 API Token，將嘗試不帶授權更新專案（可能 401）');
+        }
+        const results = await Promise.allSettled(
+          selectedProjectIds.map((projectId) =>
+            fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
+              method: 'PUT',
+              headers,
+              body: JSON.stringify({ data: { customer: newCustomerId } })
+            })
+          )
+        );
+        const failed = [];
+        for (let i = 0; i < results.length; i++) {
+          const r = results[i];
+          if (r.status === 'fulfilled') {
+            const resp = r.value;
+            if (!resp.ok) failed.push(selectedProjectIds[i]);
+          } else {
+            failed.push(selectedProjectIds[i]);
+          }
+        }
+        if (failed.length > 0) {
+          console.warn('關聯建案失敗 IDs:', failed);
+          message.warning(`部分建案未成功關聯（ID: ${failed.join(', ')}）`);
+        }
       }
 
       message.success('客戶資料已新增');
@@ -686,12 +760,33 @@ const CustomerManagement = () => {
     return `${nameMasked}@${domainMasked}.${domainParts.slice(1).join('.')}`;
   };
 
-  const exportToExcel = () => {
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (selectedKeys, selectedRows) => {
+      setSelectedRowKeys(selectedKeys);
+      setSelectedRows(selectedRows);
+    }
+  };
+
+  const exportToExcel = (selectedOnly = false) => {
+    // 根據選擇模式決定要導出的數據
+    let dataToExport = selectedOnly 
+      ? filteredCustomers.filter(customer => selectedRowKeys.includes(customer.id))
+      : filteredCustomers;
+    const totalCount = dataToExport.length;
+    
+    // 如果是選中模式但沒有選擇任何客戶，顯示提示
+    if (selectedOnly && totalCount === 0) {
+      message.warning('請先選擇要導出的客戶');
+      return;
+    }
+
     // 顯示導出的記錄數量
-    const isFiltered = filteredCustomers.length !== customers.length;
-    const confirmMessage = isFiltered 
-      ? `確定要導出篩選後的 ${filteredCustomers.length} 筆記錄嗎？`
-      : `確定要導出全部 ${customers.length} 筆記錄嗎？`;
+    const confirmMessage = selectedOnly
+      ? `確定要導出選中的 ${totalCount} 筆記錄嗎？`
+      : filteredCustomers.length !== customers.length
+        ? `確定要導出篩選後的 ${totalCount} 筆記錄嗎？`
+        : `確定要導出全部 ${totalCount} 筆記錄嗎？`;
     
     Modal.confirm({
       title: '導出確認',
@@ -701,24 +796,16 @@ const CustomerManagement = () => {
       onOk: () => {
         message.loading('正在生成Excel文件...', 1);
         
-        const exportData = filteredCustomers.map(customer => ({
-      '姓名': customer.attributes.name,
-      '電話': `'${customer.attributes.phone}`,
-          '電話(遮罩)': `'${maskPhone(customer.attributes.phone)}`,
-      '電子郵件': customer.attributes.email,
-          '電子郵件(遮罩)': maskEmail(customer.attributes.email),
-      '地址': customer.attributes.address,
-      '備註': customer.attributes.notes,
-      '狀態': statusMap[customer.attributes.status]?.text,
-      '來源': sourceMap[customer.attributes.source],
-      '負責業務': customer.attributes.sales_staff?.data?.attributes?.username || '未指派',
-      '創建時間': new Date(customer.attributes.createdAt).toLocaleString(),
-      '更新時間': new Date(customer.attributes.updatedAt).toLocaleString(),
-          '房產合約': customer.attributes.hasContract ? '有' : '無',
-          '合約資訊': customer.attributes.contractInfo || '',
-          '合約日期': customer.attributes.contractDate || '',
-          '相關建案': customer.attributes.projects?.data?.map(p => p.attributes.name || `建案 ${p.id}`).join(', ') || '',
-    }));
+        const exportData = dataToExport.map(customer => ({
+          '姓名': customer.attributes.name || '',
+          '電話': customer.attributes.phone ? `'${customer.attributes.phone}` : '',
+          '電子郵件': customer.attributes.email || '',
+          '地址': customer.attributes.address || '',
+          '狀態': statusMap[customer.attributes.status]?.text || '潛在客戶',
+          '來源': sourceMap[customer.attributes.source] || '網站',
+          '備註': customer.attributes.notes || '',
+          '負責業務': customer.attributes.sales_staff?.data?.attributes?.name || customer.attributes.sales_staff?.data?.attributes?.username || '未指派'
+        }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     
@@ -729,7 +816,9 @@ const CustomerManagement = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '客戶資料');
         
-        const fileName = isFiltered 
+        const fileName = selectedOnly
+          ? `客戶資料_選中記錄_${new Date().toISOString().split('T')[0]}.xlsx`
+          : filteredCustomers.length !== customers.length
           ? `客戶資料_篩選結果_${new Date().toISOString().split('T')[0]}.xlsx`
           : `客戶資料_全部_${new Date().toISOString().split('T')[0]}.xlsx`;
           
@@ -749,13 +838,11 @@ const CustomerManagement = () => {
     const template = [{
       '姓名': '(必填)',
       '電話': '(必填，請直接輸入數字，例如：0912345678)',
-      '電子郵件': '(必填)',
+      '電子郵件': '(選填)',
       '地址': '',
       '狀態': 'potential/contacted/negotiating/closed/lost',
       '來源': 'website/event/referral/other',
-      '海外投資經驗': '有/無',
-      '投資預算': '未知/一千萬以下/一千萬到兩千萬/兩千萬到三千萬/三千萬以上',
-      '投資說明': '',
+      '負責業務': '(選填，請填寫業務人員姓名)',
       '備註': ''
     }];
 
@@ -788,11 +875,9 @@ const CustomerManagement = () => {
           defval: ''
         });
 
-        console.log('Excel 原始資料:', JSON.stringify(jsonData, null, 2));
 
         // 轉換數據格式 - 跳過第一行標題行
         const previewData = jsonData.slice(1).map((row, index) => {
-          console.log(`處理第 ${index + 2} 行:`, row);
           
           // 基本資料處理
           const name = String(row['姓名'] || '').trim();
@@ -815,22 +900,33 @@ const CustomerManagement = () => {
             phone = '';
           }
           
-          const email = String(row['電子郵件'] || '').trim();
+          // 電子郵件：清理可能的不可見空白與占位字
+          let email = String(row['電子郵件'] || '');
+          email = email
+            .replace(/\u200B/g, '')   // 零寬空白
+            .replace(/\u00A0/g, ' ')  // NBSP 改為一般空白
+            .replace(/\u3000/g, ' ')  // 全形空白
+            .trim();
+          const emailPlaceholders = ['(選填)', '選填', 'n/a', 'na', '-', '—', '無', '沒有', '未提供', '未填'];
+          if (emailPlaceholders.includes(email.toLowerCase())) {
+            email = '';
+          }
+
           const address = String(row['地址'] || '').trim();
           
           // 驗證必填欄位
           const missingFields = [];
           if (!name) missingFields.push('姓名');
           if (!phone) missingFields.push('電話');
-          if (!email) missingFields.push('電子郵件');
+          // 電子郵件改為非必填
           
           if (missingFields.length > 0) {
             throw new Error(`第 ${index + 2} 行缺少必填欄位: ${missingFields.join(', ')}`);
           }
 
-          // 驗證電子郵件格式
+          // 驗證電子郵件格式（只有當email不為空時才驗證）
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!emailRegex.test(email)) {
+          if (email && !emailRegex.test(email)) {
             throw new Error(`第 ${index + 2} 行的電子郵件格式無效: ${email}`);
           }
 
@@ -869,37 +965,37 @@ const CustomerManagement = () => {
           };
           const source = sourceMapLocal[sourceValue] || 'website';
 
-          // 處理投資預算
-          const budgetValue = String(row['投資預算'] || '').trim();
-          const budgetMap = {
-            '未知': 'budget_unknown',
-            '一千萬以下': 'budget_under_ten',
-            '一千萬到兩千萬': 'budget_ten_to_twenty',
-            '兩千萬到三千萬': 'budget_twenty_to_thirty',
-            '三千萬以上': 'budget_above_thirty'
-          };
-          const budget_range = budgetMap[budgetValue] || 'budget_unknown';
+          // 保留：負責業務（姓名或帳號對應 ID）
+          const salesStaffName = String(row['負責業務'] || '').trim();
+          let sales_staff = null;
+          if (salesStaffName) {
+            const foundStaff = salesStaff.find(staff => 
+              (staff.attributes.name && staff.attributes.name.toLowerCase() === salesStaffName.toLowerCase()) || 
+              (staff.attributes.username && staff.attributes.username.toLowerCase() === salesStaffName.toLowerCase())
+            );
+            if (foundStaff) {
+              sales_staff = foundStaff.id;
+            } else {
+            }
+          }
 
           const notes = String(row['備註'] || '').trim();
 
+          // 僅保留對應編輯頁面可見的欄位
           const result = {
             name,
             phone,
-            email,
+            email: (email && email.length > 0) ? email : null,
             address,
             status,
             source,
-            has_overseas_investment: String(row['海外投資經驗'] || '').includes('有'),
-            budget_range,
-            overseas_investment_notes: String(row['投資說明'] || '').trim(),
+            sales_staff,
             notes
           };
 
-          console.log('處理結果:', result);
           return result;
         });
 
-        console.log('轉換後的資料:', previewData);
         setPreviewData(previewData);
         setExcelImportModalVisible(true);
       } catch (error) {
@@ -915,10 +1011,8 @@ const CustomerManagement = () => {
   const handleBatchImport = async () => {
     setLoading(true);
     try {
-      console.log('準備匯入的資料:', previewData);
       
       const results = await Promise.all(previewData.map(async data => {
-        console.log('匯入客戶資料:', data);
         
         const response = await fetch(`${API_BASE_URL}/api/customers`, {
           method: 'POST',
@@ -942,7 +1036,6 @@ const CustomerManagement = () => {
         return await response.json();
       }));
 
-      console.log('匯入結果:', results);
       message.success(`成功匯入 ${results.length} 筆客戶資料`);
       setExcelImportModalVisible(false);
       setPreviewData([]);
@@ -973,11 +1066,6 @@ const CustomerManagement = () => {
 
   const applyFilters = (formValues = null) => {
     try {
-      console.log('🔍 開始應用篩選條件:', {
-        customers總數: customers.length,
-        searchKeyword: searchKeyword,
-        formValues: formValues
-      });
       
       let filtered = [...customers];
       let filterSteps = [];
@@ -1038,8 +1126,9 @@ const CustomerManagement = () => {
         
         if (formValues.dateRange && formValues.dateRange[0] && formValues.dateRange[1]) {
           const beforeDate = filtered.length;
-          const startDate = new Date(formValues.dateRange[0].format('YYYY-MM-DD'));
-          const endDate = new Date(formValues.dateRange[1].format('YYYY-MM-DD'));
+          const getStr = (v) => (v && typeof v.format === 'function') ? v.format('YYYY-MM-DD') : v;
+          const startDate = new Date(getStr(formValues.dateRange[0]));
+          const endDate = new Date(getStr(formValues.dateRange[1]));
           endDate.setHours(23, 59, 59, 999);
           
           filtered = filtered.filter(customer => {
@@ -1051,12 +1140,6 @@ const CustomerManagement = () => {
         }
       }
       
-      console.log('📊 篩選過程:', filterSteps);
-      console.log('✅ 最終篩選結果:', {
-        原始數量: customers.length,
-        篩選後數量: filtered.length,
-        篩選步驟: filterSteps
-      });
       
       if (filtered.length !== customers.length) {
         message.info(`篩選結果：${filtered.length} / ${customers.length} 位客戶`);
@@ -1101,15 +1184,7 @@ const CustomerManagement = () => {
             </Tooltip>
           </div>
           <div className={styles.actionRow}>
-            <Tooltip title="添加跟進">
-              <Button 
-                type="text" 
-                size="small"
-                className={styles.actionButton}
-                icon={<FileAddOutlined />} 
-                onClick={() => handleAddCustomerContactRecord(record)} 
-            />
-          </Tooltip>
+  
           <Tooltip title="刪除">
             <Button 
               type="text" 
@@ -1145,15 +1220,7 @@ const CustomerManagement = () => {
             onClick={() => handleViewContactRecords(record)} 
           />
         </Tooltip>
-        <Tooltip title="添加跟進">
-          <Button 
-            type="text" 
-            size="small"
-            className={styles.actionButton}
-            icon={<FileAddOutlined />} 
-            onClick={() => handleAddCustomerContactRecord(record)} 
-          />
-        </Tooltip>
+
         <Tooltip title="刪除">
           <Button 
             type="text" 
@@ -1358,7 +1425,7 @@ const CustomerManagement = () => {
     setCurrentCustomer(null);
     contactForm.resetFields();
     contactForm.setFieldsValue({
-      contact_date: dayjs(),
+      contact_date: moment(),
       contact_status: 'initial_contact',
       contact_outcome: 'neutral'
     });
@@ -1371,10 +1438,11 @@ const CustomerManagement = () => {
     contactForm.resetFields();
     contactForm.setFieldsValue({
       customer_id: customer.id,
-      customer_name: customer.attributes.name,
-      contact_date: dayjs(),
+      customer_name: customer.id,
+      contact_date: moment(),
       contact_status: 'initial_contact',
-      contact_outcome: 'neutral'
+      contact_outcome: 'neutral',
+      is_deal: false,
     });
     setContactRecordModalVisible(true);
   };
@@ -1385,30 +1453,81 @@ const CustomerManagement = () => {
       setContactLoading(true);
       const values = await contactForm.validateFields();
       
-      // 構建聯絡記錄資料
+      // 構建聯絡記錄資料（關聯一律使用數字 ID）
+      const customerId = values.customer_name || values.customer_id;
+      const normalizeDate = (val) => {
+        if (!val) return null;
+        try {
+          if (typeof val.format === 'function') return val.format('YYYY-MM-DD');
+          const d = new Date(val);
+          if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+        } catch {}
+        return null;
+      };
+ 
       const contactData = {
-        notes: values.content,
+        customer: customerId ? Number(customerId) : undefined,
+        sales_staff: values.sales_staff ? Number(values.sales_staff) : undefined,
         type: values.contact_type,
         status: values.contact_status,
         outcome: values.contact_outcome,
-        date: values.contact_date ? values.contact_date.format('YYYY-MM-DD') : new Date().toISOString().split('T')[0],
-        next_follow_up: values.next_follow_up_date ? values.next_follow_up_date.format('YYYY-MM-DD') : null,
-        customer: values.customer_id,
-        sales_staff: values.sales_staff
+        date: normalizeDate(values.contact_date) || new Date().toISOString().split('T')[0],
+        next_follow_up: normalizeDate(values.next_follow_up_date),
+        notes: values.content,
+        project: values.project ? Number(values.project) : null,
+        is_deal: !!values.is_deal,
+        deal_amount: values.is_deal ? (values.deal_amount || 0) : null,
+        payment_date: values.is_deal ? normalizeDate(values.payment_date) : null,
       };
 
       // 保存聯絡記錄
       const response = await fetch(`${API_BASE_URL}/api/interactions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: contactData }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || '保存聯絡記錄失敗');
+        const serverMsg = errorData?.error?.message || '';
+        const detailErrors = errorData?.error?.details?.errors || [];
+
+        // 對應欄位錯誤
+        const fieldMap = {
+          customer: 'customer_name',
+          sales_staff: 'sales_staff',
+          type: 'contact_type',
+          status: 'contact_status',
+          outcome: 'contact_outcome',
+          date: 'contact_date',
+          next_follow_up: 'next_follow_up_date',
+          project: 'project',
+          deal_amount: 'deal_amount',
+          payment_date: 'payment_date'
+        };
+
+        // 1) Strapi details 逐欄位顯示
+        if (Array.isArray(detailErrors) && detailErrors.length > 0) {
+          const fieldErrors = [];
+          detailErrors.forEach(err => {
+            const path = Array.isArray(err?.path) ? err.path[0] : err?.path;
+            const name = fieldMap[path];
+            if (name) {
+              fieldErrors.push({ name, errors: [err?.message || '此欄位填寫有誤'] });
+            }
+          });
+          if (fieldErrors.length > 0) {
+            contactForm.setFields(fieldErrors);
+          }
+        } else if (serverMsg.toLowerCase().includes('invalid relations')) {
+          // 2) 常見關聯錯誤：顯示對應欄位
+          const relErrors = [];
+          if (!contactData.customer) relErrors.push({ name: 'customer_name', errors: ['請選擇客戶'] });
+          if (!contactData.sales_staff) relErrors.push({ name: 'sales_staff', errors: ['請選擇負責業務'] });
+          if (relErrors.length > 0) contactForm.setFields(relErrors);
+        }
+
+        throw new Error(serverMsg || '保存聯絡記錄失敗');
       }
 
       message.success('聯絡記錄已保存');
@@ -1419,8 +1538,13 @@ const CustomerManagement = () => {
         fetchCustomerContactRecords(currentCustomer.id);
       }
     } catch (error) {
+      // 若是前端驗證的錯誤，AntD 已在欄位上顯示，這裡僅提示
       console.error('Error saving contact record:', error);
+      if (error?.errorFields) {
+        message.error('請檢查表單紅框欄位');
+      } else {
       message.error(error.message || '保存聯絡記錄失敗');
+      }
     } finally {
       setContactLoading(false);
     }
@@ -1585,52 +1709,67 @@ const CustomerManagement = () => {
     return duplicates;
   };
 
+  // 預覽與合併資料計算（保留主記錄電話/Email，其他值追加到備註）
+  const getMergedPreview = (duplicateGroup, selectedStaffId) => {
+    const customersToMerge = duplicateGroup.customers;
+    const primaryCustomer = customersToMerge[0];
+    const merged = { ...primaryCustomer.attributes };
+
+    const notesPartsSet = new Set();
+    const otherPhones = [];
+    const otherEmails = [];
+
+    customersToMerge.forEach((c, idx) => {
+      const attrs = c.attributes;
+      if (attrs.notes && attrs.notes.trim() !== '') notesPartsSet.add(attrs.notes.trim());
+      if (idx > 0) {
+        if (attrs.phone && attrs.phone !== merged.phone && !otherPhones.includes(attrs.phone)) {
+          otherPhones.push(attrs.phone);
+        }
+        if (attrs.email && attrs.email !== merged.email && !otherEmails.includes(attrs.email)) {
+          otherEmails.push(attrs.email);
+        }
+      }
+      if (attrs.address && !merged.address) merged.address = attrs.address;
+      if (attrs.source_detail && !merged.source_detail) merged.source_detail = attrs.source_detail;
+      if (attrs.status && attrs.status !== 'potential') merged.status = attrs.status;
+    });
+
+    const notesParts = Array.from(notesPartsSet);
+    if (otherPhones.length > 0) notesParts.push(`其他電話: ${otherPhones.join('、')}`);
+    if (otherEmails.length > 0) notesParts.push(`其他Email: ${otherEmails.join('、')}`);
+
+    merged.notes = notesParts.length > 0
+      ? (merged.notes ? `${merged.notes}\n\n${notesParts.join('\n\n')}` : notesParts.join('\n\n'))
+      : (merged.notes || '');
+
+    // 保留主記錄電話/Email，不覆蓋 merged.phone / merged.email
+    merged.sales_staff = selectedStaffId || primaryCustomer.attributes.sales_staff?.data?.id || null;
+
+    return merged;
+  };
+
   // 合併重複客戶
-  const handleMergeDuplicates = async (duplicateGroup) => {
+  const handleMergeDuplicates = async (duplicateGroup, groupIndex) => {
     try {
       const customersToMerge = duplicateGroup.customers;
-      const primaryCustomer = customersToMerge[0]; // 保留第一個
-      const customersToDelete = customersToMerge.slice(1); // 刪除其餘的
-      
-      // 合併客戶資料（保留最完整的資訊）
-      const mergedData = { ...primaryCustomer.attributes };
-      
-      customersToMerge.forEach(customer => {
-        const attrs = customer.attributes;
-        
-        // 合併備註
-        if (attrs.notes && !mergedData.notes) {
-          mergedData.notes = attrs.notes;
-        } else if (attrs.notes && mergedData.notes) {
-          mergedData.notes = `${mergedData.notes}\n\n${attrs.notes}`;
-        }
-        
-        // 合併地址
-        if (attrs.address && !mergedData.address) {
-          mergedData.address = attrs.address;
-        }
-        
-        // 合併來源資訊
-        if (attrs.source_detail && !mergedData.source_detail) {
-          mergedData.source_detail = attrs.source_detail;
-        }
-        
-        // 保留較新的狀態
-        if (attrs.status && attrs.status !== 'potential') {
-          mergedData.status = attrs.status;
-        }
-      });
-      
-      // 更新主要客戶
+      const primaryCustomer = customersToMerge[0];
+      const customersToDelete = customersToMerge.slice(1);
+
+      const selectedStaffId = duplicateAssignStaff[groupIndex] ?? primaryCustomer.attributes.sales_staff?.data?.id ?? null;
+      const mergedData = getMergedPreview(duplicateGroup, selectedStaffId);
+
       await fetch(`${API_BASE_URL}/api/customers/${primaryCustomer.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ data: mergedData }),
+        body: JSON.stringify({ data: {
+          ...mergedData,
+          sales_staff: mergedData.sales_staff || null
+        } }),
       });
-      
-      // 刪除重複客戶
+
       await Promise.all(
         customersToDelete.map(customer =>
           fetch(`${API_BASE_URL}/api/customers/${customer.id}`, {
@@ -1638,15 +1777,15 @@ const CustomerManagement = () => {
           })
         )
       );
-      
+
       message.success(`成功合併 ${customersToDelete.length} 個重複客戶`);
-      
-      // 重新載入客戶資料
+
+      // 重新載入客戶清單以同步最新資料
       await fetchCustomers();
-      
-      // 重新查找重複客戶
-      handleFindDuplicates();
-      
+
+      // 即時從重複列表移除該群組，無需重開/重查
+      setDuplicateCustomers(prev => prev.filter((_, i) => i !== groupIndex));
+
     } catch (error) {
       console.error('合併重複客戶失敗:', error);
       message.error('合併重複客戶失敗');
@@ -1654,10 +1793,10 @@ const CustomerManagement = () => {
   };
 
   // 刪除重複客戶
-  const handleDeleteDuplicates = async (duplicateGroup) => {
+  const handleDeleteDuplicates = async (duplicateGroup, groupIndex) => {
     try {
-      const customersToDelete = duplicateGroup.customers.slice(1); // 保留第一個，刪除其餘的
-      
+      const customersToDelete = duplicateGroup.customers.slice(1);
+
       await Promise.all(
         customersToDelete.map(customer =>
           fetch(`${API_BASE_URL}/api/customers/${customer.id}`, {
@@ -1665,24 +1804,82 @@ const CustomerManagement = () => {
           })
         )
       );
-      
+
       message.success(`成功刪除 ${customersToDelete.length} 個重複客戶`);
-      
-      // 重新載入客戶資料
+
+      // 同步最新客戶資料
       await fetchCustomers();
-      
-      // 重新查找重複客戶
-      handleFindDuplicates();
-      
+
+      // 即時從重複列表移除該群組
+      setDuplicateCustomers(prev => prev.filter((_, i) => i !== groupIndex));
+
     } catch (error) {
       console.error('刪除重複客戶失敗:', error);
       message.error('刪除重複客戶失敗');
     }
   };
 
+  const handleBatchDelete = () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('請先選擇要刪除的客戶');
+      return;
+    }
+
+    Modal.confirm({
+      title: '批量刪除確認',
+      content: `確定要刪除選中的 ${selectedRowKeys.length} 位客戶嗎？此操作不可恢復。`,
+      okText: '確定刪除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        const msgKey = 'batchDeleteCustomers';
+        try {
+          message.open({ type: 'loading', content: '正在刪除...', key: msgKey, duration: 0 });
+          
+          // 先刪各客戶的互動紀錄
+          await Promise.all(
+            selectedRowKeys.map(async (customerId) => {
+              await deleteCustomerInteractions(customerId);
+              const resp = await fetch(`${API_BASE_URL}/api/customers/${customerId}`, {
+                method: 'DELETE',
+              });
+              if (!resp.ok) {
+                throw new Error(`刪除失敗: ${resp.status}`);
+              }
+            })
+          );
+
+          message.open({ type: 'success', content: `成功刪除 ${selectedRowKeys.length} 位客戶`, key: msgKey, duration: 2 });
+          setSelectedRowKeys([]);
+          setSelectedRows([]);
+          await fetchCustomers(); // 重新加載客戶列表
+        } catch (error) {
+          console.error('Error deleting customers:', error);
+          message.open({ type: 'error', content: '刪除失敗，請重試', key: msgKey, duration: 2 });
+        }
+      },
+    });
+  };
+
+  useEffect(() => {
+    // ... existing code ...
+    const loadProjects = async () => {
+      try {
+        const resp = await fetch(`${API_BASE_URL}/api/projects?pagination[pageSize]=1000`);
+        const data = await resp.json();
+        setProjects(data?.data || []);
+      } catch (e) {
+        console.error('fetch projects failed', e);
+      }
+    };
+    loadProjects();
+  }, []);
+  // ... existing code ...
+
   return (
     <div className={styles.customerManagement}>
       <Card
+        className={styles.customerTable}
         title={
           <div className={styles.tableHeader}>
             <div className={styles.tableTitle}>客戶管理</div>
@@ -1690,7 +1887,7 @@ const CustomerManagement = () => {
               <div className={styles.actionButtons}>
                 <Button
                   type="primary"
-                  icon={<FileAddOutlined />}
+                  icon={<PlusOutlined />}
                   onClick={() => {
                     resetForm();
                     setAddModalVisible(true);
@@ -1755,33 +1952,48 @@ const CustomerManagement = () => {
                   進階篩選
                 </Button>
             <Button
+              icon={<ExportOutlined />}
+              onClick={() => exportToExcel(false)}
+            >
+              導出全部
+            </Button>
+            {selectedRows.length > 0 && (
+              <>
+            <Button
               type="primary"
               icon={<UserSwitchOutlined />}
               onClick={() => setBatchAssignModalVisible(true)}
-              disabled={selectedRows.length === 0}
             >
-              批量指派
+                  批量指派 ({selectedRows.length})
             </Button>
                 <Button
                   danger
                   icon={<RollbackOutlined />}
                   onClick={handleBatchUnassign}
-                  disabled={selectedRows.length === 0}
                 >
-                  批量沒收
+                  批量沒收 ({selectedRows.length})
             </Button>
             <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={handleBatchDelete}
+                >
+                  批量刪除 ({selectedRows.length})
+                </Button>
+                <Button
+                  onClick={() => exportToExcel(true)}
               icon={<ExportOutlined />}
-              onClick={exportToExcel}
+                  type="primary"
             >
-              導出Excel
+                  導出選中 ({selectedRows.length})
             </Button>
+              </>
+            )}
               </div>
             </div>
           </div>
         }
         bordered={false}
-        className={styles.customerCard}
       >
         {filterVisible && (
           <div className={styles.filterPanel}>
@@ -1930,11 +2142,7 @@ const CustomerManagement = () => {
           dataSource={filteredCustomers}
           rowKey={record => record.id}
           loading={loading}
-          rowSelection={{
-            onChange: (_, rows) => setSelectedRows(rows),
-            selectedRowKeys: selectedRows.map(row => row.id),
-            fixed: true,
-          }}
+          rowSelection={rowSelection}
           bordered={false}
           className={styles.customerTable}
           pagination={{
@@ -1944,10 +2152,8 @@ const CustomerManagement = () => {
             pageSizeOptions: ['10', '20', '50', '100'],
             showTotal: (total, range) => `第 ${range[0]}-${range[1]} 筆，共 ${total} 筆客戶資料`,
             onChange: (page, pageSize) => {
-              console.log(`切換到第 ${page} 頁，每頁 ${pageSize} 筆`);
             },
             onShowSizeChange: (current, size) => {
-              console.log(`每頁顯示數量改為 ${size} 筆`);
             }
           }}
           scroll={{ 
@@ -2052,30 +2258,19 @@ const CustomerManagement = () => {
           </Form.Item>
             </Tabs.TabPane>
             
+            {/* 已移除：合約信息分頁
             <Tabs.TabPane tab="合約信息" key="contract">
-              <Form.Item
-                name="hasContract"
-                label="是否已簽約"
-                valuePropName="checked"
-              >
-                <Switch 
-                  checkedChildren="已簽約" 
-                  unCheckedChildren="未簽約" 
-                />
+              <Form.Item name="hasContract" label="是否已簽約" valuePropName="checked">
+                <Switch checkedChildren="已簽約" unCheckedChildren="未簽約" />
               </Form.Item>
-              <Form.Item
-                name="contractInfo"
-                label="合約信息"
-              >
+              <Form.Item name="contractInfo" label="合約信息">
                 <Input />
               </Form.Item>
-              <Form.Item
-                name="contractDate"
-                label="合約日期"
-              >
+              <Form.Item name="contractDate" label="合約日期">
                 <Input type="date" />
               </Form.Item>
             </Tabs.TabPane>
+            */}
             
             <Tabs.TabPane tab="相關建案" key="projects">
               <Form.Item
@@ -2136,9 +2331,11 @@ const CustomerManagement = () => {
         onCancel={() => {
           setBatchAssignModalVisible(false);
           setSelectedStaff(null);
+          setPendingCustomersVisible(true);
         }}
         okText="確認"
         cancelText="取消"
+        zIndex={2000}
       >
         <div style={{ marginBottom: 16 }}>
           已選擇 {selectedRows.length} 個客戶
@@ -2252,31 +2449,19 @@ const CustomerManagement = () => {
               </Form.Item>
             </Tabs.TabPane>
             
+            {/* 已移除：合約信息分頁
             <Tabs.TabPane tab="合約信息" key="contract">
-              <Form.Item
-                name="hasContract"
-                label="是否已簽約"
-                valuePropName="checked"
-                initialValue={false}
-              >
-                <Switch 
-                  checkedChildren="已簽約" 
-                  unCheckedChildren="未簽約" 
-                />
+              <Form.Item name="hasContract" label="是否已簽約" valuePropName="checked" initialValue={false}>
+                <Switch checkedChildren="已簽約" unCheckedChildren="未簽約" />
               </Form.Item>
-              <Form.Item
-                name="contractInfo"
-                label="合約信息"
-              >
+              <Form.Item name="contractInfo" label="合約信息">
                 <Input placeholder="請輸入合約資訊" />
               </Form.Item>
-              <Form.Item
-                name="contractDate"
-                label="合約日期"
-              >
+              <Form.Item name="contractDate" label="合約日期">
                 <Input type="date" />
               </Form.Item>
             </Tabs.TabPane>
+            */}
             
             <Tabs.TabPane tab="相關建案" key="projects">
               <Form.Item
@@ -2392,103 +2577,82 @@ const CustomerManagement = () => {
         onCancel={() => setContactRecordModalVisible(false)}
         okText="保存"
         cancelText="取消"
-        width={700}
+        width={760}
+        zIndex={2000}
       >
-        <Form
-          form={contactForm}
-          layout="vertical"
-        >
-          <Form.Item
-            name="customer_id"
-            hidden
-          >
+        <Form form={contactForm} layout="vertical">
+          <Form.Item name="customer_id" hidden>
             <Input />
           </Form.Item>
-          <Form.Item
-            name="customer_name"
-            label="客戶"
-            rules={[{ required: true, message: '請選擇客戶' }]}
-          >
-            <Select
-              showSearch
-              placeholder="請選擇客戶"
-              disabled={!!currentCustomer}
-              filterOption={(input, option) =>
-                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-              }
-            >
-              {customers.map(c => (
-                <Option key={c.id} value={c.id}>{c.attributes.name}</Option>
-              ))}
+          <Form.Item name="customer_name" label="客戶" rules={[{ required: true, message: '請選擇客戶' }]}>
+            <Select showSearch placeholder="請選擇客戶" disabled={!!currentCustomer} filterOption={(input, option)=> option.children.toLowerCase().includes(input.toLowerCase())}>
+              {customers.map(c => (<Option key={c.id} value={c.id}>{c.attributes.name}</Option>))}
             </Select>
           </Form.Item>
-          <Form.Item
-            name="content"
-            label="聯絡內容"
-            rules={[{ required: true, message: '請輸入聯絡內容' }]}
-          >
+          <Form.Item name="content" label="聯絡內容" rules={[{ required: true, message: '請輸入聯絡內容' }]}>
             <TextArea rows={4} />
           </Form.Item>
-          <Form.Item
-            name="contact_type"
-            label="聯絡類型"
-            rules={[{ required: true, message: '請選擇聯絡類型' }]}
-          >
+          <Form.Item name="contact_type" label="聯絡類型" rules={[{ required: true, message: '請選擇聯絡類型' }]}>
             <Select>
-              {Object.entries(contactTypeMap).map(([value, text]) => (
-                <Option key={value} value={value}>{text}</Option>
-              ))}
+              {Object.entries(contactTypeMap).map(([value, text]) => (<Option key={value} value={value}>{text}</Option>))}
             </Select>
           </Form.Item>
-          <Form.Item
-            name="contact_status"
-            label="聯絡狀態"
-            rules={[{ required: true, message: '請選擇聯絡狀態' }]}
-          >
+          <Form.Item name="contact_status" label="聯絡狀態" rules={[{ required: true, message: '請選擇聯絡狀態' }]}>
             <Select>
-              {Object.entries(contactStatusMap).map(([value, text]) => (
-                <Option key={value} value={value}>{text}</Option>
-              ))}
+              {Object.entries(contactStatusMap).map(([value, text]) => (<Option key={value} value={value}>{text}</Option>))}
             </Select>
           </Form.Item>
-          <Form.Item
-            name="contact_outcome"
-            label="聯絡結果"
-            rules={[{ required: true, message: '請選擇聯絡結果' }]}
-          >
+          <Form.Item name="contact_outcome" label="聯絡結果" rules={[{ required: true, message: '請選擇聯絡結果' }]}>
             <Select>
-              {Object.entries(contactOutcomeMap).map(([value, text]) => (
-                <Option key={value} value={value}>{text}</Option>
-              ))}
+              {Object.entries(contactOutcomeMap).map(([value, text]) => (<Option key={value} value={value}>{text}</Option>))}
             </Select>
           </Form.Item>
-          <Form.Item
-            name="contact_date"
-            label="聯絡日期"
-            rules={[{ required: true, message: '請選擇聯絡日期' }]}
-            initialValue={dayjs()}
-          >
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item
-            name="next_follow_up_date"
-            label="下次跟進日期"
-          >
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item
-            name="sales_staff"
-            label="負責業務"
-            rules={[{ required: true, message: '請選擇負責業務' }]}
-          >
-            <Select>
-              {salesStaff.map(staff => (
-                <Option key={staff.id} value={staff.id}>
-                  {staff.attributes.name || staff.attributes.username}
-                </Option>
-              ))}
+          <Form.Item name="project" label="相關建案">
+            <Select placeholder="選擇建案" allowClear showSearch filterOption={(i,o)=> (o?.children ?? '').toLowerCase().includes(i.toLowerCase())}>
+              {projects.map(p => (<Option key={p.id} value={p.id}>{p.attributes?.name || `建案 ${p.id}`}</Option>))}
             </Select>
           </Form.Item>
+          <Form.Item name="contact_date" label="聯絡日期" rules={[{ required: true, message: '請選擇聯絡日期' }]} initialValue={moment()}>
+            <div className={styles.dateInputWrapper}>
+              <div className={`${styles.dateAffix} ant-input-affix-wrapper`}>
+                <input type="date" className={`ant-input ${styles.dateInput}`} placeholder="yyyy/MM/dd" onChange={(e)=> contactForm.setFieldsValue({ contact_date: e.target.value })} />
+              </div>
+            </div>
+          </Form.Item>
+          <Form.Item name="next_follow_up_date" label="下次跟進日期">
+            <div className={styles.dateInputWrapper}>
+              <div className={`${styles.dateAffix} ant-input-affix-wrapper`}>
+                <input type="date" className={`ant-input ${styles.dateInput}`} placeholder="yyyy/MM/dd" onChange={(e)=> contactForm.setFieldsValue({ next_follow_up_date: e.target.value })} />
+              </div>
+            </div>
+          </Form.Item>
+          <Form.Item name="sales_staff" label="負責業務" rules={[{ required: true, message: '請選擇負責業務' }]}>
+            <Select>
+              {salesStaff.map(staff => (<Option key={staff.id} value={staff.id}>{staff.attributes.name || staff.attributes.username}</Option>))}
+            </Select>
+          </Form.Item>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <Form.Item name="is_deal" label="是否成交" valuePropName="checked" initialValue={false}>
+              <Switch />
+            </Form.Item>
+            <Form.Item shouldUpdate={(prev, curr) => prev.is_deal !== curr.is_deal}>
+              {({ getFieldValue }) => getFieldValue('is_deal') ? (
+                <div style={{ display: 'contents' }}>
+                  <Form.Item name="deal_amount" label="成交金額" rules={[{ required: true, message: '請輸入成交金額' }]}>
+                    <InputNumber style={{ width: '100%' }} min={0} step={10000} placeholder="輸入金額（元）" />
+                  </Form.Item>
+                  <Form.Item name="payment_date" label="入帳日期" rules={[{ required: true, message: '請選擇入帳日期' }]}>
+                    <div className={styles.dateInputWrapper}>
+                      <div className={`${styles.dateAffix} ant-input-affix-wrapper`}>
+                        <input type="date" className={`ant-input ${styles.dateInput}`} placeholder="yyyy/MM/dd" onChange={(e)=> contactForm.setFieldsValue({ payment_date: e.target.value })} />
+                      </div>
+                    </div>
+                  </Form.Item>
+                </div>
+              ) : null}
+            </Form.Item>
+          </div>
         </Form>
       </Modal>
 
@@ -2510,7 +2674,10 @@ const CustomerManagement = () => {
           <Button
             key="assign"
             type="primary"
-            onClick={() => setBatchAssignModalVisible(true)}
+            onClick={() => {
+              setPendingCustomersVisible(false);
+              setBatchAssignModalVisible(true);
+            }}
             disabled={selectedRows.length === 0}
           >
             指派給業務
@@ -2735,7 +2902,7 @@ const CustomerManagement = () => {
                       <Button 
                         type="primary" 
                         size="small"
-                        onClick={() => handleMergeDuplicates(group)}
+                        onClick={() => handleMergeDuplicates(group, index)}
                         style={{ marginRight: 8 }}
                       >
                         合併 ({group.count - 1} 個)
@@ -2743,7 +2910,7 @@ const CustomerManagement = () => {
                       <Popconfirm
                         title="確定要刪除重複客戶嗎？"
                         description="此操作會保留第一個客戶，刪除其餘重複客戶。此操作無法撤銷！"
-                        onConfirm={() => handleDeleteDuplicates(group)}
+                        onConfirm={() => handleDeleteDuplicates(group, index)}
                         okText="確定"
                         cancelText="取消"
                       >
@@ -2758,6 +2925,24 @@ const CustomerManagement = () => {
                   </div>
                 }
               >
+                <div style={{ marginBottom: 12, display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <span style={{ color: '#888' }}>負責業務：</span>
+                  <Select
+                    showSearch
+                    allowClear
+                    placeholder="選擇業務"
+                    style={{ width: 220 }}
+                    value={duplicateAssignStaff[index] ?? group.customers[0]?.attributes?.sales_staff?.data?.id ?? undefined}
+                    onChange={(val) => setDuplicateAssignStaff(prev => ({ ...prev, [index]: val }))}
+                    optionFilterProp="children"
+                  >
+                    {salesStaff.map(staff => (
+                      <Option key={staff.id} value={staff.id}>
+                        {staff.attributes.name || staff.attributes.username}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
                 <Table
                   dataSource={group.customers}
                   columns={[
@@ -2842,6 +3027,25 @@ const CustomerManagement = () => {
                   pagination={false}
                   scroll={{ x: 800 }}
                 />
+                <div style={{ marginTop: 12, padding: 12, background: '#fafafa', border: '1px dashed #e5e5e5', borderRadius: 6 }}>
+                  <div style={{ marginBottom: 8, fontWeight: 600 }}>合併後預覽</div>
+                  {(() => {
+                    const preview = getMergedPreview(group, duplicateAssignStaff[index] ?? group.customers[0]?.attributes?.sales_staff?.data?.id ?? null);
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+                        <div><span style={{ color: '#888' }}>姓名：</span>{preview.name || group.customers[0]?.attributes?.name || ''}</div>
+                        <div><span style={{ color: '#888' }}>狀態：</span>{statusMap[preview.status]?.text || preview.status || '—'}</div>
+                        <div><span style={{ color: '#888' }}>電話：</span>{preview.phone || '—'}</div>
+                        <div><span style={{ color: '#888' }}>電子郵件：</span>{preview.email || '—'}</div>
+                        <div><span style={{ color: '#888' }}>來源：</span>{sourceMap[preview.source] || preview.source || '—'}</div>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <div style={{ color: '#888' }}>備註：</div>
+                          <div style={{ whiteSpace: 'pre-wrap' }}>{preview.notes || '—'}</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
               </Card>
             ))}
           </div>
@@ -2860,23 +3064,20 @@ const CustomerManagement = () => {
         okText="確認匯入"
         cancelText="取消"
         width={1000}
+        bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
         okButtonProps={{ loading: loading }}
       >
         <div style={{ marginBottom: 16 }}>
           <Alert
             message="Excel匯入預覽"
-            description={`共找到 ${previewData.length} 筆客戶資料，請確認資料正確後點擊「確認匯入」。`}
+            description={`共找到 ${previewData.length} 筆客戶資料，請向下捲動檢視全部，確認無誤後點擊「確認匯入」。`}
             type="info"
             showIcon
           />
         </div>
         
-        <div style={{ marginBottom: 16 }}>
-          <strong>資料預覽（前5筆）：</strong>
-        </div>
-        
         <Table
-          dataSource={previewData.slice(0, 5)}
+          dataSource={previewData}
           columns={[
             {
               title: '姓名',
@@ -2924,11 +3125,15 @@ const CustomerManagement = () => {
               render: (source) => sourceMap[source],
             },
             {
-              title: '投資經驗',
-              dataIndex: 'has_overseas_investment',
-              key: 'has_overseas_investment',
+              title: '負責業務',
+              dataIndex: 'sales_staff',
+              key: 'sales_staff',
               width: 100,
-              render: (value) => value ? '有' : '無',
+              render: (sales_staff_id) => {
+                if (!sales_staff_id) return <span style={{ color: '#ccc' }}>未指派</span>;
+                const staff = salesStaff.find(s => s.id === sales_staff_id);
+                return staff ? (staff.attributes.name || staff.attributes.username) : '未找到';
+              },
             },
             {
               title: '備註',
@@ -2942,14 +3147,9 @@ const CustomerManagement = () => {
           rowKey={(record, index) => index}
           size="small"
           pagination={false}
-          scroll={{ x: 1000 }}
+          scroll={{ x: 1100, y: 420 }}
+          sticky
         />
-        
-        {previewData.length > 5 && (
-          <div style={{ marginTop: 8, color: '#666', textAlign: 'center' }}>
-            ... 還有 {previewData.length - 5} 筆資料
-          </div>
-        )}
       </Modal>
     </div>
   );

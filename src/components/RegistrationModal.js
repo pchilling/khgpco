@@ -30,16 +30,13 @@ const RegistrationModal = ({ isOpen, onClose, eventId, sessionIndex, onSuccess }
         try {
             setSubmitting(true);
             const values = await form.validateFields();
-            console.log('Form values:', values);
-            console.log('Event ID:', eventId);
-            console.log('Session Index:', sessionIndex);
 
             // 構建註冊數據
             const registrationData = {
                 data: {
                     name: values.name,
                     phone: values.phone,
-                    email: values.email,
+                    ...(values.email && values.email.trim() ? { email: values.email.trim() } : {}),
                     notes: values.notes,
                     event: eventId,
                     sessionIndex: sessionIndex,
@@ -51,7 +48,6 @@ const RegistrationModal = ({ isOpen, onClose, eventId, sessionIndex, onSuccess }
                 }
             };
 
-            console.log('Sending registration data:', registrationData);
 
             const response = await fetch(`${API_BASE_URL}/api/registrations`, {
                 method: 'POST',
@@ -64,13 +60,10 @@ const RegistrationModal = ({ isOpen, onClose, eventId, sessionIndex, onSuccess }
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('API error:', response.status);
-                console.error('API error details:', errorData);
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const data = await response.json();
-            console.log('Registration successful:', data);
 
             // 顯示成功訊息
             setSubmitted(true);
@@ -83,7 +76,6 @@ const RegistrationModal = ({ isOpen, onClose, eventId, sessionIndex, onSuccess }
                 }, 1000);
             }
         } catch (error) {
-            console.error('Error submitting registration:', error);
             if (error.response) {
                 console.error('Server error details:', {
                     status: error.response.status,
@@ -170,11 +162,10 @@ const RegistrationModal = ({ isOpen, onClose, eventId, sessionIndex, onSuccess }
                             name="email"
                             label="電子郵件"
                             rules={[
-                                { required: true, message: '請輸入電子郵件' },
                                 { type: 'email', message: '請輸入有效的電子郵件地址' }
                             ]}
                         >
-                            <Input placeholder="請輸入您的電子郵件" />
+                            <Input placeholder="請輸入您的電子郵件（選填）" />
                         </Form.Item>
 
                         <Form.Item

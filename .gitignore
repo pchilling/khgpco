@@ -25,3 +25,6 @@ yarn-error.log*
 # local tooling / one-off scripts (not part of the app)
 .claude/
 fill_form.py
+
+# source-map recovery workspace (one-off; do not commit)
+recovery/
