@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Card, Button, Space, Tag, Modal, Select, message, Popconfirm, Tooltip, Form, Input, DatePicker, Row, Col, Switch, Alert, Empty, Spin } from 'antd';
 import { UserAddOutlined, UserSwitchOutlined, DownloadOutlined, DeleteOutlined, DownOutlined, PlusOutlined, SearchOutlined, FilterOutlined, ReloadOutlined } from '@ant-design/icons';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import styles from './RegistrationManagement.module.css';
 import * as XLSX from 'xlsx';
 import moment from 'moment';
@@ -156,21 +157,10 @@ const SalesRegistrationManagement = () => {
       const userId = user.id || user.attributes?.id;
       console.log('使用的用戶ID:', userId);
       
-      // Strapi v4 預設一頁 25 筆，需手動分頁抓完
-      const pageSize = 100;
-      let allData = [];
-      let page = 1;
-      while (true) {
-        const url = `${API_BASE_URL}/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&filters[sales_staff][id][$eq]=${userId}&sort=createdAt:desc&pagination[page]=${page}&pagination[pageSize]=${pageSize}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        if (!response.ok) throw new Error(`API ${response.status}`);
-        const records = data.data || [];
-        allData = allData.concat(records);
-        const meta = data.meta && data.meta.pagination;
-        if (!meta || page >= meta.pageCount || records.length === 0) break;
-        page++;
-      }
+      const allData = await fetchAllStrapi(
+        API_BASE_URL,
+        `/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&filters[sales_staff][id][$eq]=${userId}&sort=createdAt:desc`
+      );
       console.log('報名資料總數:', allData.length);
       setRegistrations(allData);
       setFilteredRegistrations(allData);

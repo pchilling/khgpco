@@ -3,6 +3,7 @@ import { Card, Row, Col, Form, Button, Spin, Alert, Select, DatePicker, Space, S
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { FilterOutlined, ReloadOutlined } from '@ant-design/icons';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import styles from './SalesAnalytics.module.css';
 
 const { Option } = Select;
@@ -84,35 +85,18 @@ const SalesAnalytics = () => {
     setIsLoading(true);
     setError(null);
     try {
-      // 獲取客戶數據
-      const customersResponse = await fetch(`${API_BASE_URL}/api/customers?populate=sales_staff&sort=createdAt:desc`);
-      if (!customersResponse.ok) throw new Error('Failed to fetch customers');
-      
-      const customersData = await customersResponse.json();
-      
-      // 獲取報名數據
-      const registrationsResponse = await fetch(`${API_BASE_URL}/api/registrations?populate=sales_staff&sort=createdAt:desc`);
-      if (!registrationsResponse.ok) throw new Error('Failed to fetch registrations');
-      
-      const registrationsData = await registrationsResponse.json();
-      
-      // 獲取互動數據 (如果有)
-      let interactionsData = { data: [] };
-      try {
-        const interactionsResponse = await fetch(`${API_BASE_URL}/api/interactions?populate=sales_staff,customer&sort=createdAt:desc`);
-        if (interactionsResponse.ok) {
-          interactionsData = await interactionsResponse.json();
-        }
-      } catch (err) {
-        console.warn('Interactions endpoint might not exist or have issues:', err);
-      }
-      
-      setSalesData({
-        customers: customersData.data || [],
-        registrations: registrationsData.data || [],
-        interactions: interactionsData.data || []
-      });
-      
+      // 三個獨立列表並行抓，每個內部再分頁並行
+      const [customers, registrations, interactions] = await Promise.all([
+        fetchAllStrapi(API_BASE_URL, '/api/customers?populate=sales_staff&sort=createdAt:desc'),
+        fetchAllStrapi(API_BASE_URL, '/api/registrations?populate=sales_staff&sort=createdAt:desc'),
+        fetchAllStrapi(API_BASE_URL, '/api/interactions?populate=sales_staff,customer&sort=createdAt:desc')
+          .catch((err) => {
+            console.warn('Interactions endpoint might not exist or have issues:', err);
+            return [];
+          }),
+      ]);
+
+      setSalesData({ customers, registrations, interactions });
       setError(null);
     } catch (err) {
       console.error('Error fetching analytics data:', err);

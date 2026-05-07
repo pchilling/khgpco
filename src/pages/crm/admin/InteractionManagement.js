@@ -3,6 +3,7 @@ import { Card, Table, Space, Button, Input, Form, Select, DatePicker, message, T
 import { SearchOutlined, FilterOutlined, ReloadOutlined, ExportOutlined, DeleteOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import moment from 'moment';
 
 const { Option } = Select;
@@ -46,29 +47,10 @@ const InteractionManagement = () => {
     applyFilters();
   }, [interactions, searchKeyword]);
 
-  // Strapi v4 預設一頁 25 筆，需手動分頁抓完
-  const fetchAllPages = async (pathWithQuery) => {
-    const all = [];
-    let page = 1;
-    while (true) {
-      const sep = pathWithQuery.includes('?') ? '&' : '?';
-      const url = `${API_BASE_URL}${pathWithQuery}${sep}pagination[page]=${page}&pagination[pageSize]=100`;
-      const r = await fetch(url);
-      if (!r.ok) throw new Error(`API ${r.status}`);
-      const j = await r.json();
-      const records = j.data || [];
-      all.push(...records);
-      const meta = j.meta && j.meta.pagination;
-      if (!meta || page >= meta.pageCount || records.length === 0) break;
-      page++;
-    }
-    return all;
-  };
-
   const fetchInteractions = async () => {
     try {
       setLoading(true);
-      const all = await fetchAllPages('/api/interactions?populate=*&sort=date:desc');
+      const all = await fetchAllStrapi(API_BASE_URL, '/api/interactions?populate=*&sort=date:desc');
       setInteractions(all);
       setFilteredInteractions(all);
     } catch (error) {
@@ -81,7 +63,7 @@ const InteractionManagement = () => {
 
   const fetchSalesStaff = async () => {
     try {
-      const all = await fetchAllPages('/api/sales-staffs');
+      const all = await fetchAllStrapi(API_BASE_URL, '/api/sales-staffs');
       setSalesStaff(all);
     } catch (error) {
       console.error('Error fetching sales staff:', error);
@@ -90,7 +72,7 @@ const InteractionManagement = () => {
 
   const fetchCustomers = async () => {
     try {
-      const all = await fetchAllPages('/api/customers?populate=*');
+      const all = await fetchAllStrapi(API_BASE_URL, '/api/customers?populate=*');
       setCustomers(all);
     } catch (error) {
       console.error('Error fetching customers:', error);

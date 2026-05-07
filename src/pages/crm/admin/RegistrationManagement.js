@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Card, Button, Space, Tag, Modal, Select, message, Popconfirm, Tooltip, Form, Input, DatePicker, Upload, Row, Col, Switch } from 'antd';
 import { UserAddOutlined, UserSwitchOutlined, DownloadOutlined, DeleteOutlined, DownOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import styles from './RegistrationManagement.module.css';
 import * as XLSX from 'xlsx';
 
@@ -103,30 +104,13 @@ const RegistrationManagement = () => {
     setGroupedData(groupedArray);
   };
 
-  // 修改獲取報名資料的函數
   const fetchRegistrations = async () => {
     setLoading(true);
     try {
-      // Strapi v4 預設一頁 25 筆，需手動分頁抓完
-      const pageSize = 100;
-      let allData = [];
-      let page = 1;
-      while (true) {
-        const url = `${API_BASE_URL}/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&sort=createdAt:desc&pagination[page]=${page}&pagination[pageSize]=${pageSize}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        if (!response.ok) {
-          console.log('獲取報名資料失敗:', data);
-          setRegistrations([]);
-          setGroupedData([]);
-          return;
-        }
-        const records = data.data || [];
-        allData = allData.concat(records);
-        const meta = data.meta && data.meta.pagination;
-        if (!meta || page >= meta.pageCount || records.length === 0) break;
-        page++;
-      }
+      const allData = await fetchAllStrapi(
+        API_BASE_URL,
+        '/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&sort=createdAt:desc'
+      );
       console.log('報名資料總數:', allData.length);
       setRegistrations(allData);
       processRegistrations(allData);
@@ -155,28 +139,9 @@ const RegistrationManagement = () => {
     }
   };
 
-  // 獲取活動資料
   const fetchEvents = async () => {
     try {
-      console.log('開始獲取活動資料');
-      // Strapi v4 預設一頁 25 筆，需手動分頁抓完
-      const pageSize = 100;
-      let allEvents = [];
-      let page = 1;
-      while (true) {
-        const url = `${API_BASE_URL}/api/events?populate=*&pagination[page]=${page}&pagination[pageSize]=${pageSize}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        if (!response.ok) {
-          console.error('獲取活動資料失敗:', data);
-          return;
-        }
-        const records = data.data || [];
-        allEvents = allEvents.concat(records);
-        const meta = data.meta && data.meta.pagination;
-        if (!meta || page >= meta.pageCount || records.length === 0) break;
-        page++;
-      }
+      const allEvents = await fetchAllStrapi(API_BASE_URL, '/api/events?populate=*');
       const eventsMap = {};
       allEvents.forEach(event => {
         eventsMap[event.id] = {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, DatePicker, Tooltip } from 'antd';
 import { PlusOutlined, FilterOutlined, SearchOutlined, ReloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import * as XLSX from 'xlsx';
 
 const { TextArea } = Input;
@@ -53,10 +54,12 @@ const Interactions = () => {
       const user = JSON.parse(localStorage.getItem('user'));
       
       // 只獲取當前銷售人員的互動記錄
-      const response = await fetch(`${API_BASE_URL}/api/interactions?filters[sales_staff][id][$eq]=${user.id}&populate=*&sort=date:desc`);
-      const data = await response.json();
-      setInteractions(data.data || []);
-      setFilteredInteractions(data.data || []);
+      const all = await fetchAllStrapi(
+        API_BASE_URL,
+        `/api/interactions?filters[sales_staff][id][$eq]=${user.id}&populate=*&sort=date:desc`
+      );
+      setInteractions(all);
+      setFilteredInteractions(all);
     } catch (error) {
       console.error('Error fetching interactions:', error);
       message.error('獲取互動記錄失敗');
@@ -71,9 +74,11 @@ const Interactions = () => {
       const user = JSON.parse(localStorage.getItem('user'));
       
       // 只獲取分配給當前銷售人員的客戶
-      const response = await fetch(`${API_BASE_URL}/api/customers?filters[sales_staff][id][$eq]=${user.id}&populate=*`);
-      const data = await response.json();
-      setCustomers(data.data || []);
+      const all = await fetchAllStrapi(
+        API_BASE_URL,
+        `/api/customers?filters[sales_staff][id][$eq]=${user.id}&populate=*`
+      );
+      setCustomers(all);
     } catch (error) {
       console.error('Error fetching customers:', error);
     }

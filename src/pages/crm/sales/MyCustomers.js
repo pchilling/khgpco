@@ -3,6 +3,7 @@ import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, T
 import { EditOutlined, FileAddOutlined, PhoneOutlined, MailOutlined, SearchOutlined, FilterOutlined, ReloadOutlined, InteractionOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -71,10 +72,12 @@ const MyCustomers = () => {
       const user = JSON.parse(localStorage.getItem('user'));
       
       // 只獲取分配給當前銷售人員的客戶
-      const response = await fetch(`${API_BASE_URL}/api/customers?filters[sales_staff][id][$eq]=${user.id}&populate=*`);
-      const data = await response.json();
-      setCustomers(data.data);
-      setFilteredCustomers(data.data);
+      const all = await fetchAllStrapi(
+        API_BASE_URL,
+        `/api/customers?filters[sales_staff][id][$eq]=${user.id}&populate=*`
+      );
+      setCustomers(all);
+      setFilteredCustomers(all);
     } catch (error) {
       console.error('Error fetching customers:', error);
       message.error('獲取客戶資料失敗');

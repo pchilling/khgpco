@@ -4,6 +4,7 @@ import { EditOutlined, DeleteOutlined, ExportOutlined, UserSwitchOutlined, FileA
 import * as XLSX from 'xlsx';
 import styles from './CustomerManagement.module.css';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import moment from 'moment';
 
 const { TextArea } = Input;
@@ -333,32 +334,11 @@ const CustomerManagement = () => {
       setLoading(true);
       console.log('開始獲取客戶資料...');
       
-      // 獲取所有客戶數據 - 使用更大的 pageSize 或分批獲取
-      let allCustomers = [];
-      let currentPage = 1;
-      let totalPages = 1;
-      
-      do {
-        const response = await fetch(
-          `${API_BASE_URL}/api/customers?populate=*&sort=id:desc&pagination[page]=${currentPage}&pagination[pageSize]=100`
-        );
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(`API請求失敗: ${response.status}`);
-        }
-        
-        allCustomers = [...allCustomers, ...(data.data || [])];
-        totalPages = data.meta?.pagination?.pageCount || 1;
-        currentPage++;
-        
-        console.log(`獲取第 ${currentPage-1} 頁，共 ${data.data?.length || 0} 筆，總頁數: ${totalPages}`);
-        
-      } while (currentPage <= totalPages);
+      // 並行抓取所有客戶數據
+      const allCustomers = await fetchAllStrapi(API_BASE_URL, '/api/customers?populate=*&sort=id:desc');
       
       console.log('客戶資料 API 回應:', {
         totalCustomers: allCustomers.length,
-        totalPages: totalPages,
         latestCustomerIds: allCustomers.slice(0, 5).map(c => `ID:${c.id}-${c.attributes.name}`) || []
       });
       
