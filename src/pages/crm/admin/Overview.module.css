@@ -1,258 +1,162 @@
-.overview {
-  padding: 20px 0;
-}
+/* Overview 總覽頁樣式 — 與 SalesAnalytics 風格對齊 */
 
-.overviewContainer {
-  padding: 0 20px;
+.container {
+  padding: 20px;
   max-width: 1400px;
   margin: 0 auto;
-  overflow-x: hidden;
 }
 
-.pageTitle {
-  margin: 20px 0 24px 0;
-  color: #1f1f1f;
-  font-size: 24px;
-  font-weight: 500;
-}
-
-/* 統計卡片樣式 */
-.statsCards {
+.header {
   margin-bottom: 20px;
-}
-
-.card {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  background: #fff;
   border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 60vh;
+  gap: 12px;
+}
+
+/* 統計卡片 */
 .statCard {
   text-align: center;
+  height: 100%;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
 }
 
 .statCard:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.statCard .ant-statistic-title {
-  font-size: 14px;
-  color: rgba(0, 0, 0, 0.65);
-}
-
-.statCard .ant-statistic-content {
-  font-size: 24px;
-  font-weight: 500;
-}
-
-.trendIndicator {
-  margin-top: 10px;
-  font-size: 12px;
-  color: rgba(0, 0, 0, 0.45);
-}
-
-.tableCard {
-  margin-top: 24px;
-}
-
-.tableCard .ant-card-head-title {
-  font-weight: 500;
-}
-
-.chartContainer {
-  height: 300px;
-  width: 100%;
-}
-
-.filterCard {
-  margin-bottom: 20px;
-  border-radius: 6px;
-}
-
-.filterBar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.dashboardTitle {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 500;
-}
-
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-}
-
-@media (max-width: 768px) {
-  .filterBar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .dashboardTitle {
-    margin-bottom: 16px;
-  }
-  
-  .filters {
-    width: 100%;
-  }
-}
-
-.chartPlaceholder {
-  height: 400px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: #f9f9f9;
-  border-radius: 6px;
-}
-
-.cardTitle {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.infoText {
-  color: rgba(0, 0, 0, 0.65);
-  margin: 0;
-}
-
-.link {
-  display: block;
-  margin-top: 12px;
-}
-
-.sectionDivider {
-  margin: 24px 0;
-}
-
-/* 圖表卡片樣式 */
-.chartCard {
-  height: 400px;
-}
-
-.chartCard :global(.ant-card-head-title) {
-  font-size: 18px;
-}
-
-.chartsRow {
-  margin: 0 0 24px 0;
-}
-
-/* 最近活動卡片樣式 */
-.recentActivitiesCard {
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin: 0 0 24px 0;
-}
-
-.recentActivitiesCard :global(.ant-tabs-nav) {
-  margin-bottom: 16px;
-}
-
-.recentActivitiesCard :global(.ant-list-item) {
-  padding: 12px 0;
-}
-
-.recentActivitiesCard :global(.ant-list-item-meta-title) {
-  margin-bottom: 4px;
+  transform: translateY(-3px);
 }
 
 .smallText {
   font-size: 12px;
-  color: #999;
-  margin-left: 8px;
+  color: #8c8c8c;
+  margin-top: 6px;
 }
 
-/* 加載和錯誤樣式 */
-.loadingContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 0;
+/* 圖表卡片 */
+.chartCard {
+  margin-bottom: 16px;
+  height: 100%;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.loadingContainer p {
-  margin-top: 16px;
-  color: #666;
+.chartCard :global(.ant-card-head) {
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.errorAlert {
-  margin: 20px;
-}
-
-/* 圓餅圖樣式 */
-.recharts-wrapper .recharts-pie-label-text {
+.chartCard :global(.ant-card-head-title) {
+  font-size: 16px;
   font-weight: 500;
-  font-size: 14px;
 }
 
-.recharts-wrapper .recharts-legend-item-text {
-  font-size: 14px;
+/* 簡易表格 */
+.simpleTable {
+  margin-bottom: 16px;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-/* 響應式調整 */
-@media (max-width: 1200px) {
-  .chartsRow {
-    margin-bottom: 20px;
-  }
+/* 日期選擇器 — 與 SalesAnalytics 樣式對齊 */
+.dateInputWrapper {
+  position: relative;
+  display: inline-block;
 }
 
-@media (max-width: 768px) {
-  .overview, .overviewContainer {
-    padding: 0 10px;
-  }
-  
-  .pageTitle {
-    margin: 16px 0;
-    font-size: 20px;
-  }
-  
-  .statsRow, .chartsRow, .recentActivitiesCard {
-    margin: 0 0 16px 0;
-  }
-}
-
-.emptyChartContainer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 350px;
-  width: 100%;
-}
-
-.emptyChartContainer :global(.ant-empty) {
-  margin: 0;
-}
-
-.listItem {
-  padding: 12px 0;
-}
-
-.tag {
-  margin-right: 8px;
-}
-
-.dateRangePicker {
-  margin-bottom: 24px;
-}
-
-.contentWrapper {
-  padding: 24px;
-  background: #f0f2f5;
-  min-height: 100vh;
-}
-
-.statusTag {
+.dateAffix {
+  position: relative;
+  display: inline-block;
+  width: 200px;
+  border: 1px solid #d9d9d9;
   border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 12px;
-} 
+  background-color: white;
+  height: 38px;
+  transition: all 0.3s;
+}
+
+.dateAffix:hover {
+  border-color: #40a9ff;
+}
+
+.dateAffix:focus-within {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.dateInput {
+  width: 100%;
+  height: 100%;
+  padding: 4px 14px;
+  padding-right: 30px;
+  border: none !important;
+  background-color: transparent;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.85);
+  letter-spacing: 0.5px;
+  box-sizing: border-box;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.dateInput:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.dateInput::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  opacity: 0.7;
+  width: 16px;
+  height: 16px;
+  background-color: transparent;
+}
+
+.dateInput::-webkit-inner-spin-button,
+.dateInput::-webkit-clear-button {
+  display: none;
+}
+
+/* 當 input 為空時，蓋一個 placeholder 文字（native date input 的 placeholder 沒法直接用） */
+.dateEmpty .dateInput {
+  color: transparent;
+}
+
+.datePlaceholder {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #bfbfbf;
+  font-size: 14px;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 響應式 */
+@media (max-width: 768px) {
+  .container {
+    padding: 12px;
+  }
+  .header {
+    padding: 12px;
+  }
+  .dateAffix {
+    width: 100%;
+  }
+}

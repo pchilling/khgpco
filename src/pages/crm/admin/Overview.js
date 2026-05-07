@@ -346,14 +346,6 @@ const Overview = () => {
     color: '#1890ff'
   };
 
-  if (loading) {
-    return (
-        <div className={styles.loadingContainer}>
-          <Spin size="large" />
-      </div>
-    );
-  }
-
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -405,6 +397,7 @@ const Overview = () => {
         </Space>
       </div>
 
+      <Spin spinning={loading} tip="載入中...">
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} md={8}>
           <Card className={styles.statCard}>
@@ -478,6 +471,7 @@ const Overview = () => {
       </Card>
         </Col>
       </Row>
+      </Spin>
     </div>
   );
 };
