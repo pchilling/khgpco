@@ -14,6 +14,9 @@ const SalesRegistrationManagement = () => {
   const [filteredRegistrations, setFilteredRegistrations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
+  // 父表的 rowKey 是 "key"（group key），不是 registration id；
+  // 兩個分開存才能讓 checkbox 跟 batch 動作都對位
+  const [selectedGroupKeys, setSelectedGroupKeys] = useState([]);
   const [events, setEvents] = useState({});
   const [groupedData, setGroupedData] = useState([]);
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -920,8 +923,11 @@ const SalesRegistrationManagement = () => {
           rowKey="key"
           loading={loading}
           rowSelection={{
-            onChange: (_, rows) => setSelectedRows(rows.flatMap(group => group.registrations)),
-            selectedRowKeys: selectedRows.map(row => row.id),
+            onChange: (keys, rows) => {
+              setSelectedGroupKeys(keys);
+              setSelectedRows(rows.flatMap(group => group.registrations || []));
+            },
+            selectedRowKeys: selectedGroupKeys,
           }}
         />
       </Card>

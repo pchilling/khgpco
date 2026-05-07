@@ -832,6 +832,9 @@ const RegistrationManagement = () => {
     } else {
       setSelectedEventSessions([]);
     }
+    // 切換活動時，前一個活動的場次選擇就無效，避免 sessionIndex
+    // 仍指向不存在的場次而帶入錯誤值
+    addForm.setFieldValue('sessionIndex', undefined);
   };
 
   // 處理新增報名
@@ -1244,10 +1247,10 @@ const RegistrationManagement = () => {
               disabled: false,
             }),
           }}
-          pagination={false}
+          pagination={{ pageSize: 20, pageSizeOptions: ['10', '20', '50', '100'], showSizeChanger: true, showTotal: (t) => `共 ${t} 筆` }}
           rowKey={record => record.id}
           size="small"
-          style={{ 
+          style={{
             background: '#fafafa',
             margin: '0 32px'
           }}
