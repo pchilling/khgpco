@@ -39,13 +39,10 @@ const Overview = () => {
   const [selectedStaffId, setSelectedStaffId] = useState(undefined);
   const [salesStaffList, setSalesStaffList] = useState([]);
 
+  // 一個 useEffect 就夠 — 變更 dateRange 或 staff 篩選會自動重抓，mount 也算第一次
   useEffect(() => {
     fetchOverviewData();
-  }, []);
-
-  // 監聽篩選條件變化
-  useEffect(() => {
-    fetchOverviewData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange, selectedStaffId]);
 
   // 載入員工選單

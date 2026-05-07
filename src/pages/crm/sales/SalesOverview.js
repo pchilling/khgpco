@@ -102,7 +102,8 @@ const SalesOverview = () => {
     }
   };
 
-  useEffect(() => { fetchOverviewData(); }, []);
+  // 一個 useEffect 就夠 — dateRange 變更會自動重抓，mount 也算第一次
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchOverviewData(); }, [dateRange]);
 
   // 修正首次進入總覽不顯示：數據載入完成後強制觸發一次 resize 讓圖表重算尺寸
