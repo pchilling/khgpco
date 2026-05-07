@@ -51,12 +51,6 @@
   min-height: 100%;
 }
 
-.contentWrapper > * {
-  max-width: 1400px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
 /* 響應式設計 */
 @media (max-width: 768px) {
   .sider {
