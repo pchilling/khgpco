@@ -29,8 +29,20 @@ export function installAuthFetchInterceptor() {
 
   const originalFetch = window.fetch.bind(window);
 
+  const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
   window.fetch = (input, init = {}) => {
     if (!isOurApi(input)) {
+      return originalFetch(input, init);
+    }
+
+    // Only attach Authorization on write requests. GETs use Strapi's Public
+    // role (which permits find/findOne); attaching a Bearer header on a GET
+    // makes Strapi's users-permissions plugin try to verify it as a Strapi
+    // user JWT — our sales-staff JWT lives outside that table so verification
+    // fails with 401 before our own middleware ever runs.
+    const method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+    if (!WRITE_METHODS.has(method)) {
       return originalFetch(input, init);
     }
 
