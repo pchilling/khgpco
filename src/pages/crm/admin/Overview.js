@@ -21,7 +21,7 @@ import { PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { API_BASE_URL } from '../../../utils/api';
 import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import styles from './Overview.module.css';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import axios from 'axios';
 
 const { RangePicker } = DatePicker;
@@ -34,7 +34,7 @@ const Overview = () => {
   const [loading, setLoading] = useState(false);
   const [salesStaff, setSalesStaff] = useState([]);
   const [selectedStaff, setSelectedStaff] = useState('all');
-  const [dateRange, setDateRange] = useState([moment().startOf('month'), moment()]);
+  const [dateRange, setDateRange] = useState([dayjs().startOf('month'), dayjs()]);
   
   // 整合所有統計數據
   const [dashboardStats, setDashboardStats] = useState({
@@ -651,7 +651,7 @@ const Overview = () => {
                         <Tag color={getStatusColor(item.attributes.status)}>
                           {item.attributes.status}
                         </Tag>
-                        {moment(item.attributes.date).format('YYYY-MM-DD HH:mm')}
+                        {dayjs(item.attributes.date).format('YYYY-MM-DD HH:mm')}
                       </>
                     }
                   />

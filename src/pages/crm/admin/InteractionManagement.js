@@ -4,7 +4,6 @@ import { SearchOutlined, FilterOutlined, ReloadOutlined, ExportOutlined, DeleteO
 import * as XLSX from 'xlsx';
 import { API_BASE_URL } from '../../../utils/api';
 import { fetchAllStrapi } from '../../../utils/strapiPaginate';
-import moment from 'moment';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;

@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx';
 import styles from './CustomerManagement.module.css';
 import { API_BASE_URL } from '../../../utils/api';
 import { fetchAllStrapi } from '../../../utils/strapiPaginate';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -1358,7 +1358,7 @@ const CustomerManagement = () => {
     setCurrentCustomer(null);
     contactForm.resetFields();
     contactForm.setFieldsValue({
-      contact_date: moment(),
+      contact_date: dayjs(),
       contact_status: 'initial_contact',
       contact_outcome: 'neutral'
     });
@@ -1372,7 +1372,7 @@ const CustomerManagement = () => {
     contactForm.setFieldsValue({
       customer_id: customer.id,
       customer_name: customer.attributes.name,
-      contact_date: moment(),
+      contact_date: dayjs(),
       contact_status: 'initial_contact',
       contact_outcome: 'neutral'
     });
@@ -2466,7 +2466,7 @@ const CustomerManagement = () => {
             name="contact_date"
             label="聯絡日期"
             rules={[{ required: true, message: '請選擇聯絡日期' }]}
-            initialValue={moment()}
+            initialValue={dayjs()}
           >
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>

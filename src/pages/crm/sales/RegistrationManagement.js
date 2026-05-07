@@ -5,7 +5,6 @@ import { API_BASE_URL } from '../../../utils/api';
 import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import styles from './RegistrationManagement.module.css';
 import * as XLSX from 'xlsx';
-import moment from 'moment';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;

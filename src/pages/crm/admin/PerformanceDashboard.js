@@ -3,7 +3,7 @@ import { Card, Row, Col, Statistic, Table, Select, DatePicker, Button, Spin, Emp
 import { TeamOutlined, DollarOutlined, FieldTimeOutlined, UserOutlined, RiseOutlined, LineChartOutlined, PieChartOutlined, BarChartOutlined } from '@ant-design/icons';
 import { API_BASE_URL } from '../../../utils/api';
 import styles from './PerformanceDashboard.module.css';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
 const { TabPane } = Tabs;
@@ -13,7 +13,7 @@ const PerformanceDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [salesStaff, setSalesStaff] = useState([]);
   const [selectedStaff, setSelectedStaff] = useState('all');
-  const [dateRange, setDateRange] = useState([moment().subtract(30, 'days'), moment()]);
+  const [dateRange, setDateRange] = useState([dayjs().subtract(30, 'days'), dayjs()]);
   const [stats, setStats] = useState({
     totalDeals: 0,
     totalAmount: 0,

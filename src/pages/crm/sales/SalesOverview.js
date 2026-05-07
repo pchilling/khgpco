@@ -8,7 +8,7 @@ import {
   ArrowUpOutlined
 } from '@ant-design/icons';
 import { Line } from '@ant-design/plots';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import axios from 'axios';
 import { API_BASE_URL } from '../../../utils/api';
 
@@ -16,7 +16,7 @@ const { RangePicker } = DatePicker;
 
 const SalesOverview = () => {
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState([moment().startOf('month'), moment()]);
+  const [dateRange, setDateRange] = useState([dayjs().startOf('month'), dayjs()]);
   const [stats, setStats] = useState({
     totalCustomers: 0,
     activeDeals: 0,
@@ -95,8 +95,8 @@ const SalesOverview = () => {
       // 獲取待跟進客戶
       const followUps = interactions.filter(i => 
         i.attributes.next_follow_up && 
-        moment(i.attributes.next_follow_up).isAfter(moment())
-      ).sort((a, b) => moment(a.attributes.next_follow_up) - moment(b.attributes.next_follow_up));
+        dayjs(i.attributes.next_follow_up).isAfter(dayjs())
+      ).sort((a, b) => dayjs(a.attributes.next_follow_up) - dayjs(b.attributes.next_follow_up));
       
       setUpcomingFollowUps(followUps);
 
@@ -105,7 +105,7 @@ const SalesOverview = () => {
       const days = dateRange[1].diff(dateRange[0], 'days') + 1;
       
       for (let i = 0; i < days; i++) {
-        const date = moment(dateRange[0]).add(i, 'days').format('YYYY-MM-DD');
+        const date = dayjs(dateRange[0]).add(i, 'days').format('YYYY-MM-DD');
         trendData[date] = {
           date,
           amount: 0,
@@ -114,7 +114,7 @@ const SalesOverview = () => {
       }
 
       interactions.forEach(i => {
-        const date = moment(i.attributes.date).format('YYYY-MM-DD');
+        const date = dayjs(i.attributes.date).format('YYYY-MM-DD');
         if (trendData[date]) {
           trendData[date].interactions += 1;
           if (i.attributes.is_deal) {
@@ -278,7 +278,7 @@ const SalesOverview = () => {
                         <Tag color={getStatusColor(item.attributes.status)}>
                           {item.attributes.status}
                         </Tag>
-                        下次跟進: {moment(item.attributes.next_follow_up).format('YYYY-MM-DD')}
+                        下次跟進: {dayjs(item.attributes.next_follow_up).format('YYYY-MM-DD')}
                       </>
                     }
                   />
@@ -303,7 +303,7 @@ const SalesOverview = () => {
                         <Tag color={getStatusColor(item.attributes.status)}>
                           {item.attributes.status}
                         </Tag>
-                        {moment(item.attributes.date).format('YYYY-MM-DD HH:mm')}
+                        {dayjs(item.attributes.date).format('YYYY-MM-DD HH:mm')}
                       </>
                     }
                   />
