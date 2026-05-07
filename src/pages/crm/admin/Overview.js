@@ -76,11 +76,22 @@ const Overview = () => {
   const fetchOverviewData = async () => {
     try {
       setLoading(true);
-      // 三個獨立列表並行抓取，每個內部再分頁並行
+      // 只抓 Overview 實際需要的欄位，避免 populate=* 把媒體和巢狀關聯都拉回來
+      const customersQuery = '/api/customers?'
+        + 'fields[0]=createdAt&fields[1]=status&fields[2]=source'
+        + '&populate[sales_staff][fields][0]=id';
+      const interactionsQuery = '/api/interactions?'
+        + 'fields[0]=is_deal&fields[1]=deal_amount&fields[2]=payment_date&fields[3]=createdAt'
+        + '&populate[customer][fields][0]=name'
+        + '&populate[sales_staff][fields][0]=name&populate[sales_staff][fields][1]=username';
+      const registrationsQuery = '/api/registrations?'
+        + 'fields[0]=status&fields[1]=createdAt'
+        + '&populate[sales_staff][fields][0]=id';
+
       const [customers, interactions, registrations] = await Promise.all([
-        fetchAllStrapi(API_BASE_URL, '/api/customers?populate=*'),
-        fetchAllStrapi(API_BASE_URL, '/api/interactions?populate=*'),
-        fetchAllStrapi(API_BASE_URL, '/api/registrations?populate=sales_staff'),
+        fetchAllStrapi(API_BASE_URL, customersQuery),
+        fetchAllStrapi(API_BASE_URL, interactionsQuery),
+        fetchAllStrapi(API_BASE_URL, registrationsQuery),
       ]);
 
       // 篩選條件處理（日期）
