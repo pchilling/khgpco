@@ -30,12 +30,18 @@ const Interactions = () => {
     other: '其他'
   };
 
-  // 互動狀態映射
+  // 互動狀態映射（涵蓋兩種拼寫）
   const interactionStatusMap = {
     pending: { text: '待處理', color: 'orange' },
+    initial_contact: { text: '初次接觸', color: 'blue' },
+    follow_up: { text: '需跟進', color: 'blue' },
+    following_up: { text: '跟進中', color: 'cyan' },
+    negotiating: { text: '洽談中', color: 'orange' },
+    contract_signed: { text: '已簽約', color: 'gold' },
+    payment_received: { text: '已收款', color: 'green' },
     completed: { text: '已完成', color: 'green' },
     canceled: { text: '已取消', color: 'red' },
-    follow_up: { text: '需跟進', color: 'blue' }
+    cancelled: { text: '已取消', color: 'red' },
   };
 
   useEffect(() => {

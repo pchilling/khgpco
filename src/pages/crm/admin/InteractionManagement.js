@@ -21,12 +21,12 @@ const InteractionManagement = () => {
   const [selectedNotes, setSelectedNotes] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // 互動類型和狀態映射
+  // 互動類型和狀態映射（key 需與 Strapi enum 一致）
   const interactionTypeMap = {
-    call: '通話',
+    phone_call: '通話',
     email: '電子郵件',
     meeting: '會議',
-    visit: '參觀',
+    site_visit: '參觀',
     other: '其他'
   };
 
@@ -244,26 +244,30 @@ const InteractionManagement = () => {
 
   const getStatusColor = (status) => {
     const colors = {
+      'pending': 'orange',
       'initial_contact': 'blue',
       'following_up': 'cyan',
       'negotiating': 'orange',
       'contract_signed': 'gold',
       'payment_received': 'green',
       'completed': 'green',
-      'cancelled': 'red'
+      'cancelled': 'red',
+      'canceled': 'red',
     };
     return colors[status] || 'default';
   };
 
   const getStatusText = (status) => {
     const statusMap = {
+      'pending': '待處理',
       'initial_contact': '初次接觸',
       'following_up': '跟進中',
       'negotiating': '洽談中',
       'contract_signed': '已簽約',
       'payment_received': '已收款',
       'completed': '已完成',
-      'cancelled': '已取消'
+      'cancelled': '已取消',
+      'canceled': '已取消',
     };
     return statusMap[status] || status;
   };
