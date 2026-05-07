@@ -94,10 +94,15 @@ const Overview = () => {
         fetchAllStrapi(API_BASE_URL, registrationsQuery),
       ]);
 
-      // 篩選條件處理（日期）
+      // 篩選條件處理（日期）— dateRange 可能是 dayjs object 或字串
+      const toDate = (v) => {
+        if (!v) return null;
+        if (typeof v.toDate === 'function') return v.toDate();
+        return new Date(v);
+      };
       const hasRange = Array.isArray(dateRange) && dateRange[0] && dateRange[1];
-      const rangeStart = hasRange ? new Date(dateRange[0]) : null;
-      const rangeEnd = hasRange ? new Date(dateRange[1]) : null;
+      const rangeStart = hasRange ? toDate(dateRange[0]) : null;
+      const rangeEnd = hasRange ? toDate(dateRange[1]) : null;
       if (rangeStart) { rangeStart.setHours(0,0,0,0); }
       if (rangeEnd) { rangeEnd.setHours(23,59,59,999); }
 

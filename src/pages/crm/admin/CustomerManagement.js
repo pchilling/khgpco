@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 import styles from './CustomerManagement.module.css';
 import { API_BASE_URL } from '../../../utils/api';
 import { fetchAllStrapi } from '../../../utils/strapiPaginate';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -1108,9 +1108,14 @@ const CustomerManagement = () => {
         
         if (formValues.dateRange && formValues.dateRange[0] && formValues.dateRange[1]) {
           const beforeDate = filtered.length;
-          const getStr = (v) => (v && typeof v.format === 'function') ? v.format('YYYY-MM-DD') : v;
-          const startDate = new Date(getStr(formValues.dateRange[0]));
-          const endDate = new Date(getStr(formValues.dateRange[1]));
+          const toDate = (v) => {
+            if (!v) return null;
+            if (typeof v.toDate === 'function') return v.toDate();
+            return new Date(v);
+          };
+          const startDate = toDate(formValues.dateRange[0]);
+          startDate.setHours(0, 0, 0, 0);
+          const endDate = toDate(formValues.dateRange[1]);
           endDate.setHours(23, 59, 59, 999);
           
           filtered = filtered.filter(customer => {
@@ -1407,7 +1412,7 @@ const CustomerManagement = () => {
     setCurrentCustomer(null);
     contactForm.resetFields();
     contactForm.setFieldsValue({
-      contact_date: moment(),
+      contact_date: dayjs(),
       contact_status: 'initial_contact',
       contact_outcome: 'neutral'
     });
@@ -1421,7 +1426,7 @@ const CustomerManagement = () => {
     contactForm.setFieldsValue({
       customer_id: customer.id,
       customer_name: customer.id,
-      contact_date: moment(),
+      contact_date: dayjs(),
       contact_status: 'initial_contact',
       contact_outcome: 'neutral',
       is_deal: false,
@@ -2594,7 +2599,7 @@ const CustomerManagement = () => {
               {projects.map(p => (<Option key={p.id} value={p.id}>{p.attributes?.name || `建案 ${p.id}`}</Option>))}
             </Select>
           </Form.Item>
-          <Form.Item name="contact_date" label="聯絡日期" rules={[{ required: true, message: '請選擇聯絡日期' }]} initialValue={moment()}>
+          <Form.Item name="contact_date" label="聯絡日期" rules={[{ required: true, message: '請選擇聯絡日期' }]} initialValue={dayjs()}>
             <div className={styles.dateInputWrapper}>
               <div className={`${styles.dateAffix} ant-input-affix-wrapper`}>
                 <input type="date" className={`ant-input ${styles.dateInput}`} placeholder="yyyy/MM/dd" onChange={(e)=> contactForm.setFieldsValue({ contact_date: e.target.value })} />

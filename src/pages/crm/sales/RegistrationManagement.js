@@ -5,7 +5,6 @@ import { API_BASE_URL } from '../../../utils/api';
 import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import styles from './RegistrationManagement.module.css';
 import * as XLSX from 'xlsx';
-import moment from 'moment';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -536,8 +535,14 @@ const SalesRegistrationManagement = () => {
         }
         
         if (formValues.dateRange && formValues.dateRange[0] && formValues.dateRange[1]) {
-          const startDate = new Date(formValues.dateRange[0].format('YYYY-MM-DD'));
-          const endDate = new Date(formValues.dateRange[1].format('YYYY-MM-DD'));
+          // dayjs / moment 都有 .format()，但用 .toDate()/.startOf 更安全
+          const startDate = formValues.dateRange[0].toDate
+            ? formValues.dateRange[0].toDate()
+            : new Date(formValues.dateRange[0]);
+          startDate.setHours(0, 0, 0, 0);
+          const endDate = formValues.dateRange[1].toDate
+            ? formValues.dateRange[1].toDate()
+            : new Date(formValues.dateRange[1]);
           endDate.setHours(23, 59, 59, 999);
           
           filtered = filtered.filter(registration => {

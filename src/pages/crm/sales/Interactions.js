@@ -277,8 +277,10 @@ const Interactions = () => {
           );
         }
         if (formValues.dateRange && formValues.dateRange[0] && formValues.dateRange[1]) {
-          const startDate = new Date(formValues.dateRange[0].format('YYYY-MM-DD'));
-          const endDate = new Date(formValues.dateRange[1].format('YYYY-MM-DD'));
+          const toDate = (v) => (v && typeof v.toDate === 'function') ? v.toDate() : new Date(v);
+          const startDate = toDate(formValues.dateRange[0]);
+          startDate.setHours(0, 0, 0, 0);
+          const endDate = toDate(formValues.dateRange[1]);
           endDate.setHours(23, 59, 59, 999);
           filtered = filtered.filter(interaction => {
             if (!interaction.attributes.date) return false;
