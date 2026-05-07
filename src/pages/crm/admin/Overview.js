@@ -385,19 +385,11 @@ const Overview = () => {
   // 獲取統計數據
   const fetchStats = async () => {
     try {
-      const response = await axios.get('http://localhost:1337/api/interactions', {
-        params: {
-          filters: {
-            date: {
-              $gte: dateRange[0].format('YYYY-MM-DD'),
-              $lte: dateRange[1].format('YYYY-MM-DD')
-            }
-          },
-          populate: ['customer', 'sales_staff']
-        }
-      });
-
-      const interactions = response.data.data;
+      if (!dateRange || !dateRange[0] || !dateRange[1]) return;
+      const startDate = dateRange[0].format('YYYY-MM-DD');
+      const endDate = dateRange[1].format('YYYY-MM-DD');
+      const path = `/api/interactions?filters[date][$gte]=${startDate}&filters[date][$lte]=${endDate}&populate[0]=customer&populate[1]=sales_staff`;
+      const interactions = await fetchAllStrapi(API_BASE_URL, path);
       
       // 計算成交數和金額
       const deals = interactions.filter(i => i.attributes.is_deal);
@@ -469,13 +461,11 @@ const Overview = () => {
   // 獲取最近互動
   const fetchRecentInteractions = async () => {
     try {
-      const response = await axios.get('http://localhost:1337/api/interactions', {
+      const response = await axios.get(`${API_BASE_URL}/api/interactions`, {
         params: {
           sort: 'date:desc',
-          pagination: {
-            page: 1,
-            pageSize: 5
-          },
+          'pagination[page]': 1,
+          'pagination[pageSize]': 5,
           populate: ['customer', 'sales_staff']
         }
       });
