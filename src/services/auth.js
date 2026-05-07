@@ -2,22 +2,27 @@ import { API_BASE_URL } from '../utils/api';
 
 export const loginSalesStaff = async (credentials) => {
   try {
-    // 獲取銷售人員列表
-    const response = await fetch(`${API_BASE_URL}/api/sales-staffs?populate=*`);
-    
+    // 只抓對應帳號的紀錄（不再下載全部員工資料）
+    const params = new URLSearchParams();
+    params.set('filters[username][$eq]', credentials.username);
+    params.set('fields[0]', 'username');
+    params.set('fields[1]', 'password');
+    params.set('fields[2]', 'name');
+    params.set('fields[3]', 'role');
+    const response = await fetch(`${API_BASE_URL}/api/sales-staffs?${params.toString()}`);
+
     if (!response.ok) {
       throw new Error(`獲取數據失敗: ${response.status}`);
     }
-    
+
     const data = await response.json();
-    console.log('獲取到的銷售人員數據:', data);
-    
-    // 找到匹配的用戶
-    const user = data.data.find(staff => 
-      staff.attributes.username === credentials.username && 
+
+    // 後端只回傳 username 符合的紀錄；前端再驗密碼（仍非理想，但範圍縮到單一筆）
+    const user = (data.data || []).find(staff =>
+      staff.attributes.username === credentials.username &&
       staff.attributes.password === credentials.password
     );
-    
+
     if (!user) {
       throw new Error('用戶名或密碼錯誤');
     }
