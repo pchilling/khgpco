@@ -58,6 +58,12 @@ const RegistrationManagement = () => {
       });
       const key = `${eventId}-${sessionIndex}`;
 
+      // 場次日期（用於排序）
+      const sessionDateRaw = (typeof sessionObj === 'object' && sessionObj)
+        ? (sessionObj.datetime || sessionObj.startDateTime || sessionObj.date || sessionObj.eventDate)
+        : null;
+      const sessionDate = sessionDateRaw ? new Date(sessionDateRaw) : null;
+
       if (!grouped[key]) {
         grouped[key] = {
           key,
@@ -65,6 +71,7 @@ const RegistrationManagement = () => {
           sessionIndex,
           eventTitle,
           sessionName,
+          sessionDate,
           registrations: [],
           totalCount: 0,
           confirmedCount: 0
@@ -78,13 +85,18 @@ const RegistrationManagement = () => {
       }
     });
 
-    // 轉換為數組格式並按活動名稱和場次排序
+    // 依場次日期排序，最新在最上面（沒日期的群組排到最後）
     const groupedArray = Object.values(grouped).sort((a, b) => {
-      // 先按活動名稱排序
-      const titleCompare = a.eventTitle.localeCompare(b.eventTitle);
-      if (titleCompare !== 0) return titleCompare;
-      // 如果活動名稱相同，則按場次索引排序
-      return a.sessionIndex - b.sessionIndex;
+      const at = a.sessionDate ? a.sessionDate.getTime() : null;
+      const bt = b.sessionDate ? b.sessionDate.getTime() : null;
+      if (at === null && bt === null) {
+        const titleCompare = a.eventTitle.localeCompare(b.eventTitle);
+        if (titleCompare !== 0) return titleCompare;
+        return a.sessionIndex - b.sessionIndex;
+      }
+      if (at === null) return 1;
+      if (bt === null) return -1;
+      return bt - at;
     });
     
     console.log('分組後的資料:', groupedArray);
@@ -95,19 +107,29 @@ const RegistrationManagement = () => {
   const fetchRegistrations = async () => {
     setLoading(true);
     try {
-      // 修改 API 請求，確保獲取完整的活動資訊和業務資訊
-      const response = await fetch(`${API_BASE_URL}/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&sort=createdAt:desc`);
-      const data = await response.json();
-      
-      if (response.ok) {
-        console.log('報名資料:', data.data);
-        setRegistrations(data.data || []);
-        processRegistrations(data.data || []);
-      } else {
-        console.log('獲取報名資料失敗:', data);
-        setRegistrations([]);
-        setGroupedData([]);
+      // Strapi v4 預設一頁 25 筆，需手動分頁抓完
+      const pageSize = 100;
+      let allData = [];
+      let page = 1;
+      while (true) {
+        const url = `${API_BASE_URL}/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&sort=createdAt:desc&pagination[page]=${page}&pagination[pageSize]=${pageSize}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (!response.ok) {
+          console.log('獲取報名資料失敗:', data);
+          setRegistrations([]);
+          setGroupedData([]);
+          return;
+        }
+        const records = data.data || [];
+        allData = allData.concat(records);
+        const meta = data.meta && data.meta.pagination;
+        if (!meta || page >= meta.pageCount || records.length === 0) break;
+        page++;
       }
+      console.log('報名資料總數:', allData.length);
+      setRegistrations(allData);
+      processRegistrations(allData);
     } catch (error) {
       console.error('獲取報名資料錯誤:', error);
       setRegistrations([]);
@@ -137,29 +159,35 @@ const RegistrationManagement = () => {
   const fetchEvents = async () => {
     try {
       console.log('開始獲取活動資料');
-      const response = await fetch(`${API_BASE_URL}/api/events?populate=*`);
-      const data = await response.json();
-      
-      console.log('活動資料回應:', data);
-      
-      if (response.ok) {
-        // 將活動資料轉為 Map 結構，方便查詢
-        const eventsMap = {};
-        (data.data || []).forEach(event => {
-          console.log('處理活動:', event.id, event.attributes);
-          eventsMap[event.id] = {
-            ...event.attributes,
-            // 確保正確獲取 session 資料
-            sessions: Array.isArray(event.attributes.session) 
-              ? event.attributes.session 
-              : event.attributes.session?.data?.map(s => s.attributes.name) || []
-          };
-        });
-        console.log('處理後的活動資料:', eventsMap);
-        setEvents(eventsMap);
-      } else {
-        console.error('獲取活動資料失敗:', data);
+      // Strapi v4 預設一頁 25 筆，需手動分頁抓完
+      const pageSize = 100;
+      let allEvents = [];
+      let page = 1;
+      while (true) {
+        const url = `${API_BASE_URL}/api/events?populate=*&pagination[page]=${page}&pagination[pageSize]=${pageSize}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (!response.ok) {
+          console.error('獲取活動資料失敗:', data);
+          return;
+        }
+        const records = data.data || [];
+        allEvents = allEvents.concat(records);
+        const meta = data.meta && data.meta.pagination;
+        if (!meta || page >= meta.pageCount || records.length === 0) break;
+        page++;
       }
+      const eventsMap = {};
+      allEvents.forEach(event => {
+        eventsMap[event.id] = {
+          ...event.attributes,
+          sessions: Array.isArray(event.attributes.session)
+            ? event.attributes.session
+            : event.attributes.session?.data?.map(s => s.attributes.name) || []
+        };
+      });
+      console.log('活動資料總數:', allEvents.length);
+      setEvents(eventsMap);
     } catch (error) {
       console.error('獲取活動資料錯誤:', error);
     }

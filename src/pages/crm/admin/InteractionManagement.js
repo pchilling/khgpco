@@ -46,14 +46,31 @@ const InteractionManagement = () => {
     applyFilters();
   }, [interactions, searchKeyword]);
 
+  // Strapi v4 預設一頁 25 筆，需手動分頁抓完
+  const fetchAllPages = async (pathWithQuery) => {
+    const all = [];
+    let page = 1;
+    while (true) {
+      const sep = pathWithQuery.includes('?') ? '&' : '?';
+      const url = `${API_BASE_URL}${pathWithQuery}${sep}pagination[page]=${page}&pagination[pageSize]=100`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`API ${r.status}`);
+      const j = await r.json();
+      const records = j.data || [];
+      all.push(...records);
+      const meta = j.meta && j.meta.pagination;
+      if (!meta || page >= meta.pageCount || records.length === 0) break;
+      page++;
+    }
+    return all;
+  };
+
   const fetchInteractions = async () => {
     try {
       setLoading(true);
-      // 管理員獲取所有互動記錄
-      const response = await fetch(`${API_BASE_URL}/api/interactions?populate=*&sort=date:desc`);
-      const data = await response.json();
-      setInteractions(data.data || []);
-      setFilteredInteractions(data.data || []);
+      const all = await fetchAllPages('/api/interactions?populate=*&sort=date:desc');
+      setInteractions(all);
+      setFilteredInteractions(all);
     } catch (error) {
       console.error('Error fetching interactions:', error);
       message.error('獲取互動記錄失敗');
@@ -64,9 +81,8 @@ const InteractionManagement = () => {
 
   const fetchSalesStaff = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/sales-staffs`);
-      const data = await response.json();
-      setSalesStaff(data.data);
+      const all = await fetchAllPages('/api/sales-staffs');
+      setSalesStaff(all);
     } catch (error) {
       console.error('Error fetching sales staff:', error);
     }
@@ -74,9 +90,8 @@ const InteractionManagement = () => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/customers?populate=*`);
-      const data = await response.json();
-      setCustomers(data.data || []);
+      const all = await fetchAllPages('/api/customers?populate=*');
+      setCustomers(all);
     } catch (error) {
       console.error('Error fetching customers:', error);
     }

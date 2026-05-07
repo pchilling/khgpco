@@ -113,15 +113,30 @@ const Overview = () => {
     setError(null);
     
     try {
-      // 獲取註冊數據
-      const registrationsResponse = await fetch(`${API_BASE_URL}/api/registrations?sort=createdAt:desc`);
-      if (!registrationsResponse.ok) throw new Error('獲取報名數據失敗');
-      const registrationsData = await registrationsResponse.json();
-      
-      // 獲取客戶數據
-      const customersResponse = await fetch(`${API_BASE_URL}/api/customers?sort=createdAt:desc`);
-      if (!customersResponse.ok) throw new Error('獲取客戶數據失敗');
-      const customersData = await customersResponse.json();
+      // Strapi v4 預設一頁 25 筆，需手動分頁抓完
+      const fetchAllPages = async (pathWithQuery, errMsg) => {
+        const all = [];
+        let page = 1;
+        while (true) {
+          const sep = pathWithQuery.includes('?') ? '&' : '?';
+          const url = `${API_BASE_URL}${pathWithQuery}${sep}pagination[page]=${page}&pagination[pageSize]=100`;
+          const r = await fetch(url);
+          if (!r.ok) throw new Error(errMsg);
+          const j = await r.json();
+          const records = j.data || [];
+          all.push(...records);
+          const meta = j.meta && j.meta.pagination;
+          if (!meta || page >= meta.pageCount || records.length === 0) break;
+          page++;
+        }
+        return all;
+      };
+
+      const registrationsAll = await fetchAllPages('/api/registrations?sort=createdAt:desc', '獲取報名數據失敗');
+      const customersAll = await fetchAllPages('/api/customers?sort=createdAt:desc', '獲取客戶數據失敗');
+      // Wrap to keep downstream code unchanged
+      const registrationsData = { data: registrationsAll };
+      const customersData = { data: customersAll };
       
       // 獲取銷售人員數據
       const staffResponse = await fetch(`${API_BASE_URL}/api/sales-staffs`);
