@@ -1,79 +1,52 @@
 import { API_BASE_URL } from '../utils/api';
 
 export const loginSalesStaff = async (credentials) => {
-  try {
-    // 只抓對應帳號的紀錄（不再下載全部員工資料）
-    const params = new URLSearchParams();
-    params.set('filters[username][$eq]', credentials.username);
-    params.set('fields[0]', 'username');
-    params.set('fields[1]', 'password');
-    params.set('fields[2]', 'name');
-    params.set('fields[3]', 'role');
-    const response = await fetch(`${API_BASE_URL}/api/sales-staffs?${params.toString()}`);
+  // 打 CMS 自製的 /api/auth/sales-staff/login，後端比對密碼後回真的 JWT。
+  // 之後所有寫請求帶 Authorization: Bearer <jwt> 就能通過 sales-staff-jwt
+  // middleware；GET 仍由 Public role 處理。
+  const response = await fetch(`${API_BASE_URL}/api/auth/sales-staff/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      username: credentials.username,
+      password: credentials.password,
+    }),
+  });
 
-    if (!response.ok) {
-      throw new Error(`獲取數據失敗: ${response.status}`);
-    }
+  let body = null;
+  try { body = await response.json(); } catch {}
 
-    const data = await response.json();
-
-    // 後端只回傳 username 符合的紀錄；前端再驗密碼（仍非理想，但範圍縮到單一筆）
-    const user = (data.data || []).find(staff =>
-      staff.attributes.username === credentials.username &&
-      staff.attributes.password === credentials.password
-    );
-
-    if (!user) {
-      throw new Error('用戶名或密碼錯誤');
-    }
-    
-    // 生成 token
-    const token = `token_${Date.now()}`;
-    
-    // 使用自定義 token（移除有問題的 Strapi JWT 獲取邏輯）
-    let jwtToken = token;
-    
-    console.log('登入成功，用戶資訊:', {
-      id: user.id,
-      username: user.attributes.username,
-      role: user.attributes.role
-    });
-    
-    // 創建包含完整資訊的用戶對象
-    const userWithJwt = {
-      id: user.id,
-      username: user.attributes.username,
-      name: user.attributes.name,
-      role: user.attributes.role,
-      jwt: jwtToken
-    };
-    
-    console.log('登入成功，用戶資訊:', userWithJwt);
-    
-    // 儲存到 localStorage
-    localStorage.setItem('token', jwtToken);
-    localStorage.setItem('user', JSON.stringify(userWithJwt));
-    localStorage.setItem('salesStaff', JSON.stringify(userWithJwt)); // 為了兼容性，同時保存兩個
-    
-    // 儲存用戶資訊和權限
-    return {
-      jwt: jwtToken,
-      user: userWithJwt
-    };
-  } catch (error) {
-    console.error('登入錯誤:', error);
-    throw error;
+  if (!response.ok) {
+    const msg = body?.error?.message || body?.message || `登入失敗 (${response.status})`;
+    throw new Error(msg);
   }
+
+  if (!body?.jwt || !body?.user) {
+    throw new Error('登入回應格式錯誤');
+  }
+
+  const userWithJwt = {
+    id: body.user.id,
+    username: body.user.username,
+    name: body.user.name,
+    role: body.user.role,
+    jwt: body.jwt,
+  };
+
+  localStorage.setItem('token', body.jwt);
+  localStorage.setItem('user', JSON.stringify(userWithJwt));
+  localStorage.setItem('salesStaff', JSON.stringify(userWithJwt));
+
+  return { jwt: body.jwt, user: userWithJwt };
 };
 
 export const checkAuth = () => {
   const token = localStorage.getItem('token');
   const user = JSON.parse(localStorage.getItem('user') || 'null');
-  
   return {
     isAuthenticated: !!token && !!user,
     user,
-    token
+    token,
   };
 };
 
@@ -82,4 +55,10 @@ export const logout = () => {
   localStorage.removeItem('user');
   localStorage.removeItem('salesStaff');
   window.location.href = '/#/crm/login';
-}; 
+};
+
+// 簡單 helper：在 fetch 上加 Authorization header
+export const authHeader = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};

@@ -2,6 +2,10 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
+import { installAuthFetchInterceptor } from './utils/fetchInterceptor';
+
+// Install before any component mounts so all CRM fetches see Authorization.
+installAuthFetchInterceptor();
 
 if (process.env.NODE_ENV === 'development') {
   window.console = window._originalConsole || console;
