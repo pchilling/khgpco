@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Space, DatePicker, Select, Spin, Empty } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined, UserOutlined, DollarOutlined, PieChartOutlined } from '@ant-design/icons';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import styles from './Overview.module.css';
 import ReactECharts from 'echarts-for-react';
 
@@ -75,26 +76,12 @@ const Overview = () => {
   const fetchOverviewData = async () => {
     try {
       setLoading(true);
-      // 統一用分頁抓滿所有頁
-      const fetchAll = async (baseUrl) => {
-        let all = [];
-        let page = 1;
-        let pageCount = 1;
-        do {
-          const url = `${baseUrl}&pagination[page]=${page}&pagination[pageSize]=1000`;
-          const resp = await fetch(url);
-          const json = await resp.json();
-          all = all.concat(json?.data || []);
-          pageCount = json?.meta?.pagination?.pageCount || 1;
-          page += 1;
-        } while (page <= pageCount);
-        return all;
-      };
-
-      // 客戶、互動、報名資料（抓全量）
-      const customers = await fetchAll(`${API_BASE_URL}/api/customers?populate=*`);
-      const interactions = await fetchAll(`${API_BASE_URL}/api/interactions?populate=*`);
-      const registrations = await fetchAll(`${API_BASE_URL}/api/registrations?populate=sales_staff`);
+      // 三個獨立列表並行抓取，每個內部再分頁並行
+      const [customers, interactions, registrations] = await Promise.all([
+        fetchAllStrapi(API_BASE_URL, '/api/customers?populate=*'),
+        fetchAllStrapi(API_BASE_URL, '/api/interactions?populate=*'),
+        fetchAllStrapi(API_BASE_URL, '/api/registrations?populate=sales_staff'),
+      ]);
 
       // 篩選條件處理（日期）
       const hasRange = Array.isArray(dateRange) && dateRange[0] && dateRange[1];

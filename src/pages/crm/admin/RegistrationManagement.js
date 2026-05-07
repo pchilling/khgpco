@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Table, Card, Button, Space, Tag, Modal, Select, message, Popconfirm, Tooltip, Form, Input, DatePicker, Upload, Row, Col, Switch } from 'antd';
 import { UserAddOutlined, UserSwitchOutlined, DownloadOutlined, DeleteOutlined, DownOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import styles from './RegistrationManagement.module.css';
 import * as XLSX from 'xlsx';
 
@@ -55,6 +56,12 @@ const RegistrationManagement = () => {
       
       const key = `${eventId}-${sessionIndex}`;
 
+      // 場次日期（用於排序：最新活動在最上面）
+      const sessionDateRaw = (typeof sessionObj === 'object' && sessionObj)
+        ? (sessionObj.datetime || sessionObj.startDateTime || sessionObj.date || sessionObj.eventDate)
+        : null;
+      const sessionDate = sessionDateRaw ? new Date(sessionDateRaw) : null;
+
       if (!grouped[key]) {
         grouped[key] = {
           key,
@@ -62,6 +69,7 @@ const RegistrationManagement = () => {
           sessionIndex,
           eventTitle,
           sessionName,
+          sessionDate,
           registrations: [],
           totalCount: 0,
           confirmedCount: 0
@@ -75,35 +83,30 @@ const RegistrationManagement = () => {
       }
     });
 
-    // 轉換為數組格式並按活動名稱和場次排序
+    // 依場次日期排序，最新在最上面（沒日期的群組排到最後）
     const groupedArray = Object.values(grouped).sort((a, b) => {
-      // 先按活動名稱排序
-      const titleCompare = a.eventTitle.localeCompare(b.eventTitle);
-      if (titleCompare !== 0) return titleCompare;
-      // 如果活動名稱相同，則按場次索引排序
-      return a.sessionIndex - b.sessionIndex;
+      const at = a.sessionDate ? a.sessionDate.getTime() : null;
+      const bt = b.sessionDate ? b.sessionDate.getTime() : null;
+      if (at === null && bt === null) {
+        const titleCompare = a.eventTitle.localeCompare(b.eventTitle);
+        if (titleCompare !== 0) return titleCompare;
+        return a.sessionIndex - b.sessionIndex;
+      }
+      if (at === null) return 1;
+      if (bt === null) return -1;
+      return bt - at;
     });
-    
+
     setGroupedData(groupedArray);
   };
 
-  // 修改獲取報名資料的函數
   const fetchRegistrations = async () => {
     setLoading(true);
     try {
-      const base = `${API_BASE_URL}/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&sort=createdAt:desc`;
-      let all = [];
-      let page = 1;
-      let pageCount = 1;
-      do {
-        const resp = await fetch(`${base}&pagination[page]=${page}&pagination[pageSize]=1000`);
-        const data = await resp.json();
-        if (!resp.ok) throw new Error('獲取報名資料失敗');
-        all = all.concat(data.data || []);
-        pageCount = data.meta?.pagination?.pageCount || 1;
-        page += 1;
-      } while (page <= pageCount);
-
+      const all = await fetchAllStrapi(
+        API_BASE_URL,
+        '/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&sort=createdAt:desc'
+      );
       setRegistrations(all);
       processRegistrations(all);
     } catch (error) {

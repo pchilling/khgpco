@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, DatePicker, Tooltip, Switch, InputNumber } from 'antd';
 import { PlusOutlined, FilterOutlined, SearchOutlined, ReloadOutlined, DeleteOutlined, EditOutlined, SmileTwoTone, MehTwoTone, FrownTwoTone, QuestionCircleTwoTone } from '@ant-design/icons';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import * as XLSX from 'xlsx';
 
 const { TextArea } = Input;
@@ -57,27 +58,12 @@ const Interactions = () => {
       setLoading(true);
       const user = JSON.parse(localStorage.getItem('user'));
       
-      // 先抓取當前業務名下的客戶清單（分頁抓滿），建立 ID Set
-      const fetchAll = async (baseUrl) => {
-        let all = [];
-        let page = 1;
-        let pageCount = 1;
-        do {
-          const url = `${baseUrl}&pagination[page]=${page}&pagination[pageSize]=1000`;
-          const resp = await fetch(url);
-          const json = await resp.json();
-          all = all.concat(json?.data || []);
-          pageCount = json?.meta?.pagination?.pageCount || 1;
-          page += 1;
-        } while (page <= pageCount);
-        return all;
-      };
-
-      const myCustomers = await fetchAll(`${API_BASE_URL}/api/customers?filters[sales_staff][id][$eq]=${user.id}`);
+      // 我的客戶 + 全部互動記錄並行抓
+      const [myCustomers, allInteractions] = await Promise.all([
+        fetchAllStrapi(API_BASE_URL, `/api/customers?filters[sales_staff][id][$eq]=${user.id}`),
+        fetchAllStrapi(API_BASE_URL, `/api/interactions?populate[]=customer&populate[]=sales_staff&populate[]=project&sort[0]=date:desc`),
+      ]);
       const myCustomerIds = new Set((myCustomers || []).map(c => c.id));
-
-      // 再抓取互動記錄（分頁抓滿），前端過濾屬於自己與自己客戶的紀錄
-      const allInteractions = await fetchAll(`${API_BASE_URL}/api/interactions?populate[]=customer&populate[]=sales_staff&populate[]=project&sort[0]=date:desc`);
 
       const safe = (allInteractions || []).filter(it => {
         const custId = it?.attributes?.customer?.data?.id;
@@ -98,22 +84,10 @@ const Interactions = () => {
   const fetchCustomers = async () => {
     try {
       const user = JSON.parse(localStorage.getItem('user'));
-      // 分頁抓滿我的客戶
-      const fetchAll = async (baseUrl) => {
-        let all = [];
-        let page = 1;
-        let pageCount = 1;
-        do {
-          const url = `${baseUrl}&pagination[page]=${page}&pagination[pageSize]=1000`;
-          const resp = await fetch(url);
-          const json = await resp.json();
-          all = all.concat(json?.data || []);
-          pageCount = json?.meta?.pagination?.pageCount || 1;
-          page += 1;
-        } while (page <= pageCount);
-        return all;
-      };
-      const allCustomers = await fetchAll(`${API_BASE_URL}/api/customers?filters[sales_staff][id][$eq]=${user.id}&populate=*`);
+      const allCustomers = await fetchAllStrapi(
+        API_BASE_URL,
+        `/api/customers?filters[sales_staff][id][$eq]=${user.id}&populate=*`
+      );
       setCustomers(allCustomers || []);
     } catch (error) {
       console.error('Error fetching customers:', error);

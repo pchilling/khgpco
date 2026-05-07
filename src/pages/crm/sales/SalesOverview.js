@@ -3,6 +3,7 @@ import { Card, Row, Col, Statistic, Space, Spin, Empty, message, DatePicker } fr
 import { UserOutlined, InteractionOutlined, DollarOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import styles from './SalesOverview.module.css';
 
 // 所有可能的客戶階段及對應顏色
@@ -51,25 +52,11 @@ const SalesOverview = () => {
         return;
       }
 
-      const fetchAll = async (baseUrl) => {
-        let all = [];
-        let page = 1;
-        let pageCount = 1;
-        do {
-          const url = `${baseUrl}&pagination[page]=${page}&pagination[pageSize]=1000`;
-          const resp = await fetch(url);
-          if (!resp.ok) throw new Error(`Fetch failed: ${url}`);
-          const json = await resp.json();
-          all = all.concat(json?.data || []);
-          pageCount = json?.meta?.pagination?.pageCount || 1;
-          page += 1;
-        } while (page <= pageCount);
-        return all;
-      };
-
-      // 獲取該銷售人員的所有客戶與互動（分頁抓滿）
-      const customers = await fetchAll(`${API_BASE_URL}/api/customers?filters[sales_staff][id]=${currentUser.id}&populate=sales_staff`);
-      const interactions = await fetchAll(`${API_BASE_URL}/api/interactions?filters[sales_staff][id]=${currentUser.id}&populate=customer,sales_staff`);
+      // 獲取該銷售人員的所有客戶與互動（兩個 list 並行抓，每個內部分頁也並行）
+      const [customers, interactions] = await Promise.all([
+        fetchAllStrapi(API_BASE_URL, `/api/customers?filters[sales_staff][id]=${currentUser.id}&populate=sales_staff`),
+        fetchAllStrapi(API_BASE_URL, `/api/interactions?filters[sales_staff][id]=${currentUser.id}&populate=customer,sales_staff`),
+      ]);
 
       const hasRange = Array.isArray(dateRange) && dateRange[0] && dateRange[1];
       const rangeStart = hasRange ? new Date(dateRange[0].startOf('day').toDate()) : null;

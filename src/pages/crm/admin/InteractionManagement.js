@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, Table, Button, Space, Modal, Form, Input, Select, DatePicker, Tag, Tooltip, message, Switch, InputNumber } from 'antd';
 import { PlusOutlined, FilterOutlined, SearchOutlined, ReloadOutlined, DeleteOutlined, EditOutlined, ExportOutlined, SmileTwoTone, MehTwoTone, FrownTwoTone, QuestionCircleTwoTone } from '@ant-design/icons';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import * as XLSX from 'xlsx';
 
 const { TextArea } = Input;
@@ -66,29 +67,14 @@ export default function InteractionManagement() {
     return undefined;
   };
 
-  const fetchAll = async (baseUrl) => {
-    let all = [];
-    let page = 1;
-    let pageCount = 1;
-    do {
-      const url = `${baseUrl}&pagination[page]=${page}&pagination[pageSize]=1000`;
-      const resp = await fetch(url);
-      const json = await resp.json();
-      all = all.concat(json?.data || []);
-      pageCount = json?.meta?.pagination?.pageCount || 1;
-      page += 1;
-    } while (page <= pageCount);
-    return all;
-  };
-
   const loadData = async () => {
     try {
       setLoading(true);
       const [ints, custs, staff, projs] = await Promise.all([
-        fetchAll(`${API_BASE_URL}/api/interactions?populate[]=customer&populate[]=sales_staff&populate[]=project&sort[0]=date:desc`),
-        fetchAll(`${API_BASE_URL}/api/customers?populate=sales_staff&sort=updatedAt:desc`),
-        fetchAll(`${API_BASE_URL}/api/sales-staffs?populate=*`),
-        fetchAll(`${API_BASE_URL}/api/projects?populate=*`)
+        fetchAllStrapi(API_BASE_URL, '/api/interactions?populate[]=customer&populate[]=sales_staff&populate[]=project&sort[0]=date:desc'),
+        fetchAllStrapi(API_BASE_URL, '/api/customers?populate=sales_staff&sort=updatedAt:desc'),
+        fetchAllStrapi(API_BASE_URL, '/api/sales-staffs?populate=*'),
+        fetchAllStrapi(API_BASE_URL, '/api/projects?populate=*'),
       ]);
       setInteractions(ints || []);
       setFilteredInteractions(ints || []);

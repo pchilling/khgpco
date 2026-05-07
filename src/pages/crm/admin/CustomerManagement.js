@@ -5,6 +5,7 @@ import { SmileTwoTone, MehTwoTone, FrownTwoTone, QuestionCircleTwoTone } from '@
 import * as XLSX from 'xlsx';
 import styles from './CustomerManagement.module.css';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import moment from 'moment';
 
 const { TextArea } = Input;
@@ -325,27 +326,8 @@ const CustomerManagement = () => {
     try {
       setLoading(true);
       
-      // 獲取所有客戶數據 - 使用更大的 pageSize 或分批獲取
-      let allCustomers = [];
-      let currentPage = 1;
-      let totalPages = 1;
-      
-      do {
-        const response = await fetch(
-          `${API_BASE_URL}/api/customers?populate=*&sort=updatedAt:desc&pagination[page]=${currentPage}&pagination[pageSize]=100`
-        );
-      const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(`API請求失敗: ${response.status}`);
-        }
-        
-        allCustomers = [...allCustomers, ...(data.data || [])];
-        totalPages = data.meta?.pagination?.pageCount || 1;
-        currentPage++;
-        
-        
-      } while (currentPage <= totalPages);
+      // 並行抓取所有客戶數據
+      const allCustomers = await fetchAllStrapi(API_BASE_URL, '/api/customers?populate=*&sort=updatedAt:desc');
       
       
       // 檢查數據來源統計

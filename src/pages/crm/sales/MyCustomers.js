@@ -3,6 +3,7 @@ import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, T
 import { EditOutlined, FileAddOutlined, PhoneOutlined, MailOutlined, SearchOutlined, FilterOutlined, ReloadOutlined, InteractionOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -84,25 +85,11 @@ const MyCustomers = () => {
         return;
       }
 
-      // 分頁抓取所有客戶資料，與SalesOverview.js保持一致
-      const fetchAll = async (baseUrl) => {
-        let all = [];
-        let page = 1;
-        let pageCount = 1;
-        do {
-          const url = `${baseUrl}&pagination[page]=${page}&pagination[pageSize]=1000`;
-          const resp = await fetch(url);
-          if (!resp.ok) throw new Error(`Fetch failed: ${url}`);
-          const json = await resp.json();
-          all = all.concat(json?.data || []);
-          pageCount = json?.meta?.pagination?.pageCount || 1;
-          page += 1;
-        } while (page <= pageCount);
-        return all;
-      };
-
-      // 只獲取分配給當前銷售人員的客戶
-      const customers = await fetchAll(`${API_BASE_URL}/api/customers?filters[sales_staff][id][$eq]=${user.id}&populate=*`);
+      // 只獲取分配給當前銷售人員的客戶（分頁並行）
+      const customers = await fetchAllStrapi(
+        API_BASE_URL,
+        `/api/customers?filters[sales_staff][id][$eq]=${user.id}&populate=*`
+      );
       setCustomers(customers);
       setFilteredCustomers(customers);
     } catch (error) {

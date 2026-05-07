@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Card, Button, Space, Tag, Modal, Select, message, Popconfirm, Tooltip, Form, Input, DatePicker, Row, Col, Switch, Alert, Empty, Spin } from 'antd';
 import { UserAddOutlined, UserSwitchOutlined, DownloadOutlined, DeleteOutlined, DownOutlined, PlusOutlined, SearchOutlined, FilterOutlined, ReloadOutlined } from '@ant-design/icons';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import styles from './RegistrationManagement.module.css';
 import * as XLSX from 'xlsx';
 import moment from 'moment';
@@ -89,6 +90,12 @@ const SalesRegistrationManagement = () => {
       
       const key = `${eventId}-${sessionIndex}`;
 
+      // 場次日期（用於排序：最新活動在最上面）
+      const sessionDateRaw = (typeof sessionObj === 'object' && sessionObj)
+        ? (sessionObj.datetime || sessionObj.startDateTime || sessionObj.date || sessionObj.eventDate)
+        : null;
+      const sessionDate = sessionDateRaw ? new Date(sessionDateRaw) : null;
+
       if (!grouped[key]) {
         grouped[key] = {
           key,
@@ -96,6 +103,7 @@ const SalesRegistrationManagement = () => {
           sessionIndex,
           eventTitle,
           sessionName,
+          sessionDate,
           registrations: [],
           totalCount: 0,
           confirmedCount: 0
@@ -109,13 +117,20 @@ const SalesRegistrationManagement = () => {
       }
     });
 
-    // 轉換為數組格式並按活動名稱和場次排序
+    // 依場次日期排序，最新在最上面（沒日期的群組排到最後）
     const groupedArray = Object.values(grouped).sort((a, b) => {
-      const titleCompare = a.eventTitle.localeCompare(b.eventTitle);
-      if (titleCompare !== 0) return titleCompare;
-      return a.sessionIndex - b.sessionIndex;
+      const at = a.sessionDate ? a.sessionDate.getTime() : null;
+      const bt = b.sessionDate ? b.sessionDate.getTime() : null;
+      if (at === null && bt === null) {
+        const titleCompare = a.eventTitle.localeCompare(b.eventTitle);
+        if (titleCompare !== 0) return titleCompare;
+        return a.sessionIndex - b.sessionIndex;
+      }
+      if (at === null) return 1;
+      if (bt === null) return -1;
+      return bt - at;
     });
-    
+
     setGroupedData(groupedArray);
   };
 
@@ -132,21 +147,10 @@ const SalesRegistrationManagement = () => {
       }
       
       const userId = user.id || user.attributes?.id;
-
-      // 分頁抓滿我的報名資料
-      const base = `${API_BASE_URL}/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&filters[sales_staff][id][$eq]=${userId}&sort=createdAt:desc`;
-      let all = [];
-      let page = 1;
-      let pageCount = 1;
-      do {
-        const resp = await fetch(`${base}&pagination[page]=${page}&pagination[pageSize]=1000`);
-        const data = await resp.json();
-        if (!resp.ok) throw new Error('獲取報名資料失敗');
-        all = all.concat(data?.data || []);
-        pageCount = data?.meta?.pagination?.pageCount || 1;
-        page += 1;
-      } while (page <= pageCount);
-
+      const all = await fetchAllStrapi(
+        API_BASE_URL,
+        `/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&filters[sales_staff][id][$eq]=${userId}&sort=createdAt:desc`
+      );
       setRegistrations(all);
       setFilteredRegistrations(all);
       processRegistrations(all);
@@ -161,19 +165,7 @@ const SalesRegistrationManagement = () => {
   // 獲取活動資料
   const fetchEvents = async () => {
     try {
-      // 分頁抓滿活動，只取需要欄位
-      const base = `${API_BASE_URL}/api/events?populate[session]=*&fields[0]=title`;
-      let all = [];
-      let page = 1;
-      let pageCount = 1;
-      do {
-        const resp = await fetch(`${base}&pagination[page]=${page}&pagination[pageSize]=1000`);
-        const data = await resp.json();
-        if (!resp.ok) throw new Error('獲取活動資料失敗');
-        all = all.concat(data?.data || []);
-        pageCount = data?.meta?.pagination?.pageCount || 1;
-        page += 1;
-      } while (page <= pageCount);
+      const all = await fetchAllStrapi(API_BASE_URL, '/api/events?populate[session]=*&fields[0]=title');
       
       const eventsMap = {};
       (all || []).forEach(event => {
