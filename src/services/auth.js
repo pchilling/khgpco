@@ -8,7 +8,8 @@ export const loginSalesStaff = async (credentials) => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      username: credentials.username,
+      // backend accepts either `email` or `username` and looks up both columns
+      email: credentials.email || credentials.username,
       password: credentials.password,
     }),
   });
