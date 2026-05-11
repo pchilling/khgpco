@@ -18,6 +18,7 @@ import ContactButton from './components/ContactButton';
 import EventDetail from './pages/EventDetail';
 
 import ProtectedRoute from './components/ProtectedRoute';
+import AuthGuard from './components/AuthGuard';
 
 // Lazy-load CRM pages so login + public site don't pay for them up-front.
 // Each chunk loads only when the user navigates to it.
@@ -134,6 +135,7 @@ function App() {
     return (
         <LanguageProvider>
             <Router>
+                <AuthGuard />
                 <Suspense fallback={<RouteFallback />}>
                 <Routes>
                     {/* CRM 路由 */}
