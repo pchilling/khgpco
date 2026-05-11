@@ -1,24 +1,49 @@
 /**
  * Wraps window.fetch so every call into our Strapi backend automatically
- * carries the sales-staff JWT (if one exists in localStorage). Lets us
- * gate writes behind real auth without modifying every page's fetch call.
+ * carries the sales-staff JWT (if one exists in localStorage), and so any
+ * 401 from our API kicks the user back to the login page instead of
+ * surfacing a cryptic "失敗" toast deep inside the CRM.
  *
- * Only attaches the header for requests whose URL starts with
- * REACT_APP_API_URL — public-site URLs and 3rd-party requests are untouched.
- *
- * Public site write endpoints (POST /api/registrations, POST /api/contact-messages)
- * are allowlisted in the CMS middleware, so the interceptor adding a
- * (non-existent) header to them is fine — when a logged-out visitor submits
- * those forms there's no token to attach in the first place.
+ * - Only attaches Authorization on write requests (POST/PUT/PATCH/DELETE);
+ *   GETs still ride the Public role.
+ * - Only touches URLs that start with REACT_APP_API_URL — public site and
+ *   3rd-party requests are untouched.
+ * - On a 401 from our API, clears stored credentials and redirects to
+ *   /crm/login. Login POSTs are excluded so wrong-password attempts don't
+ *   redirect mid-typing.
  */
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+const LOGIN_PATH_FRAGMENT = '/api/auth/sales-staff/login';
+const LOGIN_HASH = '#/crm/login';
 
 const isOurApi = (input) => {
   if (!API_BASE_URL) return false;
   if (typeof input === 'string') return input.startsWith(API_BASE_URL);
   if (input && typeof input.url === 'string') return input.url.startsWith(API_BASE_URL);
   return false;
+};
+
+const urlOf = (input) =>
+  typeof input === 'string' ? input : (input && input.url) || '';
+
+const isLoginRequest = (input) => urlOf(input).includes(LOGIN_PATH_FRAGMENT);
+
+const redirectingToLogin = () =>
+  typeof window !== 'undefined' && window.location.hash.startsWith('#/crm/login');
+
+const clearCredentialsAndRedirect = () => {
+  try {
+    window.localStorage.removeItem('token');
+    window.localStorage.removeItem('user');
+    window.localStorage.removeItem('salesStaff');
+    window.localStorage.removeItem('jwt');
+  } catch {}
+  // Use hash form so HashRouter picks it up. replace() so the broken page
+  // doesn't end up in the back-button history.
+  if (!redirectingToLogin()) {
+    window.location.replace(`${window.location.pathname}${LOGIN_HASH}`);
+  }
 };
 
 let installed = false;
@@ -31,31 +56,41 @@ export function installAuthFetchInterceptor() {
 
   const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-  window.fetch = (input, init = {}) => {
+  window.fetch = async (input, init = {}) => {
     if (!isOurApi(input)) {
       return originalFetch(input, init);
     }
 
-    // Only attach Authorization on write requests. GETs use Strapi's Public
-    // role (which permits find/findOne); attaching a Bearer header on a GET
-    // makes Strapi's users-permissions plugin try to verify it as a Strapi
-    // user JWT — our sales-staff JWT lives outside that table so verification
-    // fails with 401 before our own middleware ever runs.
     const method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
-    if (!WRITE_METHODS.has(method)) {
-      return originalFetch(input, init);
+    let finalInit = init;
+
+    // Attach Authorization for writes.
+    if (WRITE_METHODS.has(method)) {
+      const token = window.localStorage?.getItem?.('token');
+      if (token) {
+        const headers = new Headers(init.headers || (input && input.headers) || {});
+        if (!headers.has('Authorization')) {
+          headers.set('Authorization', `Bearer ${token}`);
+        }
+        finalInit = { ...init, headers };
+      }
     }
 
-    const token = window.localStorage?.getItem?.('token');
-    if (!token) {
-      return originalFetch(input, init);
+    const response = await originalFetch(input, finalInit);
+
+    // Auto-recover from stale/expired tokens: a 401 against our API while
+    // logged in (or while carrying a token we sent) means the session is no
+    // longer valid — silently sign out and bounce to login. Skip this for
+    // the login request itself so wrong-password attempts surface their
+    // own error message.
+    if (
+      response.status === 401 &&
+      !isLoginRequest(input) &&
+      (window.localStorage?.getItem?.('token') || method !== 'GET')
+    ) {
+      clearCredentialsAndRedirect();
     }
 
-    const headers = new Headers(init.headers || (input && input.headers) || {});
-    if (!headers.has('Authorization')) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
-
-    return originalFetch(input, { ...init, headers });
+    return response;
   };
 }
