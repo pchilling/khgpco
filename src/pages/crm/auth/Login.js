@@ -55,15 +55,15 @@ const Login = () => {
         <h2>CRM 系統登入</h2>
         <form onSubmit={handleSubmit}>
           <div className={styles.formGroup}>
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">帳號 / Email</label>
             <input
-              type="email"
+              type="text"
               id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               required
-              autoComplete="email"
+              autoComplete="username"
             />
           </div>
           <div className={styles.formGroup}>
