@@ -5,8 +5,12 @@ const PAGE_SIZE = 100;
 // the wall-clock time close to a single round trip even for 1000+ records.
 export async function fetchAllStrapi(apiBase, pathWithQuery) {
   const sep = pathWithQuery.includes('?') ? '&' : '?';
+  // 無排序時補上穩定排序：Strapi 分頁在未指定 sort 時順序不固定，
+  // 跨頁抓取會造成資料重複與等量漏抓（曾導致業務看不到部分客戶）。
+  const hasSort = /[?&]sort(\[|=)/.test(pathWithQuery);
+  const stableSort = hasSort ? '' : '&sort=id:asc';
   const url = (page) =>
-    `${apiBase}${pathWithQuery}${sep}pagination[page]=${page}&pagination[pageSize]=${PAGE_SIZE}`;
+    `${apiBase}${pathWithQuery}${stableSort}${sep}pagination[page]=${page}&pagination[pageSize]=${PAGE_SIZE}`;
 
   const firstResp = await fetch(url(1));
   if (!firstResp.ok) throw new Error(`Strapi ${firstResp.status} on ${pathWithQuery}`);
