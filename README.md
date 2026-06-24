@@ -2,6 +2,17 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## 變更紀錄 / 開發進度
+
+本專案所有的變更與開發進度，請查看 git commit 歷史，不另外維護進度文件：
+
+```bash
+git log --oneline      # 一行摘要
+git show <commit>      # 某次變更的細節
+```
+
+每筆 commit 都以中文說明「改了什麼、為什麼」，要追查過往做了什麼從這裡找即可。
+
 ## Available Scripts
 
 In the project directory, you can run:
