@@ -88,7 +88,7 @@ const MyCustomers = () => {
       // 只獲取分配給當前銷售人員的客戶（分頁並行）
       const customers = await fetchAllStrapi(
         API_BASE_URL,
-        `/api/customers?filters[sales_staff][id][$eq]=${user.id}&populate=*&sort=createdAt:desc,id:desc`
+        `/api/customers?filters[sales_staff][id][$eq]=${user.id}&populate=*&sort=updatedAt:desc,id:desc`
       );
       setCustomers(customers);
       setFilteredCustomers(customers);
