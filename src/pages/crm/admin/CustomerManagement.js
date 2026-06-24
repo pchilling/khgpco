@@ -327,7 +327,7 @@ const CustomerManagement = () => {
       setLoading(true);
       
       // 並行抓取所有客戶數據
-      const allCustomers = await fetchAllStrapi(API_BASE_URL, '/api/customers?populate=*&sort=updatedAt:desc');
+      const allCustomers = await fetchAllStrapi(API_BASE_URL, '/api/customers?populate=*&sort=createdAt:desc,id:desc');
       
       
       // 檢查數據來源統計
