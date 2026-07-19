@@ -4,9 +4,8 @@
  * 401 from our API kicks the user back to the login page instead of
  * surfacing a cryptic "失敗" toast deep inside the CRM.
  *
- * - Attaches the stored sales-staff JWT to every request to our API (reads
- *   included) whenever one exists, so the backend can gate reads by role.
- *   Anonymous visitors carry no token, so public collections stay readable.
+ * - Only attaches Authorization on write requests (POST/PUT/PATCH/DELETE);
+ *   GETs still ride the Public role.
  * - Only touches URLs that start with REACT_APP_API_URL — public site and
  *   3rd-party requests are untouched.
  * - On a 401 from our API, clears stored credentials and redirects to
@@ -55,6 +54,8 @@ export function installAuthFetchInterceptor() {
 
   const originalFetch = window.fetch.bind(window);
 
+  const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
   window.fetch = async (input, init = {}) => {
     if (!isOurApi(input)) {
       return originalFetch(input, init);
@@ -63,17 +64,16 @@ export function installAuthFetchInterceptor() {
     const method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
     let finalInit = init;
 
-    // Attach Authorization whenever we have a token — reads included, so the
-    // backend can gate GETs by role. Anonymous visitors have no token and so
-    // send no header, leaving public collections (events/news/projects)
-    // readable as before.
-    const token = window.localStorage?.getItem?.('token');
-    if (token) {
-      const headers = new Headers(init.headers || (input && input.headers) || {});
-      if (!headers.has('Authorization')) {
-        headers.set('Authorization', `Bearer ${token}`);
+    // Attach Authorization for writes.
+    if (WRITE_METHODS.has(method)) {
+      const token = window.localStorage?.getItem?.('token');
+      if (token) {
+        const headers = new Headers(init.headers || (input && input.headers) || {});
+        if (!headers.has('Authorization')) {
+          headers.set('Authorization', `Bearer ${token}`);
+        }
+        finalInit = { ...init, headers };
       }
-      finalInit = { ...init, headers };
     }
 
     const response = await originalFetch(input, finalInit);
