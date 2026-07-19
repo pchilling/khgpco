@@ -4,8 +4,10 @@
  * 401 from our API kicks the user back to the login page instead of
  * surfacing a cryptic "失敗" toast deep inside the CRM.
  *
- * - Only attaches Authorization on write requests (POST/PUT/PATCH/DELETE);
- *   GETs still ride the Public role.
+ * - Attaches the stored sales-staff JWT to every request (read or write) that
+ *   targets a PROTECTED collection, so the backend can gate reads by token.
+ *   Public collections (events/news/projects) get no token, so they keep
+ *   serving anonymously and never trip Strapi's 401-on-unknown-Bearer.
  * - Only touches URLs that start with REACT_APP_API_URL — public site and
  *   3rd-party requests are untouched.
  * - On a 401 from our API, clears stored credentials and redirects to
@@ -16,6 +18,22 @@
 const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 const LOGIN_PATH_FRAGMENT = '/api/auth/sales-staff/login';
 const LOGIN_HASH = '#/crm/login';
+
+// Collections the backend gates behind the sales-staff JWT. Must mirror
+// PROTECTED_PREFIXES in the CMS's sales-staff-jwt middleware. Requests to any
+// other path (events/news/projects and 3rd-party) never carry the token.
+const PROTECTED_API_PREFIXES = [
+  '/api/customers',
+  '/api/interactions',
+  '/api/registrations',
+  '/api/sales-staffs',
+  '/api/contact-messages',
+];
+
+const isProtectedApi = (input) => {
+  const url = typeof input === 'string' ? input : (input && input.url) || '';
+  return PROTECTED_API_PREFIXES.some((p) => url.includes(p));
+};
 
 const isOurApi = (input) => {
   if (!API_BASE_URL) return false;
@@ -54,8 +72,6 @@ export function installAuthFetchInterceptor() {
 
   const originalFetch = window.fetch.bind(window);
 
-  const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-
   window.fetch = async (input, init = {}) => {
     if (!isOurApi(input)) {
       return originalFetch(input, init);
@@ -64,8 +80,10 @@ export function installAuthFetchInterceptor() {
     const method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
     let finalInit = init;
 
-    // Attach Authorization for writes.
-    if (WRITE_METHODS.has(method)) {
+    // Attach the token only for protected collections (reads and writes).
+    // Public collections stay token-free so Strapi keeps serving them to
+    // anonymous visitors and doesn't 401 our custom Bearer.
+    if (isProtectedApi(input)) {
       const token = window.localStorage?.getItem?.('token');
       if (token) {
         const headers = new Headers(init.headers || (input && input.headers) || {});
