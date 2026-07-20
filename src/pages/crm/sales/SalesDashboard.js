@@ -4,6 +4,7 @@ import { UserOutlined, TeamOutlined, InteractionOutlined, LogoutOutlined, Dashbo
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { logout } from '../../../services/auth';
 import styles from './Dashboard.module.css';
+import gryphonLogo from '../../../assets/gryphon-logo-white.png';
 
 const { Header, Sider, Content } = Layout;
 
@@ -45,6 +46,11 @@ const SalesDashboard = () => {
     <Layout className={styles.dashboardLayout}>
       <Sider width={250} className={styles.sider}>
         <div className={styles.logo}>
+          <img
+            src={gryphonLogo}
+            alt="閣睿國際置業"
+            style={{ display: 'block', width: '86%', margin: '10px auto 0' }}
+          />
           <h2>銷售管理系統</h2>
         </div>
         <Menu

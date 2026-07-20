@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import '../styles/NewsDetail.css';
-import KHGreen from '../assets/KHGreen.png';  // 導入 logo
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl, PLACEHOLDER_IMAGE } from '../utils/imageUtils';  // 添加 PLACEHOLDER_IMAGE 導入
 import CompanyInfo from '../components/CompanyInfo';

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import '../styles/ContactSection.css';
-import companyLogo from '../assets/logo-white.png'; // 請確保有白色版本的logo
+import companyLogo from '../assets/gryphon-logo-white.png';
 import lineIcon from '../assets/line.png';
 import facebookIcon from '../assets/facebook.webp';
 import instagramIcon from '../assets/instagram.png';
@@ -31,10 +31,10 @@ const ContactSection = () => {
             message: '您的需求',
             submit: '送出',
             socialText: '或透過以下社交軟體與我們聯繫',
-            companyName: '寬鑫國際置業有限公司',
-            address: '台中市西區台灣大道二段489號31F3106',
-            phone: '04-3702-1316',
-            companyEmail: 'khglobal.service@khglo.com',
+            companyName: '閣睿國際置業有限公司',
+            address: '台中市西區台灣大道二段501號11樓之2',
+            phone: '04-2323-0208',
+            companyEmail: 'gryphon.tw.service@gryphon.com.tw',
             relatedCompany: '關係企業',
             disclaimer: '免責聲明',
             disclaimerHTML: '<span class="disclaimer-symbol">※</span> 本網頁資訊內容均由開發商/發展商/經紀商所提供，所包含之所有資料僅供參考用途，並僅作廣告宣傳用途。 <span class="disclaimer-symbol">※</span>',
@@ -52,10 +52,10 @@ const ContactSection = () => {
             message: 'Message',
             submit: 'Submit',
             socialText: 'Or contact us through the following social media',
-            companyName: 'KH Global International Property Ltd.',
-            address: '31F-3106, No.489, Sec. 2, Taiwan Blvd., West Dist., Taichung City',
-            phone: '04-3702-1316',
-            companyEmail: 'khglobal.service@khglo.com',
+            companyName: 'Gryphon International Property Ltd.',
+            address: '11F.-2, No. 501, Sec. 2, Taiwan Blvd., West Dist., Taichung City',
+            phone: '04-2323-0208',
+            companyEmail: 'gryphon.tw.service@gryphon.com.tw',
             relatedCompany: 'Related Company',
             disclaimer: 'Disclaimer',
             disclaimerHTML: '<span class="disclaimer-symbol">※</span> The information on this website is provided by developers/brokers for reference and advertising purposes only. <span class="disclaimer-symbol">※</span>',
@@ -263,7 +263,7 @@ const ContactSection = () => {
                     <div className="company-info">
                         <img 
                             src={companyLogo} 
-                            alt="KH Global Property" 
+                            alt="Gryphon International Property" 
                             className="company-logo" 
                             style={{ border: 'none', background: 'none' }}
                         />

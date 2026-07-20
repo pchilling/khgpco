@@ -4,7 +4,7 @@ import '../styles/Footer.css';
 const Footer = () => {
     return (
         <footer className="footer">
-            <p>&copy;寬鑫國際置業（113）中市經濟字第00508號 | 2025 Humbles. All rights reserved.</p>
+            <p>&copy;閣睿國際置業有限公司 | 2026 Gryphon. All rights reserved.</p>
         </footer>
     );
 };

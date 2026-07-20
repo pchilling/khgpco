@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
-import logo from '../assets/KH_Logo.png';
+import logo from '../assets/gryphon-logo-navy.png';
 import '../styles/navbar.css';
 
 const Navbar = () => {
@@ -181,7 +181,7 @@ const Navbar = () => {
         <nav className="navbar">
           <div className="logo-container">
             <Link to="/" onClick={handleNavClick}>
-              <img src={logo} alt="KH Global Property" className="logo" />
+              <img src={logo} alt="Gryphon International Property" className="logo" />
             </Link>
           </div>
           

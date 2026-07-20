@@ -26,21 +26,21 @@ const About = () => {
         'zh-TW': {
             title: '關於',
             slogan: {
-                line1: '寬鑫領航，開啟世界',
+                line1: '閣睿領航，開啟世界',
                 line2: '專業引領全球置產，量身打造資產配置，穩健增長跨越國界，開創無限未來版圖。'
             },
             companyDesc: {
                 subtitle: '全球視野，專業領航',
-                text: '寬鑫國際置業有限公司致力於成為全球華人最值得信賴的海外房地產專家。我們專注於海外房地產代銷、資產配置、國際產權代辦、專業貸款規劃、高端租賃管理、私人資產顧問與法規社區指引，提供一站式專業服務，確保每位客戶在全球市場中安心布局，掌握財富增值機會。'
+                text: '閣睿國際置業有限公司致力於成為全球華人最值得信賴的海外房地產專家。我們專注於海外房地產代銷、資產配置、國際產權代辦、專業貸款規劃、高端租賃管理、私人資產顧問與法規社區指引，提供一站式專業服務，確保每位客戶在全球市場中安心布局，掌握財富增值機會。'
             },
             philosophy: {
                 title: '企業理念',
                 text1: '我們以「專業、誠信、創新、共贏」為核心價值，透過精準的市場分析與透明化的服務機制，為客戶打造穩健且具前瞻性的國際資產配置策略。我們深知海外置產不僅是購買房產，更是一場跨國資產管理的旅程，因此我們致力於提供安全、合規、穩健的解決方案，讓投資變得更簡單、更值得信賴。',
-                text2: '未來，寬鑫國際將持續拓展全球版圖，深化跨國產權服務，打造華人專屬的國際不動產生態圈，建立安全、透明、專業的全球投資橋樑，讓每位客戶都能放心進入國際市場，享受穩健增值的長遠回報。',
-                text3: '寬鑫領航，開啟世界，讓您的財富與視野無限延伸！'
+                text2: '未來，閣睿國際將持續拓展全球版圖，深化跨國產權服務，打造華人專屬的國際不動產生態圈，建立安全、透明、專業的全球投資橋樑，讓每位客戶都能放心進入國際市場，享受穩健增值的長遠回報。',
+                text3: '閣睿領航，開啟世界，讓您的財富與視野無限延伸！'
             },
             vision: {
-                title: '寬鑫領航，開啟世界',
+                title: '閣睿領航，開啟世界',
                 subtitle: '讓您的財富與視野無限延伸！'
             },
             services: {
@@ -74,21 +74,21 @@ const About = () => {
         'en': {
             title: 'About',
             slogan: {
-                line1: 'KH Global, Opening New Horizons',
+                line1: 'Gryphon, Opening New Horizons',
                 line2: 'Professional guidance in global property investment, tailored asset allocation, steady growth across borders, creating unlimited future territory.'
             },
             companyDesc: {
                 subtitle: 'Global Vision, Professional Leadership',
-                text: 'KH Global Properties is committed to becoming the most trusted overseas real estate expert for global Chinese. We focus on overseas real estate sales, asset allocation, international property rights processing, professional loan planning, high-end leasing management, private asset consulting and regulatory community guidance, providing one-stop professional services to ensure each client can confidently deploy their investments in the global market and capture wealth appreciation opportunities.'
+                text: 'Gryphon International Property is committed to becoming the most trusted overseas real estate expert for global Chinese. We focus on overseas real estate sales, asset allocation, international property rights processing, professional loan planning, high-end leasing management, private asset consulting and regulatory community guidance, providing one-stop professional services to ensure each client can confidently deploy their investments in the global market and capture wealth appreciation opportunities.'
             },
             philosophy: {
                 title: 'Corporate Philosophy',
                 text1: 'We take "honesty, integrity, innovation, and win-win" as our core values, through precise professional market analysis and quality service and consulting, to create stable and competitive international asset allocation strategies for clients. We remain steadfast regardless of external environmental changes, and are a good partner for asset managers, including our investment advice, all created for clients.',
-                text2: 'In the future, KH Global will continue to expand globally, deepen cross-strait industry chain services, create a Chinese-renowned international real estate ecosystem, establish safe, transparent, and professional global investment modules, allowing you to confidently enter the international market from anywhere in the world and enjoy the best fundamental value in the housing market.',
+                text2: 'In the future, Gryphon will continue to expand globally, deepen cross-strait industry chain services, create a Chinese-renowned international real estate ecosystem, establish safe, transparent, and professional global investment modules, allowing you to confidently enter the international market from anywhere in the world and enjoy the best fundamental value in the housing market.',
                 text3: 'KH Spirit, opening the world, let your wealth grow with us!'
             },
             vision: {
-                title: 'KH Global Leads, Opening the World',
+                title: 'Gryphon Leads, Opening the World',
                 subtitle: 'Extending Your Wealth and Vision Infinitely!'
             },
             services: {

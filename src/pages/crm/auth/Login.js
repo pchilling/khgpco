@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { message } from 'antd';
 import { loginSalesStaff } from '../../../services/auth';
 import styles from './Login.module.css';
+import gryphonLogo from '../../../assets/gryphon-logo-navy.png';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -52,7 +53,12 @@ const Login = () => {
   return (
     <div className={styles.loginContainer}>
       <div className={styles.loginBox}>
-        <h2>CRM 系統登入</h2>
+        <img
+          src={gryphonLogo}
+          alt="閣睿國際置業"
+          style={{ display: 'block', width: '72%', margin: '0 auto 8px' }}
+        />
+        <h2>閣睿國際置業 CRM</h2>
         <form onSubmit={handleSubmit}>
           <div className={styles.formGroup}>
             <label htmlFor="email">帳號 / Email</label>

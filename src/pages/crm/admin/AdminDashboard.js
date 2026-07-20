@@ -15,6 +15,7 @@ import {
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { logout } from '../../../services/auth';
 import styles from './AdminDashboard.module.css';
+import gryphonLogo from '../../../assets/gryphon-logo-white.png';
 
 const { Header, Sider, Content } = Layout;
 
@@ -55,6 +56,11 @@ const AdminDashboard = () => {
     <Layout className={styles.dashboardLayout}>
       <Sider width={220} className={styles.sider} collapsible>
         <div className={styles.logo}>
+          <img
+            src={gryphonLogo}
+            alt="閣睿國際置業"
+            style={{ display: 'block', width: '86%', margin: '10px auto 0' }}
+          />
           <h2>管理員系統</h2>
         </div>
         <Menu

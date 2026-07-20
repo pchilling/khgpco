@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import '../styles/CompanyInfo.css';
-import KHGreen from '../assets/KHGreen.png';
+import KHGreen from '../assets/gryphon-logo-white.png';
 import lineIcon from '../assets/line.png';
 import facebookIcon from '../assets/facebook.webp';
 import instagramIcon from '../assets/instagram.png';
@@ -12,18 +12,18 @@ const CompanyInfo = () => {
     const translations = {
         'zh-TW': {
             companyInfo: {
-                name: '寬鑫國際置業有限公司',
-                phone: '04-3702-1316',
-                address: '台中市西區台灣大道二段489號31F3106',
-                email: 'khglobal.service@khglo.com'
+                name: '閣睿國際置業有限公司',
+                phone: '04-2323-0208',
+                address: '台中市西區台灣大道二段501號11樓之2',
+                email: 'gryphon.tw.service@gryphon.com.tw'
             }
         },
         'en': {
             companyInfo: {
-                name: 'KH Global International Property Ltd.',
-                phone: '04-3702-1316',
-                address: '31F-3106, No.489, Sec. 2, Taiwan Blvd., West Dist., Taichung City',
-                email: 'khglobal.service@khglo.com'
+                name: 'Gryphon International Property Ltd.',
+                phone: '04-2323-0208',
+                address: '11F.-2, No. 501, Sec. 2, Taiwan Blvd., West Dist., Taichung City',
+                email: 'gryphon.tw.service@gryphon.com.tw'
             }
         }
     };
