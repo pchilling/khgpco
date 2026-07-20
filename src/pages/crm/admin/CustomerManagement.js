@@ -82,6 +82,7 @@ const CustomerManagement = () => {
   const [form] = Form.useForm();
   const [filterForm] = Form.useForm();
   const [projects, setProjects] = useState([]);
+  const [events, setEvents] = useState([]);
   const [filterVisible, setFilterVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [displayColumns, setDisplayColumns] = useState([]);
@@ -215,6 +216,23 @@ const CustomerManagement = () => {
       render: (source) => sourceMap[source],
     },
     {
+      title: '參加活動',
+      key: 'events',
+      width: 160,
+      render: (_, record) => {
+        const evs = record.attributes?.events?.data || [];
+        if (!evs.length) return <span style={{ color: '#c0c0c0' }}>無</span>;
+        const names = evs.map(e => e.attributes?.title || e.attributes?.name || `活動 ${e.id}`);
+        return (
+          <Tooltip title={names.join('、')}>
+            <span>
+              {names[0]}{names.length > 1 ? ` +${names.length - 1}` : ''}
+            </span>
+          </Tooltip>
+        );
+      },
+    },
+    {
       title: '備註',
       dataIndex: ['attributes', 'notes'],
       key: 'notes',
@@ -264,6 +282,7 @@ const CustomerManagement = () => {
     fetchCustomers();
     fetchSalesStaff();
     fetchProjects();
+    fetchEvents();
   }, []);
 
   useEffect(() => {
@@ -392,6 +411,16 @@ const CustomerManagement = () => {
     }
   };
 
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/events?pagination[pageSize]=1000&sort=publishDate:desc`);
+      const data = await response.json();
+      setEvents(data.data || []);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    }
+  };
+
   const handleEdit = (record) => {
     setCurrentCustomer(record);
     form.setFieldsValue({
@@ -403,6 +432,7 @@ const CustomerManagement = () => {
       status: record.attributes.status,
       source: record.attributes.source,
       projects: record.attributes.projects?.data?.map(p => p.id) || [],
+      events: record.attributes.events?.data?.map(e => e.id) || [],
       sales_staff: record.attributes.sales_staff?.data?.id || null,
       hasContract: record.attributes.hasContract || false,
       contractInfo: record.attributes.contractInfo || '',
@@ -425,10 +455,12 @@ const CustomerManagement = () => {
           source: values.source,
           notes: values.notes || null,
           address: values.address || null,
-          sales_staff: values.sales_staff || null
+          sales_staff: values.sales_staff || null,
+          // 活動為多對多，直接以 ID 陣列設定（空陣列＝清除所有活動）
+          events: Array.isArray(values.events) ? values.events.map(Number) : []
         }
       };
-      
+
       // 移除所有undefined和null值，但保留sales_staff的null值（用於取消指派）
       Object.keys(apiData.data).forEach(key => {
         if (apiData.data[key] === undefined || (apiData.data[key] === null && key !== 'sales_staff')) {
@@ -627,7 +659,9 @@ const CustomerManagement = () => {
           notes: values.notes || null,
           address: values.address || null,
           // 關聯：負責業務（manyToOne 可直接在 Customer 上設定為 ID）
-          ...(selectedSalesStaffId ? { sales_staff: selectedSalesStaffId } : {})
+          ...(selectedSalesStaffId ? { sales_staff: selectedSalesStaffId } : {}),
+          // 活動為多對多，可直接在 Customer 上以 ID 陣列設定
+          ...(Array.isArray(values.events) && values.events.length ? { events: values.events.map(Number) } : {})
         }
       };
       
@@ -2281,6 +2315,29 @@ const CustomerManagement = () => {
                 </Select>
               </Form.Item>
             </Tabs.TabPane>
+
+            <Tabs.TabPane tab="參加活動" key="events">
+              <Form.Item
+                name="events"
+                label="參加活動"
+              >
+                <Select
+                  mode="multiple"
+                  placeholder="請選擇客戶參加過的活動"
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  optionFilterProp="children"
+                >
+                  {events.map(event => (
+                    <Select.Option key={event.id} value={event.id}>
+                      {event.attributes.title || event.attributes.name || `活動 ${event.id}`}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Tabs.TabPane>
           </Tabs>
         </Form>
       </Modal>
@@ -2467,6 +2524,29 @@ const CustomerManagement = () => {
                   {projects.map(project => (
                     <Select.Option key={project.id} value={project.id}>
                       {project.attributes.name || `建案 ${project.id}`}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Tabs.TabPane>
+
+            <Tabs.TabPane tab="參加活動" key="events">
+              <Form.Item
+                name="events"
+                label="參加活動"
+              >
+                <Select
+                  mode="multiple"
+                  placeholder="請選擇客戶參加過的活動"
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  optionFilterProp="children"
+                >
+                  {events.map(event => (
+                    <Select.Option key={event.id} value={event.id}>
+                      {event.attributes.title || event.attributes.name || `活動 ${event.id}`}
                     </Select.Option>
                   ))}
                 </Select>

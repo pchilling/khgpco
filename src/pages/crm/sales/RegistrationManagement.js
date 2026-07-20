@@ -271,7 +271,11 @@ const SalesRegistrationManagement = () => {
           source: 'event',
           status: 'potential',
           publishedAt: new Date().toISOString(), // 添加發布狀態以符合 draftAndPublish: true
-          sales_staff: userId
+          sales_staff: userId,
+          // 自動綁定來源活動（多對多）
+          ...(record.attributes.event?.data?.id && {
+            events: [record.attributes.event.data.id]
+          })
         }
       };
 
@@ -398,7 +402,11 @@ const SalesRegistrationManagement = () => {
               source: 'event',
               status: 'potential',
               publishedAt: new Date().toISOString(), // 添加發布狀態以符合 draftAndPublish: true
-              sales_staff: userId
+              sales_staff: userId,
+              // 自動綁定來源活動（多對多）
+              ...(record.attributes.event?.data?.id && {
+                events: [record.attributes.event.data.id]
+              })
             }
           };
 

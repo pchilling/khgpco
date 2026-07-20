@@ -493,6 +493,10 @@ const RegistrationManagement = () => {
           source: 'event',
           status: 'potential',
           publishedAt: new Date().toISOString(), // 添加發布狀態以符合 draftAndPublish: true
+          // 自動綁定來源活動（多對多），讓「參加活動」成為結構化欄位而非只在備註
+          ...(record.attributes.event?.data?.id && {
+            events: [record.attributes.event.data.id]
+          }),
           // 如果報名已有指派業務，同時指派給客戶
           ...(record.attributes.sales_staff?.data?.id && {
             sales_staff: record.attributes.sales_staff.data.id
@@ -716,6 +720,10 @@ const RegistrationManagement = () => {
             source: 'event',
               status: 'potential',
               publishedAt: new Date().toISOString(), // 添加發布狀態以符合 draftAndPublish: true
+              // 自動綁定來源活動（多對多）
+              ...(record.attributes.event?.data?.id && {
+                events: [record.attributes.event.data.id]
+              }),
               // 如果報名已有指派業務，同時指派給客戶
               ...(record.attributes.sales_staff?.data?.id && {
                 sales_staff: record.attributes.sales_staff.data.id
