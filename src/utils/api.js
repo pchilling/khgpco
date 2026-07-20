@@ -195,17 +195,6 @@ const api = {
       } catch (error) {
         throw error;
       }
-    },
-
-    resetDatabase: async () => {
-      try {
-        const response = await axios.delete('/api/projects/reset-all');
-        console.log('Database reset response:', response.data);
-        return response.data;
-      } catch (error) {
-        console.error('Reset database error:', error);
-        throw error;
-      }
     }
   }
 };
