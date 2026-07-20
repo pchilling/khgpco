@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Table, Card, Button, Space, Tag, Modal, Select, message, Popconfirm, Tooltip, Form, Input, DatePicker, Upload, Row, Col, Switch } from 'antd';
-import { UserAddOutlined, UserSwitchOutlined, DownloadOutlined, DeleteOutlined, DownOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import { UserAddOutlined, UserSwitchOutlined, DownloadOutlined, DeleteOutlined, DownOutlined, PlusOutlined, UploadOutlined, RollbackOutlined } from '@ant-design/icons';
 import { API_BASE_URL } from '../../../utils/api';
 import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 import styles from './RegistrationManagement.module.css';
@@ -105,7 +105,7 @@ const RegistrationManagement = () => {
     try {
       const all = await fetchAllStrapi(
         API_BASE_URL,
-        '/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&sort=createdAt:desc'
+        '/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&populate[customer]=*&sort=createdAt:desc'
       );
       setRegistrations(all);
       processRegistrations(all);
@@ -593,6 +593,41 @@ const RegistrationManagement = () => {
     } catch (error) {
       console.error('轉換客戶失敗:', error);
       message.error(`轉換失敗: ${error.message}`);
+    }
+  };
+
+  // 取消轉換：還原報名狀態並刪除當初自動建立的客戶
+  const unconvertCustomer = async (record) => {
+    try {
+      const linkedCustomerId = record.attributes.customer?.data?.id;
+
+      // 1. 先還原報名（清掉客戶連結、狀態改回未處理），避免刪客戶時外鍵卡住
+      const regResp = await fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { status: 'pending', customer: null } }),
+      });
+      if (!regResp.ok) {
+        throw new Error(`還原報名狀態失敗 (${regResp.status})`);
+      }
+
+      // 2. 刪除當初自動建立的客戶（若已被手動刪除則略過）
+      if (linkedCustomerId) {
+        const delResp = await fetch(`${API_BASE_URL}/api/customers/${linkedCustomerId}`, {
+          method: 'DELETE',
+        });
+        if (!delResp.ok && delResp.status !== 404) {
+          message.warning('報名已還原，但關聯客戶刪除失敗，請至客戶管理手動確認');
+          fetchRegistrations();
+          return;
+        }
+      }
+
+      message.success(`已取消轉換：${record.attributes.name}（報名已還原為未處理）`);
+      fetchRegistrations();
+    } catch (error) {
+      console.error('取消轉換失敗:', error);
+      message.error(`取消轉換失敗: ${error.message}`);
     }
   };
 
@@ -1209,7 +1244,7 @@ const RegistrationManagement = () => {
         width: 170,
       render: (_, record) => (
         <Space size="small" wrap>
-          <Button 
+          <Button
             size="small"
               type="primary"
             icon={<UserAddOutlined />}
@@ -1218,7 +1253,29 @@ const RegistrationManagement = () => {
           >
             轉換
           </Button>
-          <Button 
+          {record.attributes.status === 'confirmed' && (
+            <Popconfirm
+              title="取消轉換"
+              description={
+                <div style={{ maxWidth: 260 }}>
+                  將把此報名還原為「未處理」，並刪除當初自動建立的客戶。
+                  <br />
+                  <span style={{ color: '#d4380d' }}>
+                    若該客戶已被跟進、加了聯絡紀錄，將一併刪除，請確認。
+                  </span>
+                </div>
+              }
+              onConfirm={() => unconvertCustomer(record)}
+              okText="確定取消轉換"
+              cancelText="不要"
+              okButtonProps={{ danger: true }}
+            >
+              <Button size="small" icon={<RollbackOutlined />}>
+                取消轉換
+              </Button>
+            </Popconfirm>
+          )}
+          <Button
             size="small"
             icon={<UserSwitchOutlined />}
             onClick={() => handleAssignSalesStaff(record)}
