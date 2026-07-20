@@ -48,10 +48,9 @@ const SalesDashboard = () => {
         <div className={styles.logo}>
           <img
             src={gryphonLogo}
-            alt="閣睿國際置業"
-            style={{ display: 'block', width: '86%', margin: '10px auto 0' }}
+            alt="閣睿國際置業 銷售管理系統"
+            style={{ display: 'block', maxHeight: 36, maxWidth: '88%', margin: '0 auto' }}
           />
-          <h2>銷售管理系統</h2>
         </div>
         <Menu
           mode="inline"

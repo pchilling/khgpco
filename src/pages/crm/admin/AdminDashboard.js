@@ -58,10 +58,9 @@ const AdminDashboard = () => {
         <div className={styles.logo}>
           <img
             src={gryphonLogo}
-            alt="閣睿國際置業"
-            style={{ display: 'block', width: '86%', margin: '10px auto 0' }}
+            alt="閣睿國際置業 管理員系統"
+            style={{ display: 'block', maxHeight: 36, maxWidth: '88%' }}
           />
-          <h2>管理員系統</h2>
         </div>
         <Menu
           mode="inline"
