@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "https://humbleskh.com/static/css/main.943c086e.css",
-    "main.js": "https://humbleskh.com/static/js/main.bb34f327.js",
+    "main.js": "https://humbleskh.com/static/js/main.2e470b81.js",
     "static/css/783.27ac8571.chunk.css": "https://humbleskh.com/static/css/783.27ac8571.chunk.css",
     "static/js/783.28fcc418.chunk.js": "https://humbleskh.com/static/js/783.28fcc418.chunk.js",
     "static/css/379.99b8d618.chunk.css": "https://humbleskh.com/static/css/379.99b8d618.chunk.css",
-    "static/js/379.ee8b595c.chunk.js": "https://humbleskh.com/static/js/379.ee8b595c.chunk.js",
+    "static/js/379.5399283d.chunk.js": "https://humbleskh.com/static/js/379.5399283d.chunk.js",
     "static/css/131.94022838.chunk.css": "https://humbleskh.com/static/css/131.94022838.chunk.css",
     "static/js/131.e37e65ef.chunk.js": "https://humbleskh.com/static/js/131.e37e65ef.chunk.js",
     "static/css/981.4135e207.chunk.css": "https://humbleskh.com/static/css/981.4135e207.chunk.css",
-    "static/js/981.edaa6f4c.chunk.js": "https://humbleskh.com/static/js/981.edaa6f4c.chunk.js",
+    "static/js/981.acfcf305.chunk.js": "https://humbleskh.com/static/js/981.acfcf305.chunk.js",
     "static/css/687.e5141686.chunk.css": "https://humbleskh.com/static/css/687.e5141686.chunk.css",
     "static/js/687.928a4ba1.chunk.js": "https://humbleskh.com/static/js/687.928a4ba1.chunk.js",
     "static/css/92.511c8b23.chunk.css": "https://humbleskh.com/static/css/92.511c8b23.chunk.css",
@@ -48,10 +48,10 @@
     "static/media/about-bg.jpg": "https://humbleskh.com/static/media/about-bg.10d2f8682a8c6d2d912f.jpg",
     "static/media/fa-brands-400.ttf": "https://humbleskh.com/static/media/fa-brands-400.1815e00441357e01619e.ttf",
     "static/media/fa-solid-900.woff2": "https://humbleskh.com/static/media/fa-solid-900.2463b90d9a316e4e5294.woff2",
-    "static/media/gryphon-logo-navy.png": "https://humbleskh.com/static/media/gryphon-logo-navy.8cf6f847e63562293af8.png",
-    "static/media/gryphon-logo-white.png": "https://humbleskh.com/static/media/gryphon-logo-white.652234412791b0d30794.png",
     "static/media/fa-brands-400.woff2": "https://humbleskh.com/static/media/fa-brands-400.c210719e60948b211a12.woff2",
     "static/media/partner13.png": "https://humbleskh.com/static/media/partner13.802e6e57c5c6951cfd01.png",
+    "static/media/gryphon-logo-navy.png": "https://humbleskh.com/static/media/gryphon-logo-navy.48de9d2c62b62aa488a6.png",
+    "static/media/gryphon-logo-white.png": "https://humbleskh.com/static/media/gryphon-logo-white.50266d612dacdb167473.png",
     "static/media/fa-regular-400.ttf": "https://humbleskh.com/static/media/fa-regular-400.914997e1bdfc990d0897.ttf",
     "static/media/line.png": "https://humbleskh.com/static/media/line.6edc7fd604e58b8025eb.png",
     "static/media/mswang.jpg": "https://humbleskh.com/static/media/mswang.2c9cb9df446017a22b24.jpg",
@@ -70,15 +70,15 @@
     "static/media/fa-v4compatibility.woff2": "https://humbleskh.com/static/media/fa-v4compatibility.ea8f94e1d22e0d35ccd4.woff2",
     "index.html": "https://humbleskh.com/index.html",
     "main.943c086e.css.map": "https://humbleskh.com/static/css/main.943c086e.css.map",
-    "main.bb34f327.js.map": "https://humbleskh.com/static/js/main.bb34f327.js.map",
+    "main.2e470b81.js.map": "https://humbleskh.com/static/js/main.2e470b81.js.map",
     "783.27ac8571.chunk.css.map": "https://humbleskh.com/static/css/783.27ac8571.chunk.css.map",
     "783.28fcc418.chunk.js.map": "https://humbleskh.com/static/js/783.28fcc418.chunk.js.map",
     "379.99b8d618.chunk.css.map": "https://humbleskh.com/static/css/379.99b8d618.chunk.css.map",
-    "379.ee8b595c.chunk.js.map": "https://humbleskh.com/static/js/379.ee8b595c.chunk.js.map",
+    "379.5399283d.chunk.js.map": "https://humbleskh.com/static/js/379.5399283d.chunk.js.map",
     "131.94022838.chunk.css.map": "https://humbleskh.com/static/css/131.94022838.chunk.css.map",
     "131.e37e65ef.chunk.js.map": "https://humbleskh.com/static/js/131.e37e65ef.chunk.js.map",
     "981.4135e207.chunk.css.map": "https://humbleskh.com/static/css/981.4135e207.chunk.css.map",
-    "981.edaa6f4c.chunk.js.map": "https://humbleskh.com/static/js/981.edaa6f4c.chunk.js.map",
+    "981.acfcf305.chunk.js.map": "https://humbleskh.com/static/js/981.acfcf305.chunk.js.map",
     "687.e5141686.chunk.css.map": "https://humbleskh.com/static/css/687.e5141686.chunk.css.map",
     "687.928a4ba1.chunk.js.map": "https://humbleskh.com/static/js/687.928a4ba1.chunk.js.map",
     "92.511c8b23.chunk.css.map": "https://humbleskh.com/static/css/92.511c8b23.chunk.css.map",
@@ -111,6 +111,6 @@
   },
   "entrypoints": [
     "static/css/main.943c086e.css",
-    "static/js/main.bb34f327.js"
+    "static/js/main.2e470b81.js"
   ]
 }
