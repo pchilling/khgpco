@@ -413,7 +413,7 @@ const CustomerManagement = () => {
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/events?pagination[pageSize]=1000&sort=publishDate:desc`);
+      const response = await fetch(`${API_BASE_URL}/api/events?pagination[pageSize]=1000&sort=createdAt:desc`);
       const data = await response.json();
       setEvents(data.data || []);
     } catch (error) {
