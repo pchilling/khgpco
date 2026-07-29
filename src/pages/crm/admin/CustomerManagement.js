@@ -88,6 +88,7 @@ const CustomerManagement = () => {
   const [filterForm] = Form.useForm();
   const [projects, setProjects] = useState([]);
   const [events, setEvents] = useState([]);
+  const [channelPeople, setChannelPeople] = useState([]);
   const [filterVisible, setFilterVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [displayColumns, setDisplayColumns] = useState([]);
@@ -238,6 +239,21 @@ const CustomerManagement = () => {
       },
     },
     {
+      title: '渠道',
+      key: 'channel_person',
+      width: 130,
+      render: (_, record) => {
+        const cp = record.attributes?.channel_person?.data;
+        if (!cp) return <span style={{ color: '#c0c0c0' }}>—</span>;
+        const company = cp.attributes?.channel_company?.data?.attributes?.name;
+        return (
+          <Tooltip title={company ? `${cp.attributes.name}（${company}）` : cp.attributes.name}>
+            <Tag color="purple">{cp.attributes?.name}</Tag>
+          </Tooltip>
+        );
+      },
+    },
+    {
       title: '備註',
       dataIndex: ['attributes', 'notes'],
       key: 'notes',
@@ -288,6 +304,7 @@ const CustomerManagement = () => {
     fetchSalesStaff();
     fetchProjects();
     fetchEvents();
+    fetchChannelPeople();
   }, []);
 
   useEffect(() => {
@@ -426,6 +443,16 @@ const CustomerManagement = () => {
     }
   };
 
+  const fetchChannelPeople = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/channel-people?populate=channel_company&pagination[pageSize]=1000&sort=createdAt:desc`);
+      const data = await response.json();
+      setChannelPeople(data.data || []);
+    } catch (error) {
+      console.error('Error fetching channel people:', error);
+    }
+  };
+
   const handleEdit = (record) => {
     setCurrentCustomer(record);
     form.setFieldsValue({
@@ -438,6 +465,7 @@ const CustomerManagement = () => {
       source: record.attributes.source,
       projects: record.attributes.projects?.data?.map(p => p.id) || [],
       events: record.attributes.events?.data?.map(e => e.id) || [],
+      channel_person: record.attributes.channel_person?.data?.id || null,
       sales_staff: record.attributes.sales_staff?.data?.id || null,
       hasContract: record.attributes.hasContract || false,
       contractInfo: record.attributes.contractInfo || '',
@@ -462,7 +490,8 @@ const CustomerManagement = () => {
           address: values.address || null,
           sales_staff: values.sales_staff || null,
           // 活動為多對多，直接以 ID 陣列設定（空陣列＝清除所有活動）
-          events: Array.isArray(values.events) ? values.events.map(Number) : []
+          events: Array.isArray(values.events) ? values.events.map(Number) : [],
+          channel_person: values.channel_person || null
         }
       };
 
@@ -666,7 +695,8 @@ const CustomerManagement = () => {
           // 關聯：負責業務（manyToOne 可直接在 Customer 上設定為 ID）
           ...(selectedSalesStaffId ? { sales_staff: selectedSalesStaffId } : {}),
           // 活動為多對多，可直接在 Customer 上以 ID 陣列設定
-          ...(Array.isArray(values.events) && values.events.length ? { events: values.events.map(Number) } : {})
+          ...(Array.isArray(values.events) && values.events.length ? { events: values.events.map(Number) } : {}),
+          ...(values.channel_person ? { channel_person: values.channel_person } : {})
         }
       };
       
@@ -1139,12 +1169,20 @@ const CustomerManagement = () => {
         
         if (formValues.project) {
           const beforeProject = filtered.length;
-          filtered = filtered.filter(customer => 
+          filtered = filtered.filter(customer =>
             customer.attributes.projects?.data?.some(p => p.id === formValues.project)
           );
           filterSteps.push(`建案篩選: ${beforeProject} → ${filtered.length}`);
         }
-        
+
+        if (formValues.channel_person) {
+          const beforeChannel = filtered.length;
+          filtered = filtered.filter(customer =>
+            customer.attributes.channel_person?.data?.id === formValues.channel_person
+          );
+          filterSteps.push(`渠道篩選: ${beforeChannel} → ${filtered.length}`);
+        }
+
         if (formValues.dateRange && formValues.dateRange[0] && formValues.dateRange[1]) {
           const beforeDate = filtered.length;
           const toDate = (v) => {
@@ -2109,6 +2147,28 @@ const CustomerManagement = () => {
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12} md={isMobile ? 12 : 8} lg={isMobile ? 8 : 6}>
+                  <Form.Item name="channel_person" label="帶客渠道">
+                    <Select
+                      placeholder="選擇渠道人員"
+                      allowClear
+                      showSearch
+                      filterOption={(input, option) =>
+                        (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                      optionFilterProp="children"
+                    >
+                      {channelPeople.map(cp => (
+                        <Option key={cp.id} value={cp.id}>
+                          {cp.attributes.name}
+                          {cp.attributes.channel_company?.data?.attributes?.name
+                            ? `（${cp.attributes.channel_company.data.attributes.name}）`
+                            : ''}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={isMobile ? 12 : 8} lg={isMobile ? 8 : 6}>
                   <Form.Item name="dateRange" label="創建日期">
                     <RangePicker style={{ width: '100%' }} />
                   </Form.Item>
@@ -2342,6 +2402,33 @@ const CustomerManagement = () => {
               </Form.Item>
             </Tabs.TabPane>
 
+            <Tabs.TabPane tab="帶客渠道" key="channel">
+              <Form.Item
+                name="channel_person"
+                label="帶客渠道人員"
+                extra="這位客戶是哪個渠道（仲介/介紹人）帶來的；個人自來可留空"
+              >
+                <Select
+                  allowClear
+                  showSearch
+                  placeholder="選擇渠道人員（可留空）"
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  optionFilterProp="children"
+                >
+                  {channelPeople.map(cp => (
+                    <Select.Option key={cp.id} value={cp.id}>
+                      {cp.attributes.name}
+                      {cp.attributes.channel_company?.data?.attributes?.name
+                        ? `（${cp.attributes.channel_company.data.attributes.name}）`
+                        : ''}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Tabs.TabPane>
+
             <Tabs.TabPane tab="參加活動" key="events">
               <Form.Item
                 name="events"
@@ -2550,6 +2637,33 @@ const CustomerManagement = () => {
                   {projects.map(project => (
                     <Select.Option key={project.id} value={project.id}>
                       {project.attributes.name || `建案 ${project.id}`}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Tabs.TabPane>
+
+            <Tabs.TabPane tab="帶客渠道" key="channel">
+              <Form.Item
+                name="channel_person"
+                label="帶客渠道人員"
+                extra="這位客戶是哪個渠道（仲介/介紹人）帶來的；個人自來可留空"
+              >
+                <Select
+                  allowClear
+                  showSearch
+                  placeholder="選擇渠道人員（可留空）"
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  optionFilterProp="children"
+                >
+                  {channelPeople.map(cp => (
+                    <Select.Option key={cp.id} value={cp.id}>
+                      {cp.attributes.name}
+                      {cp.attributes.channel_company?.data?.attributes?.name
+                        ? `（${cp.attributes.channel_company.data.attributes.name}）`
+                        : ''}
                     </Select.Option>
                   ))}
                 </Select>
