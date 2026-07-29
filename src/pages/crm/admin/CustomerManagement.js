@@ -81,6 +81,9 @@ const CustomerManagement = () => {
   const [duplicateAssignStaff, setDuplicateAssignStaff] = useState({});
   // 每組選定的「主記錄」客戶 id（保留其姓名/電話/Email，其餘併入）；預設第一筆
   const [duplicatePrimary, setDuplicatePrimary] = useState({});
+  // 合併確認框：{ group, groupIndex }，null 為關閉
+  const [mergeConfirm, setMergeConfirm] = useState(null);
+  const [merging, setMerging] = useState(false);
   const [form] = Form.useForm();
   const [filterForm] = Form.useForm();
   const [projects, setProjects] = useState([]);
@@ -2989,10 +2992,10 @@ const CustomerManagement = () => {
                       </span>
                     </span>
                     <div>
-                      <Button 
-                        type="primary" 
+                      <Button
+                        type="primary"
                         size="small"
-                        onClick={() => handleMergeDuplicates(group, index)}
+                        onClick={() => setMergeConfirm({ group, groupIndex: index })}
                         style={{ marginRight: 8 }}
                       >
                         合併 ({group.count - 1} 個)
@@ -3156,6 +3159,71 @@ const CustomerManagement = () => {
             ))}
           </div>
         )}
+      </Modal>
+
+      {/* 合併確認 Modal:按合併後跳出,完整列出將發生什麼,確認才執行 */}
+      <Modal
+        title="確認合併客戶"
+        open={!!mergeConfirm}
+        onCancel={() => !merging && setMergeConfirm(null)}
+        okText="確認合併"
+        cancelText="取消"
+        confirmLoading={merging}
+        okButtonProps={{ danger: true }}
+        onOk={async () => {
+          if (!mergeConfirm) return;
+          setMerging(true);
+          await handleMergeDuplicates(mergeConfirm.group, mergeConfirm.groupIndex);
+          setMerging(false);
+          setMergeConfirm(null);
+        }}
+      >
+        {mergeConfirm && (() => {
+          const group = mergeConfirm.group;
+          const gi = mergeConfirm.groupIndex;
+          const all = group.customers;
+          const primaryId = duplicatePrimary[gi] ?? all[0]?.id;
+          const primary = all.find(c => c.id === primaryId) || all[0];
+          const others = all.filter(c => c.id !== primary.id);
+          const pa = primary.attributes;
+          const extraPhones = others.map(c => c.attributes.phone).filter(p => p && p !== pa.phone);
+          const extraEmails = others.map(c => c.attributes.email).filter(e => e && e !== pa.email);
+          const countRel = (rel) => all.filter(c => c.id !== primary.id)
+            .reduce((sum, c) => sum + (c.attributes?.[rel]?.data?.length || 0), 0);
+          const movedInteractions = countRel('interactions');
+          const movedRegistrations = countRel('registrations');
+          const row = (label, value) => (
+            <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+              <span style={{ color: '#888', width: 96, flexShrink: 0 }}>{label}</span>
+              <span style={{ fontWeight: 500 }}>{value}</span>
+            </div>
+          );
+          return (
+            <div>
+              <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message={<span>以 <b>{pa.name || '(無名)'}</b> 這筆為主記錄,其餘 {others.length} 筆的資料併入後刪除。</span>}
+              />
+              {row('保留姓名', pa.name || '—')}
+              {row('保留電話', pa.phone || '—')}
+              {row('保留 Email', pa.email || '—')}
+              {extraPhones.length > 0 && row('其他電話', <span style={{ color: '#d48806' }}>{extraPhones.join('、')} → 併入備註</span>)}
+              {extraEmails.length > 0 && row('其他 Email', <span style={{ color: '#d48806' }}>{extraEmails.join('、')} → 併入備註</span>)}
+              <div style={{ borderTop: '1px dashed #e5e5e5', margin: '12px 0' }} />
+              {row('轉移聯絡紀錄', <span style={{ color: '#1668dc' }}>{movedInteractions} 筆 → 併到主記錄</span>)}
+              {movedRegistrations > 0 && row('轉移活動報名', <span style={{ color: '#1668dc' }}>{movedRegistrations} 筆 → 併到主記錄</span>)}
+              {row('刪除重複客戶', <span style={{ color: '#d4380d' }}>{others.length} 筆</span>)}
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginTop: 12 }}
+                message="此操作無法復原。要換主記錄請先取消,回上一頁用「主記錄」欄重選。"
+              />
+            </div>
+          );
+        })()}
       </Modal>
 
       {/* Excel匯入預覽 Modal */}
