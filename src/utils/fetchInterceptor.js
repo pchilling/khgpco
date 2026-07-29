@@ -28,6 +28,8 @@ const PROTECTED_API_PREFIXES = [
   '/api/registrations',
   '/api/sales-staffs',
   '/api/contact-messages',
+  '/api/channel-companies',
+  '/api/channel-people',
 ];
 
 const isProtectedApi = (input) => {

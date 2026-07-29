@@ -10,7 +10,8 @@ import {
   FormOutlined,
   InteractionOutlined,
   MessageOutlined,
-  MailOutlined
+  MailOutlined,
+  ApartmentOutlined
 } from '@ant-design/icons';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { logout } from '../../../services/auth';
@@ -48,6 +49,7 @@ const AdminDashboard = () => {
     if (path.includes('/admin/customers')) return '4';
     if (path.includes('/admin/interactions')) return '5';
     if (path.includes('/admin/contact-messages')) return '6';
+    if (path.includes('/admin/channels')) return '8';
     if (path.includes('/admin/sales-data')) return '7';
     return '1';
   };
@@ -89,6 +91,12 @@ const AdminDashboard = () => {
               icon: <UserOutlined />,
               label: '客戶資料庫',
               onClick: () => navigate('/crm/admin/customers')
+            },
+            {
+              key: '8',
+              icon: <ApartmentOutlined />,
+              label: '渠道管理',
+              onClick: () => navigate('/crm/admin/channels')
             },
             {
               key: '5',
