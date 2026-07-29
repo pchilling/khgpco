@@ -1759,6 +1759,7 @@ const CustomerManagement = () => {
       const selectedStaffId = duplicateAssignStaff[groupIndex] ?? primaryCustomer.attributes.sales_staff?.data?.id ?? null;
       const mergedData = getMergedPreview(duplicateGroup, selectedStaffId);
 
+      // 1. 更新主客戶為合併後的資料
       await fetch(`${API_BASE_URL}/api/customers/${primaryCustomer.id}`, {
         method: 'PUT',
         headers: {
@@ -1770,6 +1771,38 @@ const CustomerManagement = () => {
         } }),
       });
 
+      // 2. 把重複客戶的聯絡紀錄、活動報名改掛到主客戶名下。
+      //    必須在刪除前做:後端刪客戶會連帶刪除其聯絡紀錄(cascade),
+      //    先轉移才能保住跟進歷史,讓它們真正併入主客戶。
+      let movedInteractions = 0;
+      for (const dup of customersToDelete) {
+        const [intRes, regRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/interactions?filters[customer][id][$eq]=${dup.id}&pagination[pageSize]=1000`),
+          fetch(`${API_BASE_URL}/api/registrations?filters[customer][id][$eq]=${dup.id}&pagination[pageSize]=1000`),
+        ]);
+        const [intData, regData] = await Promise.all([intRes.json(), regRes.json()]);
+        const interactions = intData.data || [];
+        const registrations = regData.data || [];
+        movedInteractions += interactions.length;
+        await Promise.all([
+          ...interactions.map(it =>
+            fetch(`${API_BASE_URL}/api/interactions/${it.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ data: { customer: primaryCustomer.id } }),
+            })
+          ),
+          ...registrations.map(r =>
+            fetch(`${API_BASE_URL}/api/registrations/${r.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ data: { customer: primaryCustomer.id } }),
+            })
+          ),
+        ]);
+      }
+
+      // 3. 轉移完成後才刪除重複客戶(此時其名下已無聯絡紀錄,cascade 不會誤刪)
       await Promise.all(
         customersToDelete.map(customer =>
           fetch(`${API_BASE_URL}/api/customers/${customer.id}`, {
@@ -1778,7 +1811,10 @@ const CustomerManagement = () => {
         )
       );
 
-      message.success(`成功合併 ${customersToDelete.length} 個重複客戶`);
+      message.success(
+        `成功合併 ${customersToDelete.length} 個重複客戶` +
+        (movedInteractions ? `，並轉移 ${movedInteractions} 筆聯絡紀錄` : '')
+      );
 
       // 重新載入客戶清單以同步最新資料
       await fetchCustomers();
