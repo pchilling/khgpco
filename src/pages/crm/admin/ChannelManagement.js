@@ -34,6 +34,12 @@ const ChannelManagement = () => {
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsLoaded, setStatsLoaded] = useState(false);
 
+  // 佣金結算
+  const [commissions, setCommissions] = useState([]);
+  const [commLoading, setCommLoading] = useState(false);
+  const [commLoaded, setCommLoaded] = useState(false);
+  const [commMonth, setCommMonth] = useState('all');
+
   useEffect(() => {
     fetchAll();
   }, []);
@@ -139,6 +145,45 @@ const ChannelManagement = () => {
 
   const fmtAmount = (n) => n ? `NT$${Number(n).toLocaleString()}` : '—';
   const fmtRate = (r) => `${(r * 100).toFixed(1)}%`;
+
+  // 佣金月報:撈所有已登記佣金的成交紀錄
+  const loadCommissions = async () => {
+    if (commLoaded || commLoading) return;
+    setCommLoading(true);
+    try {
+      const rows = await fetchAllStrapi(
+        API_BASE_URL,
+        '/api/interactions?filters[commission_channel_person_id][$notNull]=true&populate[customer][fields][0]=name&pagination[pageSize]=200&sort=date:desc'
+      );
+      setCommissions(rows);
+      setCommLoaded(true);
+    } catch (e) {
+      console.error(e);
+      message.error(`載入佣金資料失敗：${e.message}`);
+    } finally {
+      setCommLoading(false);
+    }
+  };
+
+  const commMonthOf = (r) => (r.attributes?.deal_date || r.attributes?.date || '').slice(0, 7);
+
+  const markSettled = async (row) => {
+    try {
+      const settleMonth = commMonthOf(row);
+      const res = await fetch(`${API_BASE_URL}/api/interactions/${row.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { commission_settle_status: 'settled', commission_settle_month: settleMonth } }),
+      });
+      if (!res.ok) throw new Error(`結算失敗 (${res.status})`);
+      setCommissions(prev => prev.map(r => r.id === row.id
+        ? { ...r, attributes: { ...r.attributes, commission_settle_status: 'settled', commission_settle_month: settleMonth } }
+        : r));
+      message.success('已標記結算');
+    } catch (e) {
+      message.error(`結算失敗：${e.message}`);
+    }
+  };
 
   // ---------- 渠道公司 ----------
   const openCompany = (record = null) => {
@@ -258,7 +303,7 @@ const ChannelManagement = () => {
     <Card title="渠道管理" style={{ margin: 8 }}>
       <Tabs
         defaultActiveKey="people"
-        onChange={(key) => { if (key === 'stats') loadStats(); }}
+        onChange={(key) => { if (key === 'stats') loadStats(); if (key === 'commission') loadCommissions(); }}
         items={[
           {
             key: 'people',
@@ -351,6 +396,77 @@ const ChannelManagement = () => {
                           ]}
                         />
                       </Card>
+                    </>
+                  );
+                })()}
+              </>
+            ),
+          },
+          {
+            key: 'commission',
+            label: <span><BarChartOutlined /> 佣金結算</span>,
+            children: (
+              <>
+                {(() => {
+                  const months = Array.from(new Set(commissions.map(commMonthOf).filter(Boolean))).sort().reverse();
+                  const rows = commMonth === 'all' ? commissions : commissions.filter(r => commMonthOf(r) === commMonth);
+                  const sum = (arr) => arr.reduce((s, r) => s + (parseFloat(r.attributes?.commission_amount || 0) || 0), 0);
+                  const payable = rows.filter(r => r.attributes?.payment_status === 'paid' && r.attributes?.commission_settle_status !== 'settled');
+                  return (
+                    <>
+                      <Space style={{ marginBottom: 16 }} wrap>
+                        <span>結算月份：</span>
+                        <Select value={commMonth} style={{ width: 160 }} onChange={setCommMonth}
+                          options={[{ value: 'all', label: '全部' }, ...months.map(m => ({ value: m, label: m }))]} />
+                        <Tag color="blue" style={{ padding: '4px 12px', fontSize: 14 }}>佣金合計 {fmtAmount(sum(rows))}</Tag>
+                        <Tag color="orange" style={{ padding: '4px 12px', fontSize: 14 }}>可結算(已入帳未結) {fmtAmount(sum(payable))}</Tag>
+                      </Space>
+                      <Table
+                        rowKey="id" size="small" loading={commLoading}
+                        pagination={{ pageSize: 20, showSizeChanger: true }}
+                        dataSource={rows}
+                        scroll={{ x: 1000 }}
+                        columns={[
+                          { title: '成交日期', key: 'date', width: 110, render: (_, r) => r.attributes?.deal_date || r.attributes?.date || '—' },
+                          { title: '渠道人員', dataIndex: ['attributes', 'commission_channel_person_name'], key: 'cp', width: 120 },
+                          { title: '客戶', key: 'cust', width: 110, render: (_, r) => r.attributes?.customer?.data?.attributes?.name || '—' },
+                          { title: '成交金額', key: 'deal', width: 130, align: 'right', render: (_, r) => fmtAmount(r.attributes?.deal_amount) },
+                          {
+                            title: '佣金', key: 'comm', width: 140, align: 'right',
+                            render: (_, r) => {
+                              const a = r.attributes;
+                              const note = a.commission_type === 'percent' ? ` (${a.commission_rate}%)` : a.commission_type === 'fixed' ? ' (固定)' : '';
+                              return <span style={{ fontWeight: 600 }}>{fmtAmount(a.commission_amount)}<span style={{ color: '#999', fontWeight: 400 }}>{note}</span></span>;
+                            },
+                          },
+                          {
+                            title: '入帳', key: 'pay', width: 90, align: 'center',
+                            render: (_, r) => r.attributes?.payment_status === 'paid'
+                              ? <Tag color="green">已入帳</Tag> : <Tag color="orange">未入帳</Tag>,
+                          },
+                          {
+                            title: '結算', key: 'settle', width: 100, align: 'center',
+                            render: (_, r) => r.attributes?.commission_settle_status === 'settled'
+                              ? <Tag color="green">已結算<br />{r.attributes?.commission_settle_month}</Tag>
+                              : <Tag>未結算</Tag>,
+                          },
+                          {
+                            title: '操作', key: 'action', width: 130,
+                            render: (_, r) => {
+                              const a = r.attributes;
+                              if (a.commission_settle_status === 'settled') return <span style={{ color: '#c0c0c0' }}>—</span>;
+                              const paid = a.payment_status === 'paid';
+                              return (
+                                <Tooltip title={paid ? '' : '客戶款項入帳後才可結算佣金'}>
+                                  <Button size="small" type="primary" disabled={!paid} onClick={() => markSettled(r)}>
+                                    標記已結算
+                                  </Button>
+                                </Tooltip>
+                              );
+                            },
+                          },
+                        ]}
+                      />
                     </>
                   );
                 })()}

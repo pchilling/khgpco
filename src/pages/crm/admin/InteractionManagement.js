@@ -72,7 +72,7 @@ export default function InteractionManagement() {
       setLoading(true);
       const [ints, custs, staff, projs] = await Promise.all([
         fetchAllStrapi(API_BASE_URL, '/api/interactions?populate[]=customer&populate[]=sales_staff&populate[]=project&sort[0]=date:desc'),
-        fetchAllStrapi(API_BASE_URL, '/api/customers?populate=sales_staff&sort=updatedAt:desc'),
+        fetchAllStrapi(API_BASE_URL, '/api/customers?populate[sales_staff]=*&populate[channel_person]=*&sort=updatedAt:desc'),
         fetchAllStrapi(API_BASE_URL, '/api/sales-staffs?populate=*'),
         fetchAllStrapi(API_BASE_URL, '/api/projects?populate=*'),
       ]);
@@ -202,7 +202,12 @@ export default function InteractionManagement() {
       notes: a.notes,
       is_deal: !!a.is_deal,
       deal_amount: a.deal_amount ? Number(a.deal_amount) : undefined,
-      payment_date: toDateOnlyString(a.payment_date)
+      payment_date: toDateOnlyString(a.payment_date),
+      deal_date: toDateOnlyString(a.deal_date),
+      payment_status: a.payment_status || 'unpaid',
+      commission_type: a.commission_type || undefined,
+      commission_rate: a.commission_rate ? Number(a.commission_rate) : undefined,
+      commission_amount: a.commission_amount ? Number(a.commission_amount) : undefined,
     });
     setModalOpen(true);
   };
@@ -229,6 +234,35 @@ export default function InteractionManagement() {
   const submit = async () => {
     try {
       const v = await form.validateFields();
+
+      // 成交 + 佣金:客戶有綁渠道且有選佣金方式,才快照渠道並計算佣金
+      let dealFields = { is_deal: false };
+      if (v.is_deal) {
+        dealFields = {
+          is_deal: true,
+          deal_amount: Number(v.deal_amount || 0),
+          ...(v.deal_date ? { deal_date: normalizeDate(v.deal_date) } : {}),
+          payment_date: normalizeDate(v.payment_date),
+          payment_status: v.payment_status || 'unpaid',
+        };
+        const cust = customers.find(c => c.id === Number(v.customer));
+        const channel = cust?.attributes?.channel_person?.data;
+        if (channel && v.commission_type) {
+          const amount = v.commission_type === 'percent'
+            ? Math.round(Number(v.deal_amount || 0) * Number(v.commission_rate || 0) / 100)
+            : Number(v.commission_amount || 0);
+          Object.assign(dealFields, {
+            commission_channel_person_id: channel.id,
+            commission_channel_person_name: channel.attributes?.name || '',
+            commission_type: v.commission_type,
+            commission_rate: v.commission_type === 'percent' ? Number(v.commission_rate || 0) : null,
+            commission_amount: amount,
+            // 編輯時保留既有結算狀態,新建預設未結算
+            commission_settle_status: editing?.attributes?.commission_settle_status || 'unsettled',
+          });
+        }
+      }
+
       const payload = {
         customer: Number(v.customer),
         ...(v.sales_staff ? { sales_staff: Number(v.sales_staff) } : {}),
@@ -239,7 +273,7 @@ export default function InteractionManagement() {
         date: normalizeDate(v.date) || new Date().toISOString().split('T')[0],
         ...(v.next_follow_up ? { next_follow_up: normalizeDate(v.next_follow_up) } : {}),
         ...(v.notes ? { notes: v.notes } : {}),
-        ...(v.is_deal ? { is_deal: true, deal_amount: Number(v.deal_amount || 0), payment_date: normalizeDate(v.payment_date) } : { is_deal: false })
+        ...dealFields
       };
 
       const isEdit = !!editing;
@@ -447,17 +481,58 @@ export default function InteractionManagement() {
             <Form.Item name="is_deal" label="是否成交" valuePropName="checked" initialValue={false}>
               <Switch />
             </Form.Item>
-            <Form.Item shouldUpdate={(prev, curr) => prev.is_deal !== curr.is_deal}>
-              {({ getFieldValue }) => getFieldValue('is_deal') ? (
-                <div style={{ display: 'contents' }}>
-                  <Form.Item name="deal_amount" label="成交金額" rules={[{ required: true, message: '請輸入成交金額' }]}>
-                    <InputNumber style={{ width: '100%' }} min={0} step={10000} placeholder="輸入金額（元）" />
-                  </Form.Item>
-                  <Form.Item name="payment_date" label="入帳日期" rules={[{ required: true, message: '請選擇入帳日期' }]}>
-                    <Input type="date" />
-                  </Form.Item>
-                </div>
-              ) : null}
+            <Form.Item shouldUpdate>
+              {({ getFieldValue }) => {
+                if (!getFieldValue('is_deal')) return null;
+                const cust = customers.find(c => c.id === Number(getFieldValue('customer')));
+                const channel = cust?.attributes?.channel_person?.data;
+                const dealAmount = Number(getFieldValue('deal_amount') || 0);
+                const cType = getFieldValue('commission_type');
+                const cRate = Number(getFieldValue('commission_rate') || 0);
+                const preview = cType === 'percent' ? Math.round(dealAmount * cRate / 100) : Number(getFieldValue('commission_amount') || 0);
+                return (
+                  <div style={{ display: 'contents' }}>
+                    <Form.Item name="deal_amount" label="成交金額" rules={[{ required: true, message: '請輸入成交金額' }]}>
+                      <InputNumber style={{ width: '100%' }} min={0} step={10000} placeholder="輸入金額（元）" />
+                    </Form.Item>
+                    <Form.Item name="deal_date" label="成交日期">
+                      <Input type="date" />
+                    </Form.Item>
+                    <Form.Item name="payment_status" label="入帳狀態" initialValue="unpaid">
+                      <Select options={[{ value: 'unpaid', label: '未入帳' }, { value: 'paid', label: '已入帳' }]} />
+                    </Form.Item>
+                    <Form.Item name="payment_date" label="入帳日期">
+                      <Input type="date" />
+                    </Form.Item>
+                    <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed #eee', paddingTop: 10, marginTop: 2 }}>
+                      <div style={{ marginBottom: 8, color: '#888' }}>
+                        渠道佣金 {channel ? `— 歸屬：${channel.attributes?.name}` : '— 此客戶未綁渠道，可略過'}
+                      </div>
+                      {channel && (
+                        <Space wrap align="baseline">
+                          <Form.Item name="commission_type" label="佣金方式" style={{ marginBottom: 0 }}>
+                            <Select allowClear style={{ width: 130 }} placeholder="不計佣金"
+                              options={[{ value: 'percent', label: '百分比' }, { value: 'fixed', label: '固定金額' }]} />
+                          </Form.Item>
+                          {cType === 'percent' && (
+                            <Form.Item name="commission_rate" label="比率(%)" style={{ marginBottom: 0 }}>
+                              <InputNumber min={0} max={100} step={0.5} style={{ width: 110 }} />
+                            </Form.Item>
+                          )}
+                          {cType === 'fixed' && (
+                            <Form.Item name="commission_amount" label="金額" style={{ marginBottom: 0 }}>
+                              <InputNumber min={0} step={1000} style={{ width: 150 }} />
+                            </Form.Item>
+                          )}
+                          {cType && (
+                            <span style={{ color: '#1668dc' }}>應付佣金 ≈ NT${preview.toLocaleString()}</span>
+                          )}
+                        </Space>
+                      )}
+                    </div>
+                  </div>
+                );
+              }}
             </Form.Item>
           </div>
         </Form>
