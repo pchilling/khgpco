@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, Tooltip, Checkbox, Row, Col, DatePicker, Tabs, Switch, Upload, Typography, Popconfirm, Alert, Timeline, Empty, Spin, InputNumber } from 'antd';
+import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, Tooltip, Checkbox, Row, Col, DatePicker, Tabs, Switch, Upload, Typography, Popconfirm, Alert, Timeline, Empty, Spin, InputNumber, Radio } from 'antd';
 import { EditOutlined, DeleteOutlined, ExportOutlined, UserSwitchOutlined, FileAddOutlined, FilterOutlined, SearchOutlined, ReloadOutlined, FileTextOutlined, RollbackOutlined, FileExcelOutlined, CloudUploadOutlined, DownloadOutlined, UploadOutlined, PlusOutlined } from '@ant-design/icons';
 import { SmileTwoTone, MehTwoTone, FrownTwoTone, QuestionCircleTwoTone } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
@@ -79,6 +79,8 @@ const CustomerManagement = () => {
   const [duplicateCustomers, setDuplicateCustomers] = useState([]);
   const [duplicateLoading, setDuplicateLoading] = useState(false);
   const [duplicateAssignStaff, setDuplicateAssignStaff] = useState({});
+  // 每組選定的「主記錄」客戶 id（保留其姓名/電話/Email，其餘併入）；預設第一筆
+  const [duplicatePrimary, setDuplicatePrimary] = useState({});
   const [form] = Form.useForm();
   const [filterForm] = Form.useForm();
   const [projects, setProjects] = useState([]);
@@ -1710,8 +1712,11 @@ const CustomerManagement = () => {
   };
 
   // 預覽與合併資料計算（保留主記錄電話/Email，其他值追加到備註）
-  const getMergedPreview = (duplicateGroup, selectedStaffId) => {
-    const customersToMerge = duplicateGroup.customers;
+  const getMergedPreview = (duplicateGroup, selectedStaffId, primaryId) => {
+    const all = duplicateGroup.customers;
+    const chosen = all.find(c => c.id === primaryId) || all[0];
+    // 把選定的主記錄排到第一位,其餘維持原順序;以下邏輯即以「第一筆為主」運作
+    const customersToMerge = [chosen, ...all.filter(c => c.id !== chosen.id)];
     const primaryCustomer = customersToMerge[0];
     const merged = { ...primaryCustomer.attributes };
 
@@ -1752,12 +1757,13 @@ const CustomerManagement = () => {
   // 合併重複客戶
   const handleMergeDuplicates = async (duplicateGroup, groupIndex) => {
     try {
-      const customersToMerge = duplicateGroup.customers;
-      const primaryCustomer = customersToMerge[0];
-      const customersToDelete = customersToMerge.slice(1);
+      const all = duplicateGroup.customers;
+      const primaryId = duplicatePrimary[groupIndex] ?? all[0]?.id;
+      const primaryCustomer = all.find(c => c.id === primaryId) || all[0];
+      const customersToDelete = all.filter(c => c.id !== primaryCustomer.id);
 
       const selectedStaffId = duplicateAssignStaff[groupIndex] ?? primaryCustomer.attributes.sales_staff?.data?.id ?? null;
-      const mergedData = getMergedPreview(duplicateGroup, selectedStaffId);
+      const mergedData = getMergedPreview(duplicateGroup, selectedStaffId, primaryId);
 
       // 1. 更新主客戶為合併後的資料
       await fetch(`${API_BASE_URL}/api/customers/${primaryCustomer.id}`, {
@@ -1831,7 +1837,9 @@ const CustomerManagement = () => {
   // 刪除重複客戶
   const handleDeleteDuplicates = async (duplicateGroup, groupIndex) => {
     try {
-      const customersToDelete = duplicateGroup.customers.slice(1);
+      const all = duplicateGroup.customers;
+      const primaryId = duplicatePrimary[groupIndex] ?? all[0]?.id;
+      const customersToDelete = all.filter(c => c.id !== primaryId);
 
       await Promise.all(
         customersToDelete.map(customer =>
@@ -3029,6 +3037,21 @@ const CustomerManagement = () => {
                   dataSource={group.customers}
                   columns={[
                     {
+                      title: '主記錄',
+                      key: 'primary',
+                      width: 70,
+                      align: 'center',
+                      render: (_, customer) => {
+                        const currentPrimary = duplicatePrimary[index] ?? group.customers[0]?.id;
+                        return (
+                          <Radio
+                            checked={currentPrimary === customer.id}
+                            onChange={() => setDuplicatePrimary(prev => ({ ...prev, [index]: customer.id }))}
+                          />
+                        );
+                      },
+                    },
+                    {
                       title: '姓名',
                       dataIndex: ['attributes', 'name'],
                       key: 'name',
@@ -3112,7 +3135,8 @@ const CustomerManagement = () => {
                 <div style={{ marginTop: 12, padding: 12, background: '#fafafa', border: '1px dashed #e5e5e5', borderRadius: 6 }}>
                   <div style={{ marginBottom: 8, fontWeight: 600 }}>合併後預覽</div>
                   {(() => {
-                    const preview = getMergedPreview(group, duplicateAssignStaff[index] ?? group.customers[0]?.attributes?.sales_staff?.data?.id ?? null);
+                    const primaryId = duplicatePrimary[index] ?? group.customers[0]?.id;
+                    const preview = getMergedPreview(group, duplicateAssignStaff[index] ?? group.customers[0]?.attributes?.sales_staff?.data?.id ?? null, primaryId);
                     return (
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
                         <div><span style={{ color: '#888' }}>姓名：</span>{preview.name || group.customers[0]?.attributes?.name || ''}</div>
