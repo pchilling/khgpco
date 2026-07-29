@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Card, Button, Space, Tag, Modal, Form, Input, Select, Switch, Tabs, Tooltip, message } from 'antd';
-import { PlusOutlined, EditOutlined, ApartmentOutlined, ContactsOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, ApartmentOutlined, ContactsOutlined, BarChartOutlined } from '@ant-design/icons';
+import ReactECharts from 'echarts-for-react';
 import { API_BASE_URL } from '../../../utils/api';
+import { fetchAllStrapi } from '../../../utils/strapiPaginate';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -25,6 +27,12 @@ const ChannelManagement = () => {
 
   const [companySearch, setCompanySearch] = useState('');
   const [personSearch, setPersonSearch] = useState('');
+
+  // 成效統計
+  const [statsPerson, setStatsPerson] = useState([]);
+  const [statsCompany, setStatsCompany] = useState([]);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsLoaded, setStatsLoaded] = useState(false);
 
   useEffect(() => {
     fetchAll();
@@ -52,6 +60,85 @@ const ChannelManagement = () => {
   };
 
   const staffName = (staff) => staff?.attributes?.name || staff?.attributes?.username || `業務 ${staff?.id}`;
+
+  // 載入並計算渠道成效(切到統計分頁時才跑,避免每次開頁都撈大量資料)
+  const loadStats = async () => {
+    if (statsLoaded || statsLoading) return;
+    setStatsLoading(true);
+    try {
+      // 客戶(帶 channel_person)＋ 成交聯絡紀錄(帶 customer)全量撈
+      const [customers, deals] = await Promise.all([
+        fetchAllStrapi(API_BASE_URL, '/api/customers?populate[channel_person][fields][0]=id&fields[0]=id&pagination[pageSize]=200'),
+        fetchAllStrapi(API_BASE_URL, '/api/interactions?filters[is_deal][$eq]=true&populate[customer][fields][0]=id&fields[0]=deal_amount&pagination[pageSize]=200'),
+      ]);
+
+      // 客戶 → 渠道人員 對照
+      const custToChannel = {};
+      const broughtByPerson = {}; // personId -> 帶客數
+      customers.forEach(c => {
+        const cpId = c.attributes?.channel_person?.data?.id;
+        if (cpId) {
+          custToChannel[c.id] = cpId;
+          broughtByPerson[cpId] = (broughtByPerson[cpId] || 0) + 1;
+        }
+      });
+
+      // 成交:金額加總 + 成交客戶集合(轉化率用)
+      const amountByPerson = {};
+      const dealCustByPerson = {}; // personId -> Set(customerId)
+      deals.forEach(d => {
+        const custId = d.attributes?.customer?.data?.id;
+        const cpId = custToChannel[custId];
+        if (!cpId) return;
+        amountByPerson[cpId] = (amountByPerson[cpId] || 0) + (parseFloat(d.attributes?.deal_amount || 0) || 0);
+        if (!dealCustByPerson[cpId]) dealCustByPerson[cpId] = new Set();
+        dealCustByPerson[cpId].add(custId);
+      });
+
+      // 人員層
+      const personRows = people.map(p => {
+        const brought = broughtByPerson[p.id] || 0;
+        const dealCust = dealCustByPerson[p.id] ? dealCustByPerson[p.id].size : 0;
+        const amount = amountByPerson[p.id] || 0;
+        return {
+          id: p.id,
+          name: p.attributes?.name,
+          company: p.attributes?.channel_company?.data?.attributes?.name || '（獨立）',
+          companyId: p.attributes?.channel_company?.data?.id || null,
+          brought,
+          dealCust,
+          amount,
+          rate: brought > 0 ? (dealCust / brought) : 0,
+        };
+      }).filter(r => r.brought > 0 || r.amount > 0)
+        .sort((a, b) => b.amount - a.amount || b.brought - a.brought);
+
+      // 公司層(彙總旗下人員)
+      const compMap = {};
+      personRows.forEach(r => {
+        const key = r.companyId || `__solo_${r.id}`;
+        if (!compMap[key]) compMap[key] = { name: r.companyId ? r.company : '（獨立介紹人）', brought: 0, dealCust: 0, amount: 0 };
+        compMap[key].brought += r.brought;
+        compMap[key].dealCust += r.dealCust;
+        compMap[key].amount += r.amount;
+      });
+      const companyRows = Object.entries(compMap).map(([key, v]) => ({
+        key, ...v, rate: v.brought > 0 ? (v.dealCust / v.brought) : 0,
+      })).sort((a, b) => b.amount - a.amount || b.brought - a.brought);
+
+      setStatsPerson(personRows);
+      setStatsCompany(companyRows);
+      setStatsLoaded(true);
+    } catch (e) {
+      console.error(e);
+      message.error(`載入成效統計失敗：${e.message}`);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const fmtAmount = (n) => n ? `NT$${Number(n).toLocaleString()}` : '—';
+  const fmtRate = (r) => `${(r * 100).toFixed(1)}%`;
 
   // ---------- 渠道公司 ----------
   const openCompany = (record = null) => {
@@ -171,6 +258,7 @@ const ChannelManagement = () => {
     <Card title="渠道管理" style={{ margin: 8 }}>
       <Tabs
         defaultActiveKey="people"
+        onChange={(key) => { if (key === 'stats') loadStats(); }}
         items={[
           {
             key: 'people',
@@ -195,6 +283,77 @@ const ChannelManagement = () => {
                   <Button type="primary" icon={<PlusOutlined />} onClick={() => openCompany()}>新增渠道公司</Button>
                 </Space>
                 <Table rowKey="id" columns={companyColumns} dataSource={filteredCompanies} loading={loading} size="small" scroll={{ x: 900 }} pagination={{ pageSize: 20, showSizeChanger: true }} />
+              </>
+            ),
+          },
+          {
+            key: 'stats',
+            label: <span><BarChartOutlined /> 成效統計</span>,
+            children: (
+              <>
+                {(() => {
+                  const totalBrought = statsPerson.reduce((s, r) => s + r.brought, 0);
+                  const totalDeals = statsPerson.reduce((s, r) => s + r.dealCust, 0);
+                  const totalAmount = statsPerson.reduce((s, r) => s + r.amount, 0);
+                  const top = [...statsCompany].slice(0, 10);
+                  const chartOption = {
+                    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                    legend: { data: ['成交金額', '帶客數'] },
+                    grid: { left: 8, right: 8, bottom: 8, top: 40, containLabel: true },
+                    xAxis: { type: 'category', data: top.map(c => c.name), axisLabel: { interval: 0, rotate: top.length > 5 ? 25 : 0 } },
+                    yAxis: [
+                      { type: 'value', name: '成交金額', axisLabel: { formatter: (v) => v >= 10000 ? `${v / 10000}萬` : v } },
+                      { type: 'value', name: '帶客數' },
+                    ],
+                    series: [
+                      { name: '成交金額', type: 'bar', data: top.map(c => c.amount), itemStyle: { color: '#1668dc' } },
+                      { name: '帶客數', type: 'bar', yAxisIndex: 1, data: top.map(c => c.brought), itemStyle: { color: '#b37feb' } },
+                    ],
+                  };
+                  return (
+                    <>
+                      <Space size="large" style={{ marginBottom: 16 }} wrap>
+                        <Tag color="purple" style={{ padding: '4px 12px', fontSize: 14 }}>渠道帶客總數 {totalBrought}</Tag>
+                        <Tag color="green" style={{ padding: '4px 12px', fontSize: 14 }}>成交組數 {totalDeals}</Tag>
+                        <Tag color="blue" style={{ padding: '4px 12px', fontSize: 14 }}>成交金額 {fmtAmount(totalAmount)}</Tag>
+                        <Tag style={{ padding: '4px 12px', fontSize: 14 }}>整體轉化率 {totalBrought ? fmtRate(totalDeals / totalBrought) : '—'}</Tag>
+                      </Space>
+                      {statsCompany.length > 0 && (
+                        <Card size="small" title="渠道公司成效(前 10 名，依成交金額)" style={{ marginBottom: 16 }}>
+                          <ReactECharts option={chartOption} style={{ height: 320 }} notMerge lazyUpdate />
+                        </Card>
+                      )}
+                      <Card size="small" title="公司層彙總" style={{ marginBottom: 16 }}>
+                        <Table
+                          rowKey="key" size="small" loading={statsLoading} pagination={false}
+                          dataSource={statsCompany}
+                          columns={[
+                            { title: '渠道公司', dataIndex: 'name', key: 'name' },
+                            { title: '帶客數', dataIndex: 'brought', key: 'brought', width: 90, align: 'right', sorter: (a, b) => a.brought - b.brought },
+                            { title: '成交組數', dataIndex: 'dealCust', key: 'dealCust', width: 90, align: 'right', sorter: (a, b) => a.dealCust - b.dealCust },
+                            { title: '成交金額', dataIndex: 'amount', key: 'amount', width: 140, align: 'right', render: fmtAmount, sorter: (a, b) => a.amount - b.amount },
+                            { title: '轉化率', dataIndex: 'rate', key: 'rate', width: 90, align: 'right', render: fmtRate, sorter: (a, b) => a.rate - b.rate },
+                          ]}
+                        />
+                      </Card>
+                      <Card size="small" title="渠道人員成效">
+                        <Table
+                          rowKey="id" size="small" loading={statsLoading}
+                          pagination={{ pageSize: 20, showSizeChanger: true }}
+                          dataSource={statsPerson}
+                          columns={[
+                            { title: '渠道人員', dataIndex: 'name', key: 'name' },
+                            { title: '所屬公司', dataIndex: 'company', key: 'company', width: 150 },
+                            { title: '帶客數', dataIndex: 'brought', key: 'brought', width: 90, align: 'right', sorter: (a, b) => a.brought - b.brought },
+                            { title: '成交組數', dataIndex: 'dealCust', key: 'dealCust', width: 90, align: 'right', sorter: (a, b) => a.dealCust - b.dealCust },
+                            { title: '成交金額', dataIndex: 'amount', key: 'amount', width: 140, align: 'right', render: fmtAmount, sorter: (a, b) => a.amount - b.amount },
+                            { title: '轉化率', dataIndex: 'rate', key: 'rate', width: 90, align: 'right', render: fmtRate, sorter: (a, b) => a.rate - b.rate },
+                          ]}
+                        />
+                      </Card>
+                    </>
+                  );
+                })()}
               </>
             ),
           },
