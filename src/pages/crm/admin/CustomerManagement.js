@@ -632,7 +632,7 @@ const CustomerManagement = () => {
     // 設置默認值
     form.setFieldsValue({
       status: 'potential',
-      source: 'website',
+      source: 'event',
       hasContract: false
     });
   };
@@ -968,7 +968,7 @@ const CustomerManagement = () => {
           const status = statusMap[statusValue] || 'potential';
 
           // 處理來源
-          const sourceValue = String(row['來源'] || 'website').trim();
+          const sourceValue = String(row['來源'] || 'event').trim();
           const sourceMapLocal = {
             'website': 'website',
             '網站': 'website',
@@ -979,7 +979,7 @@ const CustomerManagement = () => {
             'other': 'other',
             '其他': 'other'
           };
-          const source = sourceMapLocal[sourceValue] || 'website';
+          const source = sourceMapLocal[sourceValue] || 'event';
 
           // 保留：負責業務（姓名或帳號對應 ID）
           const salesStaffName = String(row['負責業務'] || '').trim();
@@ -1330,7 +1330,7 @@ const CustomerManagement = () => {
                 email: '',
                 address: '',
                 status: 'potential',
-                source: 'website',
+                source: 'event',
                 notes: '',
                 hasContract: false
               };
@@ -1639,19 +1639,11 @@ const CustomerManagement = () => {
   const findDuplicateCustomers = (customerList) => {
     const duplicates = [];
     const processed = new Set();
-    
-    // 按姓名分組
-    const nameGroups = {};
-    customerList.forEach(customer => {
-      const name = customer.attributes.name?.trim().toLowerCase();
-      if (name) {
-        if (!nameGroups[name]) {
-          nameGroups[name] = [];
-        }
-        nameGroups[name].push(customer);
-      }
-    });
-    
+
+    // 只以「電話」與「電子郵件」判定重複——兩者皆能唯一識別一個人。
+    // 刻意不比對姓名:1500+ 筆客戶同名（陳先生、王小姐…）極多，純姓名比對
+    // 會產生大量假重複、淹沒真正的重複，讓功能失去意義。
+
     // 按電話分組
     const phoneGroups = {};
     customerList.forEach(customer => {
@@ -1676,23 +1668,10 @@ const CustomerManagement = () => {
       }
     });
     
-    // 找出重複的姓名組
-    Object.entries(nameGroups).forEach(([name, group]) => {
-      if (group.length > 1) {
-        const key = `name_${name}`;
-        if (!processed.has(key)) {
-          duplicates.push({
-            type: '姓名重複',
-            field: 'name',
-            value: name,
-            customers: group,
-            count: group.length
-          });
-          processed.add(key);
-        }
-      }
-    });
-    
+    // 註:不再以「純姓名」判定重複。1500+ 筆客戶裡同名（陳先生、王小姐…）
+    // 極多，純姓名比對會產生大量假重複、淹沒真正的重複。改以電話為主鍵、
+    // Email 為輔（皆能唯一識別一個人）；姓名僅在下方作為輔助條件。
+
     // 找出重複的電話組
     Object.entries(phoneGroups).forEach(([phone, group]) => {
       if (group.length > 1) {
@@ -2459,7 +2438,7 @@ const CustomerManagement = () => {
                 name="source"
                 label="來源"
                 rules={[{ required: true, message: '請選擇來源' }]}
-                initialValue="website"
+                initialValue="event"
               >
                 <Select>
                   {Object.entries(sourceMap).map(([value, text]) => (
