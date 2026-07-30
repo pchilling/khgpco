@@ -74,8 +74,8 @@ const ChannelManagement = () => {
     try {
       // 客戶(帶 channel_person)＋ 成交聯絡紀錄(帶 customer)全量撈
       const [customers, deals] = await Promise.all([
-        fetchAllStrapi(API_BASE_URL, '/api/customers?populate=channel_person&pagination[pageSize]=200'),
-        fetchAllStrapi(API_BASE_URL, '/api/interactions?filters[is_deal][$eq]=true&populate=customer&pagination[pageSize]=200'),
+        fetchAllStrapi(API_BASE_URL, '/api/customers?fields[0]=name&populate[channel_person][fields][0]=name&pagination[pageSize]=100'),
+        fetchAllStrapi(API_BASE_URL, '/api/interactions?filters[is_deal][$eq]=true&fields[0]=deal_amount&populate[customer][fields][0]=name&pagination[pageSize]=100'),
       ]);
 
       // 客戶 → 渠道人員 對照
