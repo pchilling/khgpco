@@ -68,8 +68,8 @@ const ChannelManagement = () => {
   const staffName = (staff) => staff?.attributes?.name || staff?.attributes?.username || `業務 ${staff?.id}`;
 
   // 載入並計算渠道成效(切到統計分頁時才跑,避免每次開頁都撈大量資料)
-  const loadStats = async () => {
-    if (statsLoaded || statsLoading) return;
+  const loadStats = async (force = false) => {
+    if (!force && (statsLoaded || statsLoading)) return;
     setStatsLoading(true);
     try {
       // 客戶(帶 channel_person)＋ 成交聯絡紀錄(帶 customer)全量撈
@@ -147,8 +147,8 @@ const ChannelManagement = () => {
   const fmtRate = (r) => `${(r * 100).toFixed(1)}%`;
 
   // 佣金月報:撈所有已登記佣金的成交紀錄
-  const loadCommissions = async () => {
-    if (commLoaded || commLoading) return;
+  const loadCommissions = async (force = false) => {
+    if (!force && (commLoaded || commLoading)) return;
     setCommLoading(true);
     try {
       const rows = await fetchAllStrapi(
@@ -362,6 +362,7 @@ const ChannelManagement = () => {
                         <Tag color="green" style={{ padding: '4px 12px', fontSize: 14 }}>成交組數 {totalDeals}</Tag>
                         <Tag color="blue" style={{ padding: '4px 12px', fontSize: 14 }}>成交金額 {fmtAmount(totalAmount)}</Tag>
                         <Tag style={{ padding: '4px 12px', fontSize: 14 }}>整體轉化率 {totalBrought ? fmtRate(totalDeals / totalBrought) : '—'}</Tag>
+                        <Button size="small" loading={statsLoading} onClick={() => loadStats(true)}>重新整理</Button>
                       </Space>
                       {statsCompany.length > 0 && (
                         <Card size="small" title="渠道公司成效(前 10 名，依成交金額)" style={{ marginBottom: 16 }}>
@@ -420,6 +421,7 @@ const ChannelManagement = () => {
                           options={[{ value: 'all', label: '全部' }, ...months.map(m => ({ value: m, label: m }))]} />
                         <Tag color="blue" style={{ padding: '4px 12px', fontSize: 14 }}>佣金合計 {fmtAmount(sum(rows))}</Tag>
                         <Tag color="orange" style={{ padding: '4px 12px', fontSize: 14 }}>可結算(已入帳未結) {fmtAmount(sum(payable))}</Tag>
+                        <Button size="small" loading={commLoading} onClick={() => loadCommissions(true)}>重新整理</Button>
                       </Space>
                       <Table
                         rowKey="id" size="small" loading={commLoading}
