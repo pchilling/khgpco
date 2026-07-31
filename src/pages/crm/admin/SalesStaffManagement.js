@@ -48,7 +48,7 @@ const SalesStaffManagement = () => {
         name: staff.attributes.name || '',
         role: staff.attributes.role || 'staff',
         phone: staff.attributes.phone || '',
-        active: staff.attributes.active !== false
+        active: staff.attributes.status !== 'inactive'
       });
     } else {
       form.resetFields();
@@ -85,6 +85,11 @@ const SalesStaffManagement = () => {
       if (isEditing && !values.password) {
         delete values.password;
       }
+
+      // 前端用 active(布林)開關,後端實際欄位是 status(active/inactive)。
+      // 轉換後再送,否則停用不會生效(送出的 active 是後端不存在的欄位)。
+      values.status = values.active ? 'active' : 'inactive';
+      delete values.active;
 
       const response = await fetch(url, {
         method,
@@ -174,11 +179,11 @@ const SalesStaffManagement = () => {
     },
     {
       title: '狀態',
-      dataIndex: ['attributes', 'active'],
-      key: 'active',
-      render: (active) => (
-        <Tag color={active !== false ? 'green' : 'red'}>
-          {active !== false ? '啟用' : '禁用'}
+      dataIndex: ['attributes', 'status'],
+      key: 'status',
+      render: (status) => (
+        <Tag color={status !== 'inactive' ? 'green' : 'red'}>
+          {status !== 'inactive' ? '啟用' : '停用'}
         </Tag>
       ),
     },
