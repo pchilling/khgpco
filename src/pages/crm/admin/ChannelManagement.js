@@ -230,14 +230,14 @@ const ChannelManagement = () => {
   });
 
   const companyColumns = [
-    { title: '公司名稱', dataIndex: ['attributes', 'name'], key: 'name' },
-    { title: '類型', dataIndex: ['attributes', 'type'], key: 'type', width: 90, render: t => <Tag>{COMPANY_TYPE[t] || t}</Tag> },
-    { title: '主要窗口', dataIndex: ['attributes', 'contact_person'], key: 'contact_person', width: 110, render: v => v || '—' },
-    { title: '電話', dataIndex: ['attributes', 'phone'], key: 'phone', width: 130, render: v => v || '—' },
-    { title: '負責業務', key: 'sales_staff', width: 110, render: (_, r) => { const s = r.attributes.sales_staff?.data; return s ? staffName(s) : <span style={{ color: '#c0c0c0' }}>未指派</span>; } },
-    { title: '旗下人員', key: 'people', width: 80, align: 'right', render: (_, r) => (r.attributes.channel_people?.data?.length || 0) },
-    { title: '合作狀態', dataIndex: ['attributes', 'cooperation_status'], key: 'cooperation_status', width: 90, render: s => { const m = COOP_STATUS[s] || {}; return <Tag color={m.color}>{m.text || s}</Tag>; } },
-    { title: '操作', key: 'action', width: 80, render: (_, r) => <Button size="small" icon={<EditOutlined />} onClick={() => openCompany(r)}>編輯</Button> },
+    { title: '公司名稱', dataIndex: ['attributes', 'name'], key: 'name', width: 220, ellipsis: true },
+    { title: '類型', dataIndex: ['attributes', 'type'], key: 'type', width: 100, render: t => <Tag>{COMPANY_TYPE[t] || t}</Tag> },
+    { title: '主要窗口', dataIndex: ['attributes', 'contact_person'], key: 'contact_person', width: 120, render: v => v || '—' },
+    { title: '電話', dataIndex: ['attributes', 'phone'], key: 'phone', width: 140, render: v => v || '—' },
+    { title: '負責業務', key: 'sales_staff', width: 120, render: (_, r) => { const s = r.attributes.sales_staff?.data; return s ? staffName(s) : <span style={{ color: '#c0c0c0' }}>未指派</span>; } },
+    { title: '旗下人員', key: 'people', width: 100, align: 'center', render: (_, r) => (r.attributes.channel_people?.data?.length || 0) },
+    { title: '合作狀態', dataIndex: ['attributes', 'cooperation_status'], key: 'cooperation_status', width: 110, align: 'center', render: s => { const m = COOP_STATUS[s] || {}; return <Tag color={m.color}>{m.text || s}</Tag>; } },
+    { title: '操作', key: 'action', width: 100, align: 'center', render: (_, r) => <Button size="small" icon={<EditOutlined />} onClick={() => openCompany(r)}>編輯</Button> },
   ];
 
   // ---------- 渠道人員 ----------
@@ -286,14 +286,14 @@ const ChannelManagement = () => {
   });
 
   const personColumns = [
-    { title: '姓名', dataIndex: ['attributes', 'name'], key: 'name' },
-    { title: '電話', dataIndex: ['attributes', 'phone'], key: 'phone', width: 130, render: v => v || '—' },
-    { title: '身分', dataIndex: ['attributes', 'identity'], key: 'identity', width: 100, render: i => <Tag color="blue">{PERSON_IDENTITY[i] || i}</Tag> },
-    { title: '所屬公司', key: 'company', width: 150, render: (_, r) => r.attributes.channel_company?.data?.attributes?.name || <span style={{ color: '#c0c0c0' }}>獨立</span> },
-    { title: '負責業務', key: 'sales_staff', width: 110, render: (_, r) => { const s = r.attributes.sales_staff?.data; return s ? staffName(s) : <span style={{ color: '#c0c0c0' }}>未指派</span>; } },
-    { title: '帶客數', key: 'customers', width: 80, align: 'right', render: (_, r) => (r.attributes.customers?.data?.length || 0) },
-    { title: '狀態', key: 'active', width: 80, render: (_, r) => r.attributes.active !== false ? <Tag color="green">合作中</Tag> : <Tag color="red">停用</Tag> },
-    { title: '操作', key: 'action', width: 80, render: (_, r) => <Button size="small" icon={<EditOutlined />} onClick={() => openPerson(r)}>編輯</Button> },
+    { title: '姓名', dataIndex: ['attributes', 'name'], key: 'name', width: 180, ellipsis: true },
+    { title: '電話', dataIndex: ['attributes', 'phone'], key: 'phone', width: 140, render: v => v || '—' },
+    { title: '身分', dataIndex: ['attributes', 'identity'], key: 'identity', width: 110, render: i => <Tag color="blue">{PERSON_IDENTITY[i] || i}</Tag> },
+    { title: '所屬公司', key: 'company', width: 200, ellipsis: true, render: (_, r) => r.attributes.channel_company?.data?.attributes?.name || <span style={{ color: '#c0c0c0' }}>獨立</span> },
+    { title: '負責業務', key: 'sales_staff', width: 120, render: (_, r) => { const s = r.attributes.sales_staff?.data; return s ? staffName(s) : <span style={{ color: '#c0c0c0' }}>未指派</span>; } },
+    { title: '帶客數', key: 'customers', width: 100, align: 'center', render: (_, r) => (r.attributes.customers?.data?.length || 0) },
+    { title: '狀態', key: 'active', width: 100, align: 'center', render: (_, r) => r.attributes.active !== false ? <Tag color="green">合作中</Tag> : <Tag color="red">停用</Tag> },
+    { title: '操作', key: 'action', width: 100, align: 'center', render: (_, r) => <Button size="small" icon={<EditOutlined />} onClick={() => openPerson(r)}>編輯</Button> },
   ];
 
   const staffOptions = salesStaff.map(s => <Option key={s.id} value={s.id}>{staffName(s)}</Option>);
