@@ -491,7 +491,8 @@ const CustomerManagement = () => {
           sales_staff: values.sales_staff || null,
           // 活動為多對多，直接以 ID 陣列設定（空陣列＝清除所有活動）
           events: Array.isArray(values.events) ? values.events.map(Number) : [],
-          channel_person: values.channel_person || null
+          channel_person: values.channel_person || null,
+          projects: Array.isArray(values.projects) ? values.projects.map(Number) : []
         }
       };
 
@@ -696,7 +697,11 @@ const CustomerManagement = () => {
           ...(selectedSalesStaffId ? { sales_staff: selectedSalesStaffId } : {}),
           // 活動為多對多，可直接在 Customer 上以 ID 陣列設定
           ...(Array.isArray(values.events) && values.events.length ? { events: values.events.map(Number) } : {}),
-          ...(values.channel_person ? { channel_person: values.channel_person } : {})
+          ...(values.channel_person ? { channel_person: values.channel_person } : {}),
+          // 相關建案:直接在客戶新增請求裡以 ID 陣列設定(oneToMany 從客戶端可寫)。
+          // 不再另外 PUT /api/projects——那會帶著渠道 JWT 打公開端點被 Strapi 拒 401,
+          // 進而觸發登出(這就是「選了建案一新增就被踢出」的根因)。
+          ...(selectedProjectIds.length ? { projects: selectedProjectIds } : {})
         }
       };
       
@@ -723,48 +728,8 @@ const CustomerManagement = () => {
         throw new Error(`新增失敗 (${response.status}): ${response.statusText}`);
       }
 
-      const created = await response.json();
-      const newCustomerId = created?.data?.id;
-
-      // 若使用者選了相關建案，需逐一更新 Project 的 customer（因為 Project.customer 是 manyToOne）
-      if (newCustomerId && selectedProjectIds.length > 0) {
-        // 兼容不同登入流程：優先使用 'jwt'，若無再使用 'token'（且必須像 JWT 一樣包含'.'）
-        const storedJwt = localStorage.getItem('jwt') || '';
-        const storedToken = localStorage.getItem('token') || '';
-        const envApiToken = process.env.REACT_APP_STRAPI_API_TOKEN || '';
-        const pickToken = storedJwt && storedJwt.includes('.')
-          ? storedJwt
-          : (storedToken && storedToken.includes('.') ? storedToken : envApiToken);
-        const headers = pickToken
-          ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${pickToken}` }
-          : { 'Content-Type': 'application/json' };
-        if (!pickToken) {
-          console.warn('未找到可用的 JWT 或 API Token，將嘗試不帶授權更新專案（可能 401）');
-        }
-        const results = await Promise.allSettled(
-          selectedProjectIds.map((projectId) =>
-            fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
-              method: 'PUT',
-              headers,
-              body: JSON.stringify({ data: { customer: newCustomerId } })
-            })
-          )
-        );
-        const failed = [];
-        for (let i = 0; i < results.length; i++) {
-          const r = results[i];
-          if (r.status === 'fulfilled') {
-            const resp = r.value;
-            if (!resp.ok) failed.push(selectedProjectIds[i]);
-          } else {
-            failed.push(selectedProjectIds[i]);
-          }
-        }
-        if (failed.length > 0) {
-          console.warn('關聯建案失敗 IDs:', failed);
-          message.warning(`部分建案未成功關聯（ID: ${failed.join(', ')}）`);
-        }
-      }
+      // 相關建案已隨客戶新增請求一併寫入(見上方 apiData.projects),
+      // 不再另打 /api/projects,避免 401 登出。
 
       message.success('客戶資料已新增');
       setAddModalVisible(false);
