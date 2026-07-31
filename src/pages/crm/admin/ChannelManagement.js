@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Space, Tag, Modal, Form, Input, Select, Switch, Tabs, Tooltip, message } from 'antd';
+import { Table, Card, Button, Space, Tag, Modal, Form, Input, Select, Switch, Tabs, Tooltip, Popconfirm, message } from 'antd';
 import { PlusOutlined, EditOutlined, ApartmentOutlined, ContactsOutlined, BarChartOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import { API_BASE_URL } from '../../../utils/api';
@@ -445,23 +445,35 @@ const ChannelManagement = () => {
                               ? <Tag color="green">已入帳</Tag> : <Tag color="orange">未入帳</Tag>,
                           },
                           {
-                            title: '結算', key: 'settle', width: 100, align: 'center',
+                            title: '結算狀態', key: 'settle', width: 110, align: 'center',
                             render: (_, r) => r.attributes?.commission_settle_status === 'settled'
                               ? <Tag color="green">已結算<br />{r.attributes?.commission_settle_month}</Tag>
-                              : <Tag>未結算</Tag>,
+                              : <Tag color="orange">尚未結算</Tag>,
                           },
                           {
                             title: '操作', key: 'action', width: 130,
                             render: (_, r) => {
                               const a = r.attributes;
-                              if (a.commission_settle_status === 'settled') return <span style={{ color: '#c0c0c0' }}>—</span>;
+                              if (a.commission_settle_status === 'settled') {
+                                return <span style={{ color: '#c0c0c0' }}>已完成撥款</span>;
+                              }
                               const paid = a.payment_status === 'paid';
+                              if (!paid) {
+                                return (
+                                  <Tooltip title="客戶款項入帳後才可結算佣金">
+                                    <Button size="small" disabled>確認結算</Button>
+                                  </Tooltip>
+                                );
+                              }
                               return (
-                                <Tooltip title={paid ? '' : '客戶款項入帳後才可結算佣金'}>
-                                  <Button size="small" type="primary" disabled={!paid} onClick={() => markSettled(r)}>
-                                    標記已結算
-                                  </Button>
-                                </Tooltip>
+                                <Popconfirm
+                                  title="確認結算這筆佣金？"
+                                  description={`將「${a.commission_channel_person_name}」的 ${fmtAmount(a.commission_amount)} 標記為已結算（已撥款）`}
+                                  onConfirm={() => markSettled(r)}
+                                  okText="確認" cancelText="取消"
+                                >
+                                  <Button size="small" type="primary">確認結算</Button>
+                                </Popconfirm>
                               );
                             },
                           },
