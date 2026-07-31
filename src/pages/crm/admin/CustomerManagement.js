@@ -3218,6 +3218,18 @@ const CustomerManagement = () => {
                       render: (source) => sourceMap[source],
                     },
                     {
+                      title: '聯絡紀錄',
+                      key: 'interactions',
+                      width: 90,
+                      align: 'center',
+                      render: (_, customer) => {
+                        const n = customer.attributes?.interactions?.data?.length || 0;
+                        return n > 0
+                          ? <Tag color="blue">{n} 筆</Tag>
+                          : <span style={{ color: '#c0c0c0' }}>無</span>;
+                      },
+                    },
+                    {
                       title: '備註',
                       dataIndex: ['attributes', 'notes'],
                       key: 'notes',
@@ -3248,6 +3260,27 @@ const CustomerManagement = () => {
                   size="small"
                   pagination={false}
                   scroll={{ x: 800 }}
+                  expandable={{
+                    rowExpandable: (customer) => (customer.attributes?.interactions?.data?.length || 0) > 0,
+                    expandedRowRender: (customer) => {
+                      const list = customer.attributes?.interactions?.data || [];
+                      return (
+                        <div style={{ paddingLeft: 8 }}>
+                          <div style={{ fontWeight: 600, marginBottom: 4 }}>此客戶的聯絡紀錄（{list.length} 筆）</div>
+                          {list.map(it => {
+                            const a = it.attributes || {};
+                            return (
+                              <div key={it.id} style={{ padding: '4px 0', borderBottom: '1px solid #f0f0f0', fontSize: 13 }}>
+                                <span style={{ color: '#888', marginRight: 8 }}>{a.date || (a.createdAt || '').slice(0, 10) || '—'}</span>
+                                {a.is_deal && <Tag color="green">成交{a.deal_amount ? ` NT$${Number(a.deal_amount).toLocaleString()}` : ''}</Tag>}
+                                <span>{a.notes || a.outcome || a.type || '（無內容）'}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    },
+                  }}
                 />
                 <div style={{ marginTop: 12, padding: 12, background: '#fafafa', border: '1px dashed #e5e5e5', borderRadius: 6 }}>
                   <div style={{ marginBottom: 8, fontWeight: 600 }}>合併後預覽</div>
