@@ -302,22 +302,9 @@ const ChannelManagement = () => {
   return (
     <Card title="渠道管理" style={{ margin: 8 }}>
       <Tabs
-        defaultActiveKey="people"
+        defaultActiveKey="companies"
         onChange={(key) => { if (key === 'stats') loadStats(); if (key === 'commission') loadCommissions(); }}
         items={[
-          {
-            key: 'people',
-            label: <span><ContactsOutlined /> 渠道人員</span>,
-            children: (
-              <>
-                <Space style={{ marginBottom: 16 }} wrap>
-                  <Input.Search placeholder="搜尋姓名 / 電話 / 公司" allowClear style={{ width: 260 }} onChange={e => setPersonSearch(e.target.value)} />
-                  <Button type="primary" icon={<PlusOutlined />} onClick={() => openPerson()}>新增渠道人員</Button>
-                </Space>
-                <Table rowKey="id" columns={personColumns} dataSource={filteredPeople} loading={loading} size="small" scroll={{ x: 900 }} pagination={{ pageSize: 20, showSizeChanger: true }} />
-              </>
-            ),
-          },
           {
             key: 'companies',
             label: <span><ApartmentOutlined /> 渠道公司</span>,
@@ -328,6 +315,19 @@ const ChannelManagement = () => {
                   <Button type="primary" icon={<PlusOutlined />} onClick={() => openCompany()}>新增渠道公司</Button>
                 </Space>
                 <Table rowKey="id" columns={companyColumns} dataSource={filteredCompanies} loading={loading} size="small" scroll={{ x: 900 }} pagination={{ pageSize: 20, showSizeChanger: true }} />
+              </>
+            ),
+          },
+          {
+            key: 'people',
+            label: <span><ContactsOutlined /> 渠道人員</span>,
+            children: (
+              <>
+                <Space style={{ marginBottom: 16 }} wrap>
+                  <Input.Search placeholder="搜尋姓名 / 電話 / 公司" allowClear style={{ width: 260 }} onChange={e => setPersonSearch(e.target.value)} />
+                  <Button type="primary" icon={<PlusOutlined />} onClick={() => openPerson()}>新增渠道人員</Button>
+                </Space>
+                <Table rowKey="id" columns={personColumns} dataSource={filteredPeople} loading={loading} size="small" scroll={{ x: 900 }} pagination={{ pageSize: 20, showSizeChanger: true }} />
               </>
             ),
           },
