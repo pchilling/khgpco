@@ -98,15 +98,19 @@ export function installAuthFetchInterceptor() {
 
     const response = await originalFetch(input, finalInit);
 
-    // Auto-recover from stale/expired tokens: a 401 against our API while
-    // logged in (or while carrying a token we sent) means the session is no
-    // longer valid — silently sign out and bounce to login. Skip this for
-    // the login request itself so wrong-password attempts surface their
-    // own error message.
+    // Auto-recover from expired sessions, but only on WRITE requests.
+    //
+    // Previously ANY 401 (including background GET list-refreshes) forced a
+    // logout. A CRM list reload fires 15+ parallel requests; if the backend
+    // flaked 401 on even one under load, the whole session was nuked and the
+    // user got kicked out mid-action (e.g. right after adding a customer that
+    // in fact saved). Reads no longer trigger logout — a genuinely expired
+    // session still surfaces on the next user-initiated write (POST/PUT/PATCH/
+    // DELETE), which is a deliberate action where bouncing to login is correct.
     if (
       response.status === 401 &&
       !isLoginRequest(input) &&
-      (window.localStorage?.getItem?.('token') || method !== 'GET')
+      method !== 'GET'
     ) {
       clearCredentialsAndRedirect();
     }
