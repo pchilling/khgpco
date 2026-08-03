@@ -35,7 +35,8 @@ const MyCustomers = () => {
     contacted: { text: '已聯繫', color: 'cyan' },
     negotiating: { text: '洽談中', color: 'orange' },
     closed: { text: '已成交', color: 'green' },
-    lost: { text: '已流失', color: 'red' }
+    lost: { text: '已流失', color: 'red' },
+    blacklist: { text: '黑名單', color: 'default' }
   };
 
   const sourceMap = {
