@@ -104,9 +104,9 @@ const SalesAnalytics = () => {
       const [customers, registrations, interactions] = await Promise.all([
         fetchAllStrapi(API_BASE_URL, '/api/customers?populate=sales_staff&sort=createdAt:desc'),
         fetchAllStrapi(API_BASE_URL, '/api/registrations?populate=sales_staff&sort=createdAt:desc'),
-        fetchAllStrapi(API_BASE_URL, '/api/interactions?populate=sales_staff,customer&sort=createdAt:desc')
+        fetchAllStrapi(API_BASE_URL, '/api/deals?populate=sales_staff,customer&sort=createdAt:desc')
           .catch((err) => {
-            console.warn('Interactions endpoint fetchAll failed or missing:', err);
+            console.warn('Deals endpoint fetchAll failed or missing:', err);
             return [];
           }),
       ]);
@@ -201,11 +201,9 @@ const SalesAnalytics = () => {
   const prepareSalesPerformanceData = () => {
     const staffPerformance = {};
 
-    // 僅以互動紀錄中 is_deal = true 的資料作為成交依據，且依聯絡日期判斷是否落在區間
+    // 改讀 deals 表:每筆皆為成交,依成交日期判斷是否落在區間
     salesData.interactions.forEach(interaction => {
-      if (!interaction?.attributes?.is_deal) return;
-
-      const dealDate = interaction.attributes.date || interaction.attributes.createdAt;
+      const dealDate = interaction.attributes.deal_date || interaction.attributes.createdAt;
       if (!isInDateRange(dealDate)) return;
 
       const staffId = interaction.attributes.sales_staff?.data?.id;

@@ -77,17 +77,18 @@ const Overview = () => {
       const customersQuery = '/api/customers?'
         + 'fields[0]=createdAt&fields[1]=status&fields[2]=source'
         + '&populate[sales_staff][fields][0]=id';
-      const interactionsQuery = '/api/interactions?'
-        + 'fields[0]=is_deal&fields[1]=deal_amount&fields[2]=payment_date&fields[3]=createdAt'
+      // 成交改讀獨立的 deals 表(不再從 is_deal 聯絡紀錄)
+      const dealsQuery = '/api/deals?'
+        + 'fields[0]=deal_amount&fields[1]=payment_date&fields[2]=createdAt'
         + '&populate[customer][fields][0]=name'
         + '&populate[sales_staff][fields][0]=name&populate[sales_staff][fields][1]=username';
       const registrationsQuery = '/api/registrations?'
         + 'fields[0]=status&fields[1]=createdAt'
         + '&populate[sales_staff][fields][0]=id';
 
-      const [customers, interactions, registrations] = await Promise.all([
+      const [customers, deals, registrations] = await Promise.all([
         fetchAllStrapi(API_BASE_URL, customersQuery),
-        fetchAllStrapi(API_BASE_URL, interactionsQuery),
+        fetchAllStrapi(API_BASE_URL, dealsQuery),
         fetchAllStrapi(API_BASE_URL, registrationsQuery),
       ]);
 
@@ -120,9 +121,9 @@ const Overview = () => {
       // 統一口徑與客戶資料庫一致：總客戶數只看 customers（全量，不受日期限制）
       const filteredCustomers = customers.filter(c => byStaff(c) && (!hasRange || inRange(c?.attributes?.createdAt)));
 
-      // 交易資料：用 interactions（is_deal=true）
-      const dealItems = interactions.filter(i => (
-        i?.attributes?.is_deal && (parseFloat(i?.attributes?.deal_amount) || 0) > 0
+      // 交易資料：改讀 deals 表(每筆皆為成交,僅過濾金額 > 0)
+      const dealItems = deals.filter(i => (
+        (parseFloat(i?.attributes?.deal_amount) || 0) > 0
       ));
 
       // 總成交金額：全部 is_deal 合計（不受日期限制）

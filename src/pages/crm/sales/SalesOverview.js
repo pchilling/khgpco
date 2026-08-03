@@ -53,9 +53,10 @@ const SalesOverview = () => {
       }
 
       // 獲取該銷售人員的所有客戶與互動（兩個 list 並行抓，每個內部分頁也並行）
-      const [customers, interactions] = await Promise.all([
+      const [customers, interactions, dealRecords] = await Promise.all([
         fetchAllStrapi(API_BASE_URL, `/api/customers?filters[sales_staff][id]=${currentUser.id}&populate=sales_staff`),
         fetchAllStrapi(API_BASE_URL, `/api/interactions?filters[sales_staff][id]=${currentUser.id}&populate=customer,sales_staff`),
+        fetchAllStrapi(API_BASE_URL, `/api/deals?filters[sales_staff][id]=${currentUser.id}&populate=customer,sales_staff`),
       ]);
 
       const hasRange = Array.isArray(dateRange) && dateRange[0] && dateRange[1];
@@ -81,8 +82,8 @@ const SalesOverview = () => {
       customers.forEach(c => { const src = c?.attributes?.source; const txt = src ? getSourceText(src) : '其他'; sourceCount[txt] = (sourceCount[txt] || 0) + 1; });
       const customerSources = Object.entries(sourceCount).map(([source, count]) => ({ source, count, percentage: customers.length > 0 ? ((count / customers.length) * 100).toFixed(1) : '0.0' })).sort((a,b)=>b.count-a.count);
 
-      // 成交相關（依日期範圍）
-      const deals = interactions.filter(i => i?.attributes?.is_deal && i?.attributes?.deal_amount && (!hasRange || inRange(i?.attributes?.payment_date)));
+      // 成交相關（改讀 deals 表,依日期範圍）
+      const deals = dealRecords.filter(i => i?.attributes?.deal_amount && (!hasRange || inRange(i?.attributes?.payment_date)));
       const totalRevenue = deals.reduce((s, d) => s + (parseFloat(d?.attributes?.deal_amount) || 0), 0);
       const totalDeals = deals.length;
 
