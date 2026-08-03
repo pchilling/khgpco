@@ -235,34 +235,7 @@ export default function InteractionManagement() {
     try {
       const v = await form.validateFields();
 
-      // 成交 + 佣金:客戶有綁渠道且有選佣金方式,才快照渠道並計算佣金
-      let dealFields = { is_deal: false };
-      if (v.is_deal) {
-        dealFields = {
-          is_deal: true,
-          deal_amount: Number(v.deal_amount || 0),
-          ...(v.deal_date ? { deal_date: normalizeDate(v.deal_date) } : {}),
-          payment_date: normalizeDate(v.payment_date),
-          payment_status: v.payment_status || 'unpaid',
-        };
-        const cust = customers.find(c => c.id === Number(v.customer));
-        const channel = cust?.attributes?.channel_person?.data;
-        if (channel && v.commission_type) {
-          const amount = v.commission_type === 'percent'
-            ? Math.round(Number(v.deal_amount || 0) * Number(v.commission_rate || 0) / 100)
-            : Number(v.commission_amount || 0);
-          Object.assign(dealFields, {
-            commission_channel_person_id: channel.id,
-            commission_channel_person_name: channel.attributes?.name || '',
-            commission_type: v.commission_type,
-            commission_rate: v.commission_type === 'percent' ? Number(v.commission_rate || 0) : null,
-            commission_amount: amount,
-            // 編輯時保留既有結算狀態,新建預設未結算
-            commission_settle_status: editing?.attributes?.commission_settle_status || 'unsettled',
-          });
-        }
-      }
-
+      // 成交/佣金已移至獨立的成交管理,聯絡紀錄不再寫入這些欄位
       const payload = {
         customer: Number(v.customer),
         ...(v.sales_staff ? { sales_staff: Number(v.sales_staff) } : {}),
@@ -272,8 +245,7 @@ export default function InteractionManagement() {
         ...(v.outcome ? { outcome: v.outcome } : {}),
         date: normalizeDate(v.date) || new Date().toISOString().split('T')[0],
         ...(v.next_follow_up ? { next_follow_up: normalizeDate(v.next_follow_up) } : {}),
-        ...(v.notes ? { notes: v.notes } : {}),
-        ...dealFields
+        ...(v.notes ? { notes: v.notes } : {})
       };
 
       const isEdit = !!editing;
@@ -321,9 +293,6 @@ export default function InteractionManagement() {
       );
     } },
     { title: '相關建案', key: 'project', render: (_, r) => r.attributes?.project?.data?.attributes?.name || '-' },
-    { title: '是否成交', dataIndex: ['attributes', 'is_deal'], key: 'is_deal', render: (is_deal) => is_deal ? '是' : '否' },
-    { title: '成交金額', dataIndex: ['attributes', 'deal_amount'], key: 'deal_amount', render: (deal_amount) => deal_amount || '-' },
-    { title: '入帳日期', dataIndex: ['attributes', 'payment_date'], key: 'payment_date', render: (payment_date) => payment_date || '-' },
     {
       title: '操作', key: 'action', width: 120, fixed: 'right',
       render: (_, record) => (
@@ -478,62 +447,10 @@ export default function InteractionManagement() {
           </Form.Item>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <Form.Item name="is_deal" label="是否成交" valuePropName="checked" initialValue={false}>
-              <Switch />
-            </Form.Item>
-            <Form.Item shouldUpdate>
-              {({ getFieldValue }) => {
-                if (!getFieldValue('is_deal')) return null;
-                const cust = customers.find(c => c.id === Number(getFieldValue('customer')));
-                const channel = cust?.attributes?.channel_person?.data;
-                const dealAmount = Number(getFieldValue('deal_amount') || 0);
-                const cType = getFieldValue('commission_type');
-                const cRate = Number(getFieldValue('commission_rate') || 0);
-                const preview = cType === 'percent' ? Math.round(dealAmount * cRate / 100) : Number(getFieldValue('commission_amount') || 0);
-                return (
-                  <div style={{ display: 'contents' }}>
-                    <Form.Item name="deal_amount" label="成交金額" rules={[{ required: true, message: '請輸入成交金額' }]}>
-                      <InputNumber style={{ width: '100%' }} min={0} step={10000} placeholder="輸入金額（元）" />
-                    </Form.Item>
-                    <Form.Item name="deal_date" label="成交日期">
-                      <Input type="date" />
-                    </Form.Item>
-                    <Form.Item name="payment_status" label="入帳狀態" initialValue="unpaid">
-                      <Select options={[{ value: 'unpaid', label: '未入帳' }, { value: 'paid', label: '已入帳' }]} />
-                    </Form.Item>
-                    <Form.Item name="payment_date" label="入帳日期">
-                      <Input type="date" />
-                    </Form.Item>
-                    <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed #eee', paddingTop: 10, marginTop: 2 }}>
-                      <div style={{ marginBottom: 8, color: '#888' }}>
-                        渠道佣金 {channel ? `— 歸屬：${channel.attributes?.name}` : '— 此客戶未綁渠道，可略過'}
-                      </div>
-                      {channel && (
-                        <Space wrap align="baseline">
-                          <Form.Item name="commission_type" label="佣金方式" style={{ marginBottom: 0 }}>
-                            <Select allowClear style={{ width: 130 }} placeholder="不計佣金"
-                              options={[{ value: 'percent', label: '百分比' }, { value: 'fixed', label: '固定金額' }]} />
-                          </Form.Item>
-                          {cType === 'percent' && (
-                            <Form.Item name="commission_rate" label="比率(%)" style={{ marginBottom: 0 }}>
-                              <InputNumber min={0} max={100} step={0.5} style={{ width: 110 }} />
-                            </Form.Item>
-                          )}
-                          {cType === 'fixed' && (
-                            <Form.Item name="commission_amount" label="金額" style={{ marginBottom: 0 }}>
-                              <InputNumber min={0} step={1000} style={{ width: 150 }} />
-                            </Form.Item>
-                          )}
-                          {cType && (
-                            <span style={{ color: '#1668dc' }}>應付佣金 ≈ NT${preview.toLocaleString()}</span>
-                          )}
-                        </Space>
-                      )}
-                    </div>
-                  </div>
-                );
-              }}
-            </Form.Item>
+            {/* 成交已移至獨立的「成交管理」頁,聯絡紀錄不再記錄成交與佣金 */}
+            <div style={{ gridColumn: '1 / -1', color: '#999', fontSize: 13, borderTop: '1px dashed #eee', paddingTop: 8 }}>
+              成交與佣金請至側欄「成交管理」登記;聯絡紀錄僅記錄接觸過程。
+            </div>
           </div>
         </Form>
       </Modal>

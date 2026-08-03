@@ -148,10 +148,7 @@ const Interactions = () => {
         ...(values.notes ? { notes: values.notes } : {}),
         ...(values.next_follow_up ? { next_follow_up: normalizeDate(values.next_follow_up) } : {}),
         ...(values.outcome ? { outcome: values.outcome } : {}),
-        ...(values.project ? { project: Number(values.project) } : {}),
-        ...(values.is_deal
-          ? { is_deal: true, deal_amount: Number(values.deal_amount || 0), payment_date: normalizeDate(values.payment_date) }
-          : { is_deal: false })
+        ...(values.project ? { project: Number(values.project) } : {})
       };
 
       const tokenRaw = localStorage.getItem('jwt') || localStorage.getItem('token') || '';
@@ -390,7 +387,6 @@ const Interactions = () => {
       }
     },
     { title: '相關建案', key: 'project', render: (_, r) => r.attributes.project?.data?.attributes?.name || '-' },
-    { title: '是否成交', dataIndex: ['attributes', 'is_deal'], key: 'is_deal', render: (is_deal) => is_deal ? '是' : '否' },
     { title: '成交金額', dataIndex: ['attributes', 'deal_amount'], key: 'deal_amount', render: (deal_amount) => deal_amount || '-' },
     { title: '入帳日期', dataIndex: ['attributes', 'payment_date'], key: 'payment_date', render: (payment_date) => payment_date || '-' },
     {
@@ -555,21 +551,7 @@ const Interactions = () => {
           </Form.Item>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <Form.Item name="is_deal" label="是否成交" valuePropName="checked" initialValue={false}>
-              <Switch />
-            </Form.Item>
-            <Form.Item shouldUpdate={(prev, curr) => prev.is_deal !== curr.is_deal}>
-              {({ getFieldValue }) => getFieldValue('is_deal') ? (
-                <div style={{ display: 'contents' }}>
-                  <Form.Item name="deal_amount" label="成交金額" rules={[{ required: true, message: '請輸入成交金額' }]}>
-                    <InputNumber style={{ width: '100%' }} min={0} step={10000} placeholder="輸入金額（元）" />
-                  </Form.Item>
-                  <Form.Item name="payment_date" label="入帳日期" rules={[{ required: true, message: '請選擇入帳日期' }]}>
-                    <Input type="date" />
-                  </Form.Item>
-                </div>
-              ) : null}
-            </Form.Item>
+            {/* 成交已移至「成交管理」,聯絡紀錄不再記錄成交 */}
           </div>
         </Form>
       </Modal>
