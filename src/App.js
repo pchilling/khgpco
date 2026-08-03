@@ -32,6 +32,7 @@ const CustomerManagement = lazy(() => import('./pages/crm/admin/CustomerManageme
 const SalesStaffManagement = lazy(() => import('./pages/crm/admin/SalesStaffManagement'));
 const SalesAnalytics = lazy(() => import('./pages/crm/admin/SalesAnalytics'));
 const ChannelManagement = lazy(() => import('./pages/crm/admin/ChannelManagement'));
+const DealManagement = lazy(() => import('./pages/crm/admin/DealManagement'));
 const MyCustomers = lazy(() => import('./pages/crm/sales/MyCustomers'));
 const InteractionManagement = lazy(() => import('./pages/crm/admin/InteractionManagement'));
 const ContactMessages = lazy(() => import('./pages/crm/admin/ContactMessages'));
@@ -159,6 +160,7 @@ function App() {
                         <Route path="contact-messages" element={<ContactMessages />} />
                         <Route path="staff-management" element={<SalesStaffManagement />} />
                         <Route path="channels" element={<ChannelManagement />} />
+                        <Route path="deals" element={<DealManagement />} />
                         <Route path="sales-data" element={<SalesAnalytics />} />
                         <Route path="performance" element={<Navigate to="/crm/admin/overview" replace />} />
                     </Route>
