@@ -357,13 +357,26 @@ const ChannelManagement = () => {
                   };
                   return (
                     <>
-                      <Space size="large" style={{ marginBottom: 16 }} wrap>
-                        <Tag color="purple" style={{ padding: '4px 12px', fontSize: 14 }}>渠道帶客總數 {totalBrought}</Tag>
-                        <Tag color="green" style={{ padding: '4px 12px', fontSize: 14 }}>成交組數 {totalDeals}</Tag>
-                        <Tag color="blue" style={{ padding: '4px 12px', fontSize: 14 }}>成交金額 {fmtAmount(totalAmount)}</Tag>
-                        <Tag style={{ padding: '4px 12px', fontSize: 14 }}>整體轉化率 {totalBrought ? fmtRate(totalDeals / totalBrought) : '—'}</Tag>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
                         <Button size="small" loading={statsLoading} onClick={() => loadStats(true)}>重新整理</Button>
-                      </Space>
+                      </div>
+                      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+                        {[
+                          { k: '渠道帶客總數', v: totalBrought, accent: '#722ed1' },
+                          { k: '成交組數', v: totalDeals, accent: '#52c41a' },
+                          { k: '成交金額', v: fmtAmount(totalAmount), accent: '#1668dc' },
+                          { k: '整體轉化率', v: totalBrought ? fmtRate(totalDeals / totalBrought) : '—', accent: '#8c8c8c' },
+                        ].map(s => (
+                          <div key={s.k} style={{
+                            flex: '1 1 160px', minWidth: 150, background: '#fff',
+                            border: '1px solid #f0f0f0', borderLeft: `3px solid ${s.accent}`,
+                            borderRadius: 10, padding: '14px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                          }}>
+                            <div style={{ fontSize: 12.5, color: '#8c8c8c', marginBottom: 6 }}>{s.k}</div>
+                            <div style={{ fontSize: 24, fontWeight: 700, color: '#262626', lineHeight: 1.15 }}>{s.v}</div>
+                          </div>
+                        ))}
+                      </div>
                       {statsCompany.length > 0 && (
                         <Card size="small" title="渠道公司成效(前 10 名，依成交金額)" style={{ marginBottom: 16 }}>
                           <ReactECharts option={chartOption} style={{ height: 320 }} notMerge lazyUpdate />
