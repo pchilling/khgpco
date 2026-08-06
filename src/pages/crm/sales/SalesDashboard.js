@@ -1,6 +1,6 @@
 import React from 'react';
 import { Layout, Menu, Button } from 'antd';
-import { UserOutlined, TeamOutlined, InteractionOutlined, LogoutOutlined, DashboardOutlined, FileTextOutlined } from '@ant-design/icons';
+import { UserOutlined, TeamOutlined, InteractionOutlined, LogoutOutlined, DashboardOutlined, FileTextOutlined, ApartmentOutlined } from '@ant-design/icons';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { logout } from '../../../services/auth';
 import styles from './Dashboard.module.css';
@@ -39,6 +39,7 @@ const SalesDashboard = () => {
     if (path.includes('/my-customers')) return '3';
     if (path.includes('/interactions')) return '4';
     if (path.includes('/registration-management')) return '5';
+    if (path.includes('/my-channels')) return '6';
     return '1';
   };
 
@@ -85,6 +86,12 @@ const SalesDashboard = () => {
               icon: <FileTextOutlined />,
               label: '報名管理',
               onClick: () => navigate('/crm/sales/registration-management')
+            },
+            {
+              key: '6',
+              icon: <ApartmentOutlined />,
+              label: '我的渠道',
+              onClick: () => navigate('/crm/sales/my-channels')
             }
           ]}
         />

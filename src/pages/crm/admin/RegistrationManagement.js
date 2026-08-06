@@ -31,6 +31,7 @@ const RegistrationManagement = () => {
   const [assignModalVisible, setAssignModalVisible] = useState(false);
   const [currentRegistration, setCurrentRegistration] = useState(null);
   const [salesStaff, setSalesStaff] = useState([]);
+  const [channelPeople, setChannelPeople] = useState([]);
   const [isBatchAssign, setIsBatchAssign] = useState(false);
 
   // 獲取報名資料後的處理函數
@@ -105,7 +106,7 @@ const RegistrationManagement = () => {
     try {
       const all = await fetchAllStrapi(
         API_BASE_URL,
-        '/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&populate[customer]=*&sort=createdAt:desc'
+        '/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&populate[customer]=*&populate[channel_person]=*&sort=createdAt:desc'
       );
       setRegistrations(all);
       processRegistrations(all);
@@ -131,6 +132,39 @@ const RegistrationManagement = () => {
       }
     } catch (error) {
       console.error('獲取業務人員資料錯誤:', error);
+    }
+  };
+
+  // 獲取渠道人員(補登用)
+  const fetchChannelPeople = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/channel-people?populate[channel_company][fields][0]=name&pagination[pageSize]=1000&sort=name:asc`);
+      const data = await response.json();
+      if (response.ok) setChannelPeople(data.data || []);
+    } catch (error) {
+      console.error('獲取渠道人員資料錯誤:', error);
+    }
+  };
+
+  // 報名補登／變更渠道人員(退訂沖回無關,單純標記帶客渠道)
+  const setRegistrationChannel = async (record, channelPersonId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { channel_person: channelPersonId || null } }),
+      });
+      if (!response.ok) throw new Error(`更新失敗 (${response.status})`);
+      const cp = channelPeople.find(p => p.id === channelPersonId);
+      // 就地更新,避免整頁重載
+      const patch = (list) => list.map(r => r.id === record.id
+        ? { ...r, attributes: { ...r.attributes, channel_person: { data: channelPersonId ? { id: channelPersonId, attributes: { name: cp?.attributes?.name } } : null } } }
+        : r);
+      setRegistrations(prev => { const next = patch(prev); processRegistrations(next); return next; });
+      message.success(channelPersonId ? '已標記渠道' : '已移除渠道');
+    } catch (error) {
+      console.error('更新報名渠道失敗:', error);
+      message.error(`更新渠道失敗：${error.message}`);
     }
   };
 
@@ -164,6 +198,7 @@ const RegistrationManagement = () => {
     fetchRegistrations();
     fetchEvents();
     fetchSalesStaff();
+    fetchChannelPeople();
   }, []);
 
   // 根據sessionIndex獲取場次名稱
@@ -500,6 +535,10 @@ const RegistrationManagement = () => {
           // 如果報名已有指派業務，同時指派給客戶
           ...(record.attributes.sales_staff?.data?.id && {
             sales_staff: record.attributes.sales_staff.data.id
+          }),
+          // 報名已標記渠道 → 轉客戶時自動帶入(合約:報名轉客戶渠道自動帶入)
+          ...(record.attributes.channel_person?.data?.id && {
+            channel_person: record.attributes.channel_person.data.id
           })
         }
       };
@@ -1227,6 +1266,27 @@ const RegistrationManagement = () => {
           </Tag>
         );
       },
+    },
+    {
+      title: '渠道',
+      key: 'channel_person',
+      width: 160,
+      render: (_, record) => (
+        <Select
+          size="small"
+          allowClear
+          showSearch
+          optionFilterProp="label"
+          style={{ width: 148 }}
+          placeholder="補登渠道"
+          value={record.attributes.channel_person?.data?.id || undefined}
+          onChange={(val) => setRegistrationChannel(record, val)}
+          options={channelPeople.map(p => ({
+            value: p.id,
+            label: p.attributes?.name + (p.attributes?.channel_company?.data?.attributes?.name ? `（${p.attributes.channel_company.data.attributes.name}）` : ''),
+          }))}
+        />
+      ),
     },
     {
       title: '狀態',

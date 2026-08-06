@@ -34,6 +34,7 @@ const SalesRegistrationManagement = () => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editForm] = Form.useForm();
   const [editingRegistration, setEditingRegistration] = useState(null);
+  const [channelPeople, setChannelPeople] = useState([]);
 
   const statusMap = {
     pending: { text: '未處理', color: 'blue' },
@@ -151,7 +152,7 @@ const SalesRegistrationManagement = () => {
       const userId = user.id || user.attributes?.id;
       const all = await fetchAllStrapi(
         API_BASE_URL,
-        `/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&filters[sales_staff][id][$eq]=${userId}&sort=createdAt:desc`
+        `/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&populate[channel_person]=*&filters[sales_staff][id][$eq]=${userId}&sort=createdAt:desc`
       );
       setRegistrations(all);
       setFilteredRegistrations(all);
@@ -161,6 +162,39 @@ const SalesRegistrationManagement = () => {
       message.error('獲取報名資料失敗');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 獲取渠道人員(補登用)
+  const fetchChannelPeople = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/channel-people?populate[channel_company][fields][0]=name&pagination[pageSize]=1000&sort=name:asc`);
+      const data = await response.json();
+      if (response.ok) setChannelPeople(data.data || []);
+    } catch (error) {
+      console.error('獲取渠道人員資料錯誤:', error);
+    }
+  };
+
+  // 報名補登／變更渠道人員
+  const setRegistrationChannel = async (record, channelPersonId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { channel_person: channelPersonId || null } }),
+      });
+      if (!response.ok) throw new Error(`更新失敗 (${response.status})`);
+      const cp = channelPeople.find(p => p.id === channelPersonId);
+      const patch = (list) => list.map(r => r.id === record.id
+        ? { ...r, attributes: { ...r.attributes, channel_person: { data: channelPersonId ? { id: channelPersonId, attributes: { name: cp?.attributes?.name } } : null } } }
+        : r);
+      setRegistrations(prev => { const next = patch(prev); processRegistrations(next); return next; });
+      setFilteredRegistrations(prev => patch(prev));
+      message.success(channelPersonId ? '已標記渠道' : '已移除渠道');
+    } catch (error) {
+      console.error('更新報名渠道失敗:', error);
+      message.error(`更新渠道失敗：${error.message}`);
     }
   };
 
@@ -192,6 +226,7 @@ const SalesRegistrationManagement = () => {
     // 模仿 MyCustomers 的簡潔方式
     fetchRegistrations();
     fetchEvents();
+    fetchChannelPeople();
   }, []);
 
   useEffect(() => {
@@ -275,6 +310,10 @@ const SalesRegistrationManagement = () => {
           // 自動綁定來源活動（多對多）
           ...(record.attributes.event?.data?.id && {
             events: [record.attributes.event.data.id]
+          }),
+          // 報名已標記渠道 → 轉客戶時自動帶入
+          ...(record.attributes.channel_person?.data?.id && {
+            channel_person: record.attributes.channel_person.data.id
           })
         }
       };
@@ -722,6 +761,27 @@ const SalesRegistrationManagement = () => {
         dataIndex: ['attributes', 'createdAt'],
         key: 'createdAt',
         render: (text) => new Date(text).toLocaleString(),
+      },
+      {
+        title: '渠道',
+        key: 'channel_person',
+        width: 160,
+        render: (_, record) => (
+          <Select
+            size="small"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            style={{ width: 148 }}
+            placeholder="補登渠道"
+            value={record.attributes.channel_person?.data?.id || undefined}
+            onChange={(val) => setRegistrationChannel(record, val)}
+            options={channelPeople.map(p => ({
+              value: p.id,
+              label: p.attributes?.name + (p.attributes?.channel_company?.data?.attributes?.name ? `（${p.attributes.channel_company.data.attributes.name}）` : ''),
+            }))}
+          />
+        ),
       },
       {
         title: '狀態',

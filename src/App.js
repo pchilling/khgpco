@@ -39,6 +39,7 @@ const ContactMessages = lazy(() => import('./pages/crm/admin/ContactMessages'));
 const Interactions = lazy(() => import('./pages/crm/sales/Interactions'));
 const SalesOverview = lazy(() => import('./pages/crm/sales/SalesOverview'));
 const SalesRegistrationManagement = lazy(() => import('./pages/crm/sales/RegistrationManagement'));
+const MyChannels = lazy(() => import('./pages/crm/sales/MyChannels'));
 
 const RouteFallback = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
@@ -180,6 +181,7 @@ function App() {
                         <Route path="my-customers" element={<MyCustomers />} />
                         <Route path="interactions" element={<Interactions />} />
                         <Route path="registration-management" element={<SalesRegistrationManagement />} />
+                        <Route path="my-channels" element={<MyChannels />} />
                     </Route>
 
                     {/* 主網站路由 */}

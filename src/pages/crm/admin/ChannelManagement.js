@@ -28,11 +28,13 @@ const ChannelManagement = () => {
   const [companySearch, setCompanySearch] = useState('');
   const [personSearch, setPersonSearch] = useState('');
 
-  // 成效統計
-  const [statsPerson, setStatsPerson] = useState([]);
-  const [statsCompany, setStatsCompany] = useState([]);
+  // 成效統計(存原始資料,期間篩選在畫面即時計算)
+  const [rawStatsCustomers, setRawStatsCustomers] = useState([]);
+  const [rawStatsDeals, setRawStatsDeals] = useState([]);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsLoaded, setStatsLoaded] = useState(false);
+  const [statsPeriodType, setStatsPeriodType] = useState('all'); // all|month|quarter|year
+  const [statsPeriod, setStatsPeriod] = useState(null);
 
   // 佣金結算
   const [commissions, setCommissions] = useState([]);
@@ -67,73 +69,18 @@ const ChannelManagement = () => {
 
   const staffName = (staff) => staff?.attributes?.name || staff?.attributes?.username || `業務 ${staff?.id}`;
 
-  // 載入並計算渠道成效(切到統計分頁時才跑,避免每次開頁都撈大量資料)
+  // 載入渠道成效原始資料(切到統計分頁時才跑;期間篩選在畫面即時算,不用重撈)
   const loadStats = async (force = false) => {
     if (!force && (statsLoaded || statsLoading)) return;
     setStatsLoading(true);
     try {
-      // 客戶(帶 channel_person)＋ 成交聯絡紀錄(帶 customer)全量撈
+      // 客戶(帶 channel_person)＋ 成交(帶 customer)全量撈
       const [customers, deals] = await Promise.all([
         fetchAllStrapi(API_BASE_URL, '/api/customers?filters[channel_person][id][$notNull]=true&populate[channel_person][fields][0]=name'),
         fetchAllStrapi(API_BASE_URL, '/api/deals?populate[customer][fields][0]=name'),
       ]);
-
-      // 客戶 → 渠道人員 對照
-      const custToChannel = {};
-      const broughtByPerson = {}; // personId -> 帶客數
-      customers.forEach(c => {
-        const cpId = c.attributes?.channel_person?.data?.id;
-        if (cpId) {
-          custToChannel[c.id] = cpId;
-          broughtByPerson[cpId] = (broughtByPerson[cpId] || 0) + 1;
-        }
-      });
-
-      // 成交:金額加總 + 成交客戶集合(轉化率用)
-      const amountByPerson = {};
-      const dealCustByPerson = {}; // personId -> Set(customerId)
-      deals.forEach(d => {
-        const custId = d.attributes?.customer?.data?.id;
-        const cpId = custToChannel[custId];
-        if (!cpId) return;
-        amountByPerson[cpId] = (amountByPerson[cpId] || 0) + (parseFloat(d.attributes?.deal_amount || 0) || 0);
-        if (!dealCustByPerson[cpId]) dealCustByPerson[cpId] = new Set();
-        dealCustByPerson[cpId].add(custId);
-      });
-
-      // 人員層
-      const personRows = people.map(p => {
-        const brought = broughtByPerson[p.id] || 0;
-        const dealCust = dealCustByPerson[p.id] ? dealCustByPerson[p.id].size : 0;
-        const amount = amountByPerson[p.id] || 0;
-        return {
-          id: p.id,
-          name: p.attributes?.name,
-          company: p.attributes?.channel_company?.data?.attributes?.name || '（獨立）',
-          companyId: p.attributes?.channel_company?.data?.id || null,
-          brought,
-          dealCust,
-          amount,
-          rate: brought > 0 ? (dealCust / brought) : 0,
-        };
-      }).filter(r => r.brought > 0 || r.amount > 0)
-        .sort((a, b) => b.amount - a.amount || b.brought - a.brought);
-
-      // 公司層(彙總旗下人員)
-      const compMap = {};
-      personRows.forEach(r => {
-        const key = r.companyId || `__solo_${r.id}`;
-        if (!compMap[key]) compMap[key] = { name: r.companyId ? r.company : '（獨立介紹人）', brought: 0, dealCust: 0, amount: 0 };
-        compMap[key].brought += r.brought;
-        compMap[key].dealCust += r.dealCust;
-        compMap[key].amount += r.amount;
-      });
-      const companyRows = Object.entries(compMap).map(([key, v]) => ({
-        key, ...v, rate: v.brought > 0 ? (v.dealCust / v.brought) : 0,
-      })).sort((a, b) => b.amount - a.amount || b.brought - a.brought);
-
-      setStatsPerson(personRows);
-      setStatsCompany(companyRows);
+      setRawStatsCustomers(customers);
+      setRawStatsDeals(deals);
       setStatsLoaded(true);
     } catch (e) {
       console.error(e);
@@ -141,6 +88,65 @@ const ChannelManagement = () => {
     } finally {
       setStatsLoading(false);
     }
+  };
+
+  // 依日期字串算出所屬期間 key(年 / 月 / 季)
+  const periodKeyOf = (dateStr, type) => {
+    if (!dateStr) return null;
+    const y = String(dateStr).slice(0, 4);
+    const mo = parseInt(String(dateStr).slice(5, 7), 10);
+    if (type === 'year') return y;
+    if (type === 'month') return String(dateStr).slice(0, 7);
+    if (type === 'quarter') return `${y}-Q${Math.ceil(mo / 3)}`;
+    return null;
+  };
+
+  // 依期間條件計算人員層／公司層成效(帶客看 createdAt,成交看 deal_date)
+  const computeStats = (customers, deals, inPeriod) => {
+    const custToChannel = {};
+    const broughtByPerson = {};
+    customers.forEach(c => {
+      const cpId = c.attributes?.channel_person?.data?.id;
+      if (!cpId) return;
+      custToChannel[c.id] = cpId; // 對照永遠建(成交要用),帶客數才看期間
+      if (inPeriod(c.attributes?.createdAt)) broughtByPerson[cpId] = (broughtByPerson[cpId] || 0) + 1;
+    });
+    const amountByPerson = {};
+    const dealCustByPerson = {};
+    deals.forEach(d => {
+      if (!inPeriod(d.attributes?.deal_date || d.attributes?.date)) return;
+      const custId = d.attributes?.customer?.data?.id;
+      const cpId = custToChannel[custId];
+      if (!cpId) return;
+      amountByPerson[cpId] = (amountByPerson[cpId] || 0) + (parseFloat(d.attributes?.deal_amount || 0) || 0);
+      if (!dealCustByPerson[cpId]) dealCustByPerson[cpId] = new Set();
+      dealCustByPerson[cpId].add(custId);
+    });
+    const personRows = people.map(p => {
+      const brought = broughtByPerson[p.id] || 0;
+      const dealCust = dealCustByPerson[p.id] ? dealCustByPerson[p.id].size : 0;
+      const amount = amountByPerson[p.id] || 0;
+      return {
+        id: p.id, name: p.attributes?.name,
+        company: p.attributes?.channel_company?.data?.attributes?.name || '（獨立）',
+        companyId: p.attributes?.channel_company?.data?.id || null,
+        brought, dealCust, amount,
+        rate: brought > 0 ? (dealCust / brought) : 0,
+      };
+    }).filter(r => r.brought > 0 || r.amount > 0)
+      .sort((a, b) => b.amount - a.amount || b.brought - a.brought);
+    const compMap = {};
+    personRows.forEach(r => {
+      const key = r.companyId || `__solo_${r.id}`;
+      if (!compMap[key]) compMap[key] = { name: r.companyId ? r.company : '（獨立介紹人）', brought: 0, dealCust: 0, amount: 0 };
+      compMap[key].brought += r.brought;
+      compMap[key].dealCust += r.dealCust;
+      compMap[key].amount += r.amount;
+    });
+    const companyRows = Object.entries(compMap).map(([key, v]) => ({
+      key, ...v, rate: v.brought > 0 ? (v.dealCust / v.brought) : 0,
+    })).sort((a, b) => b.amount - a.amount || b.brought - a.brought);
+    return { personRows, companyRows };
   };
 
   const fmtAmount = (n) => n ? `NT$${Number(n).toLocaleString()}` : '—';
@@ -182,6 +188,38 @@ const ChannelManagement = () => {
       message.success('已標記結算');
     } catch (e) {
       message.error(`結算失敗：${e.message}`);
+    }
+  };
+
+  // 退訂沖回:此筆佣金不再列入應付(保留紀錄,不刪除)
+  const markReversed = async (row) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/deals/${row.id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { commission_settle_status: 'reversed' } }),
+      });
+      if (!res.ok) throw new Error(`沖回失敗 (${res.status})`);
+      setCommissions(prev => prev.map(r => r.id === row.id
+        ? { ...r, attributes: { ...r.attributes, commission_settle_status: 'reversed' } } : r));
+      message.success('已沖回此筆佣金（退訂）');
+    } catch (e) {
+      message.error(`沖回失敗：${e.message}`);
+    }
+  };
+
+  // 復原沖回:還原為未結算
+  const restoreCommission = async (row) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/deals/${row.id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { commission_settle_status: 'unsettled', commission_settle_month: null } }),
+      });
+      if (!res.ok) throw new Error(`復原失敗 (${res.status})`);
+      setCommissions(prev => prev.map(r => r.id === row.id
+        ? { ...r, attributes: { ...r.attributes, commission_settle_status: 'unsettled', commission_settle_month: null } } : r));
+      message.success('已復原為未結算');
+    } catch (e) {
+      message.error(`復原失敗：${e.message}`);
     }
   };
 
@@ -337,10 +375,33 @@ const ChannelManagement = () => {
             children: (
               <>
                 {(() => {
+                  // 期間可選項(涵蓋成交日期與客戶建立日期)
+                  const allDates = [
+                    ...rawStatsDeals.map(d => d.attributes?.deal_date || d.attributes?.date),
+                    ...rawStatsCustomers.map(c => c.attributes?.createdAt),
+                  ].filter(Boolean);
+                  const periodOptions = statsPeriodType === 'all' ? []
+                    : Array.from(new Set(allDates.map(d => periodKeyOf(d, statsPeriodType)).filter(Boolean))).sort().reverse();
+                  const effectivePeriod = statsPeriodType === 'all' ? null
+                    : (periodOptions.includes(statsPeriod) ? statsPeriod : (periodOptions[0] || null));
+                  const inPeriod = (dateStr) => statsPeriodType === 'all' ? true
+                    : (periodKeyOf(dateStr, statsPeriodType) === effectivePeriod);
+                  const { personRows: statsPerson, companyRows: statsCompany } = computeStats(rawStatsCustomers, rawStatsDeals, inPeriod);
+
                   const totalBrought = statsPerson.reduce((s, r) => s + r.brought, 0);
                   const totalDeals = statsPerson.reduce((s, r) => s + r.dealCust, 0);
                   const totalAmount = statsPerson.reduce((s, r) => s + r.amount, 0);
                   const top = [...statsCompany].slice(0, 10);
+                  const pieData = top.filter(c => c.amount > 0).map(c => ({ name: c.name, value: c.amount }));
+                  const pieOption = {
+                    tooltip: { trigger: 'item', formatter: (p) => `${p.name}<br/>${fmtAmount(p.value)}（${p.percent}%）` },
+                    legend: { type: 'scroll', bottom: 0, textStyle: { fontSize: 11 } },
+                    series: [{
+                      name: '成交金額', type: 'pie', radius: ['38%', '66%'], center: ['50%', '44%'],
+                      avoidLabelOverlap: true, label: { formatter: '{b}\n{d}%', fontSize: 11 },
+                      data: pieData,
+                    }],
+                  };
                   const chartOption = {
                     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
                     legend: { data: ['成交金額', '帶客數'] },
@@ -357,7 +418,23 @@ const ChannelManagement = () => {
                   };
                   return (
                     <>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                        <Space wrap>
+                          <span style={{ color: '#8c8c8c' }}>統計區間：</span>
+                          <Select value={statsPeriodType} style={{ width: 110 }}
+                            onChange={(v) => { setStatsPeriodType(v); setStatsPeriod(null); }}
+                            options={[
+                              { value: 'all', label: '全部期間' },
+                              { value: 'month', label: '依月' },
+                              { value: 'quarter', label: '依季' },
+                              { value: 'year', label: '依年' },
+                            ]} />
+                          {statsPeriodType !== 'all' && (
+                            <Select value={effectivePeriod} style={{ width: 130 }} onChange={setStatsPeriod}
+                              options={periodOptions.map(p => ({ value: p, label: p }))}
+                              notFoundContent="此區間無資料" placeholder="選擇區間" />
+                          )}
+                        </Space>
                         <Button size="small" loading={statsLoading} onClick={() => loadStats(true)}>重新整理</Button>
                       </div>
                       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -378,9 +455,16 @@ const ChannelManagement = () => {
                         ))}
                       </div>
                       {statsCompany.length > 0 && (
-                        <Card size="small" title="渠道公司成效(前 10 名，依成交金額)" style={{ marginBottom: 16 }}>
-                          <ReactECharts option={chartOption} style={{ height: 320 }} notMerge lazyUpdate />
-                        </Card>
+                        <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+                          <Card size="small" title="渠道公司成效(前 10 名，依成交金額)" style={{ flex: '1 1 420px', minWidth: 320 }}>
+                            <ReactECharts option={chartOption} style={{ height: 320 }} notMerge lazyUpdate />
+                          </Card>
+                          <Card size="small" title="成交金額佔比" style={{ flex: '1 1 300px', minWidth: 280 }}>
+                            {pieData.length > 0
+                              ? <ReactECharts option={pieOption} style={{ height: 320 }} notMerge lazyUpdate />
+                              : <div style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb' }}>此區間無成交金額</div>}
+                          </Card>
+                        </div>
                       )}
                       <Card size="small" title="公司層彙總" style={{ marginBottom: 16 }}>
                         <Table
@@ -425,22 +509,27 @@ const ChannelManagement = () => {
                   const months = Array.from(new Set(commissions.map(commMonthOf).filter(Boolean))).sort().reverse();
                   const rows = commMonth === 'all' ? commissions : commissions.filter(r => commMonthOf(r) === commMonth);
                   const sum = (arr) => arr.reduce((s, r) => s + (parseFloat(r.attributes?.commission_amount || 0) || 0), 0);
-                  const payable = rows.filter(r => r.attributes?.payment_status === 'paid' && r.attributes?.commission_settle_status !== 'settled');
+                  const active = rows.filter(r => r.attributes?.commission_settle_status !== 'reversed'); // 排除已沖回(退訂)
+                  const reversedRows = rows.filter(r => r.attributes?.commission_settle_status === 'reversed');
+                  const payable = active.filter(r => r.attributes?.payment_status === 'paid' && r.attributes?.commission_settle_status !== 'settled');
                   return (
                     <>
                       <Space style={{ marginBottom: 16 }} wrap>
                         <span>結算月份：</span>
                         <Select value={commMonth} style={{ width: 160 }} onChange={setCommMonth}
                           options={[{ value: 'all', label: '全部' }, ...months.map(m => ({ value: m, label: m }))]} />
-                        <Tag color="blue" style={{ padding: '4px 12px', fontSize: 14 }}>佣金合計 {fmtAmount(sum(rows))}</Tag>
+                        <Tag color="blue" style={{ padding: '4px 12px', fontSize: 14 }}>佣金合計 {fmtAmount(sum(active))}</Tag>
                         <Tag color="orange" style={{ padding: '4px 12px', fontSize: 14 }}>可結算(已入帳未結) {fmtAmount(sum(payable))}</Tag>
+                        {reversedRows.length > 0 && (
+                          <Tag color="red" style={{ padding: '4px 12px', fontSize: 14 }}>已沖回 {reversedRows.length} 筆 {fmtAmount(sum(reversedRows))}</Tag>
+                        )}
                         <Button size="small" loading={commLoading} onClick={() => loadCommissions(true)}>重新整理</Button>
                       </Space>
                       <Table
                         rowKey="id" size="small" loading={commLoading}
                         pagination={{ pageSize: 20, showSizeChanger: true }}
                         dataSource={rows}
-                        scroll={{ x: 1000 }}
+                        scroll={{ x: 1080 }}
                         columns={[
                           { title: '成交日期', key: 'date', width: 110, render: (_, r) => r.attributes?.deal_date || r.attributes?.date || '—' },
                           { title: '渠道人員', dataIndex: ['attributes', 'commission_channel_person_name'], key: 'cp', width: 120 },
@@ -461,34 +550,51 @@ const ChannelManagement = () => {
                           },
                           {
                             title: '結算狀態', key: 'settle', width: 110, align: 'center',
-                            render: (_, r) => r.attributes?.commission_settle_status === 'settled'
-                              ? <Tag color="green">已結算<br />{r.attributes?.commission_settle_month}</Tag>
-                              : <Tag color="orange">尚未結算</Tag>,
+                            render: (_, r) => {
+                              const st = r.attributes?.commission_settle_status;
+                              if (st === 'reversed') return <Tag color="red">已沖回</Tag>;
+                              if (st === 'settled') return <Tag color="green">已結算<br />{r.attributes?.commission_settle_month}</Tag>;
+                              return <Tag color="orange">尚未結算</Tag>;
+                            },
                           },
                           {
-                            title: '操作', key: 'action', width: 130,
+                            title: '操作', key: 'action', width: 190,
                             render: (_, r) => {
                               const a = r.attributes;
-                              if (a.commission_settle_status === 'settled') {
-                                return <span style={{ color: '#c0c0c0' }}>已完成撥款</span>;
-                              }
-                              const paid = a.payment_status === 'paid';
-                              if (!paid) {
+                              const st = a.commission_settle_status;
+                              // 已沖回 → 只給「復原」
+                              if (st === 'reversed') {
                                 return (
-                                  <Tooltip title="客戶款項入帳後才可結算佣金">
-                                    <Button size="small" disabled>確認結算</Button>
-                                  </Tooltip>
+                                  <Popconfirm title="復原此筆佣金？" description="將沖回狀態還原為未結算" onConfirm={() => restoreCommission(r)} okText="復原" cancelText="取消">
+                                    <Button size="small">復原</Button>
+                                  </Popconfirm>
                                 );
                               }
+                              const paid = a.payment_status === 'paid';
+                              const settleBtn = st === 'settled'
+                                ? <span style={{ color: '#c0c0c0' }}>已完成撥款</span>
+                                : (paid
+                                    ? (
+                                      <Popconfirm
+                                        title="確認結算這筆佣金？"
+                                        description={`將「${a.commission_channel_person_name}」的 ${fmtAmount(a.commission_amount)} 標記為已結算（已撥款）`}
+                                        onConfirm={() => markSettled(r)} okText="確認" cancelText="取消"
+                                      >
+                                        <Button size="small" type="primary">確認結算</Button>
+                                      </Popconfirm>
+                                    )
+                                    : (
+                                      <Tooltip title="客戶款項入帳後才可結算佣金">
+                                        <Button size="small" disabled>確認結算</Button>
+                                      </Tooltip>
+                                    ));
                               return (
-                                <Popconfirm
-                                  title="確認結算這筆佣金？"
-                                  description={`將「${a.commission_channel_person_name}」的 ${fmtAmount(a.commission_amount)} 標記為已結算（已撥款）`}
-                                  onConfirm={() => markSettled(r)}
-                                  okText="確認" cancelText="取消"
-                                >
-                                  <Button size="small" type="primary">確認結算</Button>
-                                </Popconfirm>
+                                <Space>
+                                  {settleBtn}
+                                  <Popconfirm title="沖回此筆佣金？" description="退訂／取消時使用，佣金將不列入應付" onConfirm={() => markReversed(r)} okText="沖回" cancelText="取消">
+                                    <Button size="small" danger>沖回</Button>
+                                  </Popconfirm>
+                                </Space>
                               );
                             },
                           },
