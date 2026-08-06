@@ -1505,9 +1505,6 @@ const CustomerManagement = () => {
         next_follow_up: normalizeDate(values.next_follow_up_date),
         notes: values.content,
         project: values.project ? Number(values.project) : null,
-        is_deal: !!values.is_deal,
-        deal_amount: values.is_deal ? (values.deal_amount || 0) : null,
-        payment_date: values.is_deal ? normalizeDate(values.payment_date) : null,
       };
 
       // 保存聯絡記錄
@@ -2806,25 +2803,7 @@ const CustomerManagement = () => {
           </Form.Item>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <Form.Item name="is_deal" label="是否成交" valuePropName="checked" initialValue={false}>
-              <Switch />
-            </Form.Item>
-            <Form.Item shouldUpdate={(prev, curr) => prev.is_deal !== curr.is_deal}>
-              {({ getFieldValue }) => getFieldValue('is_deal') ? (
-                <div style={{ display: 'contents' }}>
-                  <Form.Item name="deal_amount" label="成交金額" rules={[{ required: true, message: '請輸入成交金額' }]}>
-                    <InputNumber style={{ width: '100%' }} min={0} step={10000} placeholder="輸入金額（元）" />
-                  </Form.Item>
-                  <Form.Item name="payment_date" label="入帳日期" rules={[{ required: true, message: '請選擇入帳日期' }]}>
-                    <div className={styles.dateInputWrapper}>
-                      <div className={`${styles.dateAffix} ant-input-affix-wrapper`}>
-                        <input type="date" className={`ant-input ${styles.dateInput}`} placeholder="yyyy/MM/dd" onChange={(e)=> contactForm.setFieldsValue({ payment_date: e.target.value })} />
-                      </div>
-                    </div>
-                  </Form.Item>
-                </div>
-              ) : null}
-            </Form.Item>
+            {/* 成交已移至「成交管理」,聯絡紀錄不再記錄成交 */}
           </div>
         </Form>
       </Modal>
