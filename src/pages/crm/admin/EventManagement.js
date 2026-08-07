@@ -175,7 +175,7 @@ const EventManagement = () => {
   };
 
   const columns = [
-    { title: '活動名稱', dataIndex: ['attributes', 'title'], key: 'title', width: 300, ellipsis: true },
+    { title: '活動名稱', dataIndex: ['attributes', 'title'], key: 'title', ellipsis: true },
     {
       title: '關聯建案', key: 'project', width: 160,
       render: (_, r) => r.attributes.related_project?.data?.attributes?.name || <span style={{ color: '#c0c0c0' }}>—</span>,
@@ -214,11 +214,11 @@ const EventManagement = () => {
           <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>新增活動</Button>
         </Space>
       }
-      style={{ margin: 8 }}
+      style={{ margin: 8, minHeight: 'calc(100vh - 96px)' }}
     >
       <Table
         rowKey="id" columns={columns} dataSource={events} loading={loading}
-        size="small" scroll={{ x: 900 }} pagination={{ pageSize: 20, showSizeChanger: true }}
+        pagination={{ pageSize: 20, showSizeChanger: true }}
       />
 
       <Modal
@@ -231,7 +231,18 @@ const EventManagement = () => {
         width={720}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" requiredMark="optional">
+        <Form
+          form={form}
+          layout="vertical"
+          requiredMark={(labelNode, { required }) => (
+            <>
+              {labelNode}
+              {required
+                ? <span style={{ color: '#ff4d4f', marginLeft: 4 }}>*</span>
+                : <span style={{ color: '#bbb', fontSize: 12, marginLeft: 6 }}>選填</span>}
+            </>
+          )}
+        >
           <Form.Item name="title" label="活動名稱" rules={[{ required: true, message: '請輸入活動名稱' }]}>
             <Input size="large" placeholder="例：台中七期豪宅投資說明會" />
           </Form.Item>

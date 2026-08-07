@@ -124,7 +124,7 @@ const SourceManagement = () => {
           <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>新增來源</Button>
         </Space>
       }
-      style={{ margin: 8 }}
+      style={{ margin: 8, minHeight: 'calc(100vh - 96px)' }}
     >
       <div style={{ marginBottom: 12, color: '#8c8c8c', fontSize: 13 }}>
         來源用於客戶與報名的「客戶來源」欄位。可自行新增/刪除;刪除某來源時,原本使用它的客戶與報名會自動歸回「其他」。「其他」為系統預設,不可刪除。
