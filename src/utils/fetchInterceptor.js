@@ -31,6 +31,10 @@ const PROTECTED_API_PREFIXES = [
   '/api/channel-companies',
   '/api/channel-people',
   '/api/deals',
+  // 來源清單:GET 公開(auth:false 會忽略 token),寫入需要 token → 一併保護。
+  // 注意:events/projects 不列入——它們 GET 走 users-permissions 公開,
+  // 帶 token 反而會被 Strapi 以「未知 Bearer」401;活動頁寫入時自行帶 token。
+  '/api/customer-sources',
 ];
 
 const isProtectedApi = (input) => {

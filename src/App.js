@@ -40,6 +40,8 @@ const Interactions = lazy(() => import('./pages/crm/sales/Interactions'));
 const SalesOverview = lazy(() => import('./pages/crm/sales/SalesOverview'));
 const SalesRegistrationManagement = lazy(() => import('./pages/crm/sales/RegistrationManagement'));
 const MyChannels = lazy(() => import('./pages/crm/sales/MyChannels'));
+const EventManagement = lazy(() => import('./pages/crm/admin/EventManagement'));
+const SourceManagement = lazy(() => import('./pages/crm/admin/SourceManagement'));
 
 const RouteFallback = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
@@ -162,6 +164,8 @@ function App() {
                         <Route path="staff-management" element={<SalesStaffManagement />} />
                         <Route path="channels" element={<ChannelManagement />} />
                         <Route path="deals" element={<DealManagement />} />
+                        <Route path="events" element={<EventManagement />} />
+                        <Route path="sources" element={<SourceManagement />} />
                         <Route path="sales-data" element={<SalesAnalytics />} />
                         <Route path="performance" element={<Navigate to="/crm/admin/overview" replace />} />
                     </Route>

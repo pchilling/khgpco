@@ -32,6 +32,8 @@ const RegistrationManagement = () => {
   const [currentRegistration, setCurrentRegistration] = useState(null);
   const [salesStaff, setSalesStaff] = useState([]);
   const [channelPeople, setChannelPeople] = useState([]);
+  const [customerSources, setCustomerSources] = useState([]);
+  const [selectedSourceForImport, setSelectedSourceForImport] = useState(null);
   const [isBatchAssign, setIsBatchAssign] = useState(false);
 
   // 獲取報名資料後的處理函數
@@ -106,7 +108,7 @@ const RegistrationManagement = () => {
     try {
       const all = await fetchAllStrapi(
         API_BASE_URL,
-        '/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&populate[customer]=*&populate[channel_person]=*&sort=createdAt:desc'
+        '/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&populate[customer]=*&populate[channel_person]=*&populate[customer_source]=*&sort=createdAt:desc'
       );
       setRegistrations(all);
       processRegistrations(all);
@@ -146,6 +148,17 @@ const RegistrationManagement = () => {
     }
   };
 
+  // 獲取客戶來源(報名可選)
+  const fetchCustomerSources = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/customer-sources`);
+      const data = await response.json();
+      if (response.ok) setCustomerSources(data.data || []);
+    } catch (error) {
+      console.error('獲取客戶來源資料錯誤:', error);
+    }
+  };
+
   // 報名補登／變更渠道人員(退訂沖回無關,單純標記帶客渠道)
   const setRegistrationChannel = async (record, channelPersonId) => {
     try {
@@ -165,6 +178,27 @@ const RegistrationManagement = () => {
     } catch (error) {
       console.error('更新報名渠道失敗:', error);
       message.error(`更新渠道失敗：${error.message}`);
+    }
+  };
+
+  // 報名補登／變更客戶來源
+  const setRegistrationSource = async (record, sourceId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { customer_source: sourceId || null } }),
+      });
+      if (!response.ok) throw new Error(`更新失敗 (${response.status})`);
+      const src = customerSources.find(s => s.id === sourceId);
+      const patch = (list) => list.map(r => r.id === record.id
+        ? { ...r, attributes: { ...r.attributes, customer_source: { data: sourceId ? { id: sourceId, attributes: { name: src?.attributes?.name } } : null } } }
+        : r);
+      setRegistrations(prev => { const next = patch(prev); processRegistrations(next); return next; });
+      message.success(sourceId ? '已標記來源' : '已移除來源');
+    } catch (error) {
+      console.error('更新報名來源失敗:', error);
+      message.error(`更新來源失敗：${error.message}`);
     }
   };
 
@@ -199,6 +233,7 @@ const RegistrationManagement = () => {
     fetchEvents();
     fetchSalesStaff();
     fetchChannelPeople();
+    fetchCustomerSources();
   }, []);
 
   // 根據sessionIndex獲取場次名稱
@@ -539,7 +574,13 @@ const RegistrationManagement = () => {
           // 報名已標記渠道 → 轉客戶時自動帶入(合約:報名轉客戶渠道自動帶入)
           ...(record.attributes.channel_person?.data?.id && {
             channel_person: record.attributes.channel_person.data.id
-          })
+          }),
+          // 客戶來源:報名有選就帶入,否則預設「活動」(他從活動報名來的)
+          ...((() => {
+            const srcId = record.attributes.customer_source?.data?.id
+              || customerSources.find(s => s.attributes.code === 'event')?.id;
+            return srcId ? { customer_source: srcId } : {};
+          })())
         }
       };
 
@@ -955,6 +996,7 @@ const RegistrationManagement = () => {
           event: eventId,
           sessionIndex: sessionIndex,
           status: 'pending',
+          ...(values.customer_source ? { customer_source: values.customer_source } : {}),
           publishedAt: new Date().toISOString()
         }
       };
@@ -1050,6 +1092,7 @@ const RegistrationManagement = () => {
             sessionIndex: Number(selectedSessionForImport),
             status: 'pending',
             publishedAt: new Date().toISOString(),
+            ...(selectedSourceForImport ? { customer_source: selectedSourceForImport } : {}),
             ...(data.sales_staff ? { sales_staff: data.sales_staff } : {}),
             ...(batchKey ? { _batchKey: batchKey } : {})
           }
@@ -1285,6 +1328,22 @@ const RegistrationManagement = () => {
             value: p.id,
             label: p.attributes?.name + (p.attributes?.channel_company?.data?.attributes?.name ? `（${p.attributes.channel_company.data.attributes.name}）` : ''),
           }))}
+        />
+      ),
+    },
+    {
+      title: '來源',
+      key: 'customer_source',
+      width: 130,
+      render: (_, record) => (
+        <Select
+          size="small"
+          allowClear
+          style={{ width: 118 }}
+          placeholder="選來源"
+          value={record.attributes.customer_source?.data?.id || undefined}
+          onChange={(val) => setRegistrationSource(record, val)}
+          options={customerSources.map(s => ({ value: s.id, label: s.attributes.name }))}
         />
       ),
     },
@@ -1549,6 +1608,19 @@ const RegistrationManagement = () => {
             </Select>
           </Form.Item>
 
+          <Form.Item label="客戶來源（此批一起套用）">
+            <Select
+              allowClear showSearch optionFilterProp="children"
+              placeholder="請選擇來源(選填,如 FB／官網／渠道)"
+              value={selectedSourceForImport}
+              onChange={(value) => setSelectedSourceForImport(value)}
+            >
+              {customerSources.map(s => (
+                <Option key={s.id} value={s.id}>{s.attributes.name}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+
           <div style={{ marginBottom: 16 }}>
             預覽資料（共 {previewData.length} 筆）：
           </div>
@@ -1694,6 +1766,18 @@ const RegistrationManagement = () => {
                     <Option key={index} value={index}>
                       {session.location || `場次 ${index + 1}`}
                     </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="customer_source" label="客戶來源">
+                <Select allowClear showSearch optionFilterProp="children" placeholder="請選擇來源(選填,如 FB／官網／渠道)">
+                  {customerSources.map(s => (
+                    <Option key={s.id} value={s.id}>{s.attributes.name}</Option>
                   ))}
                 </Select>
               </Form.Item>

@@ -76,7 +76,8 @@ const Overview = () => {
       // 只抓 Overview 實際需要的欄位，避免 populate=* 把媒體和巢狀關聯都拉回來
       const customersQuery = '/api/customers?'
         + 'fields[0]=createdAt&fields[1]=status&fields[2]=source'
-        + '&populate[sales_staff][fields][0]=id';
+        + '&populate[sales_staff][fields][0]=id'
+        + '&populate[customer_source][fields][0]=name';
       // 成交改讀獨立的 deals 表(不再從 is_deal 聯絡紀錄)
       const dealsQuery = '/api/deals?'
         + 'fields[0]=deal_amount&fields[1]=payment_date&fields[2]=createdAt'
@@ -178,8 +179,10 @@ const Overview = () => {
       const sourceCount = {};
       baseCustomers.forEach(customer => {
         const srcRaw = customer?.attributes?.source;
-        const sourceMap = { 'event': '活動', 'website': '網站', 'referral': '推薦', 'other': '其他' };
-        const srcText = srcRaw ? (sourceMap[srcRaw] || '其他') : '其他';
+        const sourceMap = { 'event': '活動', 'website': '官網', 'referral': '渠道', 'other': '其他' };
+        // 優先用動態來源名(customer_source),回退舊 enum
+        const srcText = customer?.attributes?.customer_source?.data?.attributes?.name
+          || (srcRaw ? (sourceMap[srcRaw] || '其他') : '其他');
         sourceCount[srcText] = (sourceCount[srcText] || 0) + 1;
       });
       const sourceData = Object.entries(sourceCount)

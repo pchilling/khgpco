@@ -89,6 +89,8 @@ const CustomerManagement = () => {
   const [projects, setProjects] = useState([]);
   const [events, setEvents] = useState([]);
   const [channelPeople, setChannelPeople] = useState([]);
+  const [customerSources, setCustomerSources] = useState([]);
+  const [participations, setParticipations] = useState({}); // customerId -> [{title, sessionText, timeText, building}]
   const [filterVisible, setFilterVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [displayColumns, setDisplayColumns] = useState([]);
@@ -217,23 +219,36 @@ const CustomerManagement = () => {
     },
     {
       title: '來源',
-      dataIndex: ['attributes', 'source'],
       key: 'source',
       width: 100,
-      render: (source) => sourceMap[source],
+      render: (_, record) => sourceName(record),
     },
     {
       title: '參加活動',
       key: 'events',
-      width: 160,
+      width: 220,
       render: (_, record) => {
-        const evs = record.attributes?.events?.data || [];
-        if (!evs.length) return <span style={{ color: '#c0c0c0' }}>無</span>;
-        const names = evs.map(e => e.attributes?.title || e.attributes?.name || `活動 ${e.id}`);
+        const parts = participations[record.id] || [];
+        if (!parts.length) {
+          // 無報名者:回退顯示手動綁的活動(多對多,無場次/時間)
+          const evs = record.attributes?.events?.data || [];
+          if (!evs.length) return <span style={{ color: '#c0c0c0' }}>無</span>;
+          const names = evs.map(e => e.attributes?.title || `活動 ${e.id}`);
+          return (
+            <Tooltip title={names.join('、')}>
+              <span>{names[0]}{names.length > 1 ? ` +${names.length - 1}` : ''}</span>
+            </Tooltip>
+          );
+        }
+        const detail = parts.map(p =>
+          `${p.title}${p.sessionText ? `｜${p.sessionText}` : ''}${p.timeText ? `｜${p.timeText}` : ''}${p.building ? `｜${p.building}` : ''}`
+        ).join('\n');
+        const first = parts[0];
         return (
-          <Tooltip title={names.join('、')}>
+          <Tooltip title={<div style={{ whiteSpace: 'pre-line' }}>{detail}</div>}>
             <span>
-              {names[0]}{names.length > 1 ? ` +${names.length - 1}` : ''}
+              {first.title}{first.building ? `（${first.building}）` : ''}
+              {parts.length > 1 ? ` +${parts.length - 1}` : ''}
             </span>
           </Tooltip>
         );
@@ -306,6 +321,8 @@ const CustomerManagement = () => {
     fetchProjects();
     fetchEvents();
     fetchChannelPeople();
+    fetchCustomerSources();
+    loadParticipations();
   }, []);
 
   useEffect(() => {
@@ -454,6 +471,53 @@ const CustomerManagement = () => {
     }
   };
 
+  // 客戶來源(動態清單)
+  const fetchCustomerSources = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/customer-sources`);
+      const data = await res.json();
+      setCustomerSources(data.data || []);
+    } catch (error) {
+      console.error('Error fetching customer sources:', error);
+    }
+  };
+
+  // 參加活動(報名驅動):撈所有報名,解析活動/場次/時間/建案,依客戶分組
+  const loadParticipations = async () => {
+    try {
+      const regs = await fetchAllStrapi(
+        API_BASE_URL,
+        '/api/registrations?populate[event][populate][0]=session&populate[event][populate][1]=related_project&populate[customer][fields][0]=name&sort=createdAt:desc'
+      );
+      const map = {};
+      regs.forEach(r => {
+        const custId = r.attributes?.customer?.data?.id;
+        if (!custId) return;
+        const ev = r.attributes?.event?.data;
+        const title = ev?.attributes?.title || '未知活動';
+        const building = ev?.attributes?.related_project?.data?.attributes?.name || null;
+        const sessions = ev?.attributes?.session || [];
+        const idx = r.attributes?.sessionIndex;
+        const s = (idx !== null && idx !== undefined) ? sessions[idx] : null;
+        const sessionText = s?.location || (idx !== null && idx !== undefined ? `場次 ${idx + 1}` : '');
+        const timeText = s?.startDateTime
+          ? new Date(s.startDateTime).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+          : '';
+        if (!map[custId]) map[custId] = [];
+        map[custId].push({ title, building, sessionText, timeText });
+      });
+      setParticipations(map);
+    } catch (error) {
+      console.error('Error loading participations:', error);
+    }
+  };
+
+  // 來源顯示名(優先新關聯,回退舊 enum)
+  const sourceName = (record) =>
+    record?.attributes?.customer_source?.data?.attributes?.name
+    || sourceMap[record?.attributes?.source]
+    || '其他';
+
   const handleEdit = (record) => {
     setCurrentCustomer(record);
     form.setFieldsValue({
@@ -463,9 +527,7 @@ const CustomerManagement = () => {
       address: record.attributes.address,
       notes: record.attributes.notes,
       status: record.attributes.status,
-      source: record.attributes.source,
-      projects: record.attributes.projects?.data?.map(p => p.id) || [],
-      events: record.attributes.events?.data?.map(e => e.id) || [],
+      customer_source: record.attributes.customer_source?.data?.id || null,
       channel_person: record.attributes.channel_person?.data?.id || null,
       sales_staff: record.attributes.sales_staff?.data?.id || null,
       hasContract: record.attributes.hasContract || false,
@@ -486,14 +548,11 @@ const CustomerManagement = () => {
           email: values.email || null,
           phone: values.phone || null,
           status: values.status,
-          source: values.source,
+          customer_source: values.customer_source || null,
           notes: values.notes || null,
           address: values.address || null,
           sales_staff: values.sales_staff || null,
-          // 活動為多對多，直接以 ID 陣列設定（空陣列＝清除所有活動）
-          events: Array.isArray(values.events) ? values.events.map(Number) : [],
           channel_person: values.channel_person || null,
-          projects: Array.isArray(values.projects) ? values.projects.map(Number) : []
         }
       };
 
@@ -666,9 +725,12 @@ const CustomerManagement = () => {
   const resetForm = () => {
     form.resetFields();
     // 設置默認值
+    // 預設來源:優先「活動」,否則第一個來源
+    const defaultSource = (customerSources.find(s => s.attributes.code === 'event')
+      || customerSources[0])?.id || null;
     form.setFieldsValue({
       status: 'potential',
-      source: 'event',
+      customer_source: defaultSource,
       hasContract: false
     });
   };
@@ -680,10 +742,9 @@ const CustomerManagement = () => {
       setLoading(true);
       
       
-      // 先記錄選取的關聯（業務、人員與建案）
+      // 先記錄選取的關聯（負責業務）
       const selectedSalesStaffId = values.sales_staff != null ? Number(values.sales_staff) : undefined;
-      const selectedProjectIds = Array.isArray(values.projects) ? values.projects.map(id => Number(id)).filter(Boolean) : [];
-      
+
       // 簡化API數據
       const apiData = {
             data: {
@@ -691,18 +752,12 @@ const CustomerManagement = () => {
           email: values.email || null,
           phone: values.phone || null,
           status: values.status,
-          source: values.source,
+          customer_source: values.customer_source || null,
           notes: values.notes || null,
           address: values.address || null,
           // 關聯：負責業務（manyToOne 可直接在 Customer 上設定為 ID）
           ...(selectedSalesStaffId ? { sales_staff: selectedSalesStaffId } : {}),
-          // 活動為多對多，可直接在 Customer 上以 ID 陣列設定
-          ...(Array.isArray(values.events) && values.events.length ? { events: values.events.map(Number) } : {}),
           ...(values.channel_person ? { channel_person: values.channel_person } : {}),
-          // 相關建案:直接在客戶新增請求裡以 ID 陣列設定(oneToMany 從客戶端可寫)。
-          // 不再另外 PUT /api/projects——那會帶著渠道 JWT 打公開端點被 Strapi 拒 401,
-          // 進而觸發登出(這就是「選了建案一新增就被踢出」的根因)。
-          ...(selectedProjectIds.length ? { projects: selectedProjectIds } : {})
         }
       };
       
@@ -819,7 +874,7 @@ const CustomerManagement = () => {
           '電子郵件': customer.attributes.email || '',
           '地址': customer.attributes.address || '',
           '狀態': statusMap[customer.attributes.status]?.text || '潛在客戶',
-          '來源': sourceMap[customer.attributes.source] || '網站',
+          '來源': customer.attributes.customer_source?.data?.attributes?.name || sourceMap[customer.attributes.source] || '其他',
           '備註': customer.attributes.notes || '',
           '負責業務': customer.attributes.sales_staff?.data?.attributes?.name || customer.attributes.sales_staff?.data?.attributes?.username || '未指派'
         }));
@@ -1110,8 +1165,8 @@ const CustomerManagement = () => {
         
         if (formValues.source && formValues.source.length > 0) {
           const beforeSource = filtered.length;
-          filtered = filtered.filter(customer => 
-            customer.attributes.source && formValues.source.includes(customer.attributes.source)
+          filtered = filtered.filter(customer =>
+            formValues.source.includes(customer.attributes.customer_source?.data?.id)
           );
           filterSteps.push(`來源篩選: ${beforeSource} → ${filtered.length}`);
         }
@@ -1133,14 +1188,6 @@ const CustomerManagement = () => {
           filterSteps.push(`合約篩選: ${beforeContract} → ${filtered.length}`);
         }
         
-        if (formValues.project) {
-          const beforeProject = filtered.length;
-          filtered = filtered.filter(customer =>
-            customer.attributes.projects?.data?.some(p => p.id === formValues.project)
-          );
-          filterSteps.push(`建案篩選: ${beforeProject} → ${filtered.length}`);
-        }
-
         if (formValues.channel_person) {
           const beforeChannel = filtered.length;
           filtered = filtered.filter(customer =>
@@ -2062,9 +2109,9 @@ const CustomerManagement = () => {
                 </Col>
                 <Col xs={24} sm={12} md={isMobile ? 12 : 8} lg={isMobile ? 8 : 6}>
                   <Form.Item name="source" label="客戶來源">
-                    <Select mode="multiple" placeholder="選擇客戶來源">
-                      {Object.entries(sourceMap).map(([value, text]) => (
-                        <Option key={value} value={value}>{text}</Option>
+                    <Select mode="multiple" placeholder="選擇客戶來源" optionFilterProp="children">
+                      {customerSources.map(s => (
+                        <Option key={s.id} value={s.id}>{s.attributes.name}</Option>
                       ))}
                     </Select>
                   </Form.Item>
@@ -2087,25 +2134,6 @@ const CustomerManagement = () => {
                       <Option value="">全部</Option>
                       <Option value={true}>已簽約</Option>
                       <Option value={false}>未簽約</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col xs={24} sm={12} md={isMobile ? 12 : 8} lg={isMobile ? 8 : 6}>
-                  <Form.Item name="project" label="相關建案">
-                    <Select 
-                      placeholder="選擇建案"
-                      showSearch
-                      filterOption={(input, option) =>
-                        (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-                      }
-                      optionFilterProp="children"
-                    >
-                      <Option value="">全部</Option>
-                      {projects.map(project => (
-                        <Option key={project.id} value={project.id}>
-                          {project.attributes.name || `建案 ${project.id}`}
-                        </Option>
-                      ))}
                     </Select>
                   </Form.Item>
                 </Col>
@@ -2292,15 +2320,13 @@ const CustomerManagement = () => {
             </Select>
           </Form.Item>
           <Form.Item
-            name="source"
+            name="customer_source"
             label="來源"
             rules={[{ required: true, message: '請選擇來源' }]}
           >
-            <Select>
-              {Object.entries(sourceMap).map(([value, text]) => (
-                <Select.Option key={value} value={value}>
-                  {text}
-                </Select.Option>
+            <Select placeholder="選擇來源" showSearch optionFilterProp="children">
+              {customerSources.map(s => (
+                <Select.Option key={s.id} value={s.id}>{s.attributes.name}</Select.Option>
               ))}
             </Select>
           </Form.Item>
@@ -2342,29 +2368,6 @@ const CustomerManagement = () => {
             </Tabs.TabPane>
             */}
             
-            <Tabs.TabPane tab="相關建案" key="projects">
-              <Form.Item
-                name="projects"
-                label="相關建案"
-              >
-                <Select 
-                  mode="multiple" 
-                  placeholder="請選擇相關建案"
-                  showSearch
-                  filterOption={(input, option) =>
-                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-                  }
-                  optionFilterProp="children"
-                >
-                  {projects.map(project => (
-                    <Select.Option key={project.id} value={project.id}>
-                      {project.attributes.name || `建案 ${project.id}`}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Tabs.TabPane>
-
             <Tabs.TabPane tab="帶客渠道" key="channel">
               <Form.Item
                 name="channel_person"
@@ -2393,26 +2396,10 @@ const CustomerManagement = () => {
             </Tabs.TabPane>
 
             <Tabs.TabPane tab="參加活動" key="events">
-              <Form.Item
-                name="events"
-                label="參加活動"
-              >
-                <Select
-                  mode="multiple"
-                  placeholder="請選擇客戶參加過的活動"
-                  showSearch
-                  filterOption={(input, option) =>
-                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-                  }
-                  optionFilterProp="children"
-                >
-                  {events.map(event => (
-                    <Select.Option key={event.id} value={event.id}>
-                      {event.attributes.title || event.attributes.name || `活動 ${event.id}`}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
+              <div style={{ color: '#8c8c8c', lineHeight: 1.7 }}>
+                參加活動由「活動報名」自動帶入——只要在「活動報名管理」為此客戶新增報名,
+                客戶列表的「參加活動」欄就會顯示所報名的活動、場次、時間與建案,不需在此手動選擇。
+              </div>
             </Tabs.TabPane>
           </Tabs>
         </Form>
@@ -2532,16 +2519,13 @@ const CustomerManagement = () => {
                 </Select>
               </Form.Item>
               <Form.Item
-                name="source"
+                name="customer_source"
                 label="來源"
                 rules={[{ required: true, message: '請選擇來源' }]}
-                initialValue="event"
               >
-                <Select>
-                  {Object.entries(sourceMap).map(([value, text]) => (
-                    <Select.Option key={value} value={value}>
-                      {text}
-                    </Select.Option>
+                <Select placeholder="選擇來源" showSearch optionFilterProp="children">
+                  {customerSources.map(s => (
+                    <Select.Option key={s.id} value={s.id}>{s.attributes.name}</Select.Option>
                   ))}
                 </Select>
               </Form.Item>
@@ -2583,29 +2567,6 @@ const CustomerManagement = () => {
             </Tabs.TabPane>
             */}
             
-            <Tabs.TabPane tab="相關建案" key="projects">
-              <Form.Item
-                name="projects"
-                label="相關建案"
-              >
-                <Select 
-                  mode="multiple" 
-                  placeholder="請選擇相關建案"
-                  showSearch
-                  filterOption={(input, option) =>
-                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-                  }
-                  optionFilterProp="children"
-                >
-                  {projects.map(project => (
-                    <Select.Option key={project.id} value={project.id}>
-                      {project.attributes.name || `建案 ${project.id}`}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Tabs.TabPane>
-
             <Tabs.TabPane tab="帶客渠道" key="channel">
               <Form.Item
                 name="channel_person"
@@ -2634,26 +2595,10 @@ const CustomerManagement = () => {
             </Tabs.TabPane>
 
             <Tabs.TabPane tab="參加活動" key="events">
-              <Form.Item
-                name="events"
-                label="參加活動"
-              >
-                <Select
-                  mode="multiple"
-                  placeholder="請選擇客戶參加過的活動"
-                  showSearch
-                  filterOption={(input, option) =>
-                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-                  }
-                  optionFilterProp="children"
-                >
-                  {events.map(event => (
-                    <Select.Option key={event.id} value={event.id}>
-                      {event.attributes.title || event.attributes.name || `活動 ${event.id}`}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
+              <div style={{ color: '#8c8c8c', lineHeight: 1.7 }}>
+                參加活動由「活動報名」自動帶入——只要在「活動報名管理」為此客戶新增報名,
+                客戶列表的「參加活動」欄就會顯示所報名的活動、場次、時間與建案,不需在此手動選擇。
+              </div>
             </Tabs.TabPane>
           </Tabs>
         </Form>

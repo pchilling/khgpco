@@ -12,7 +12,9 @@ import {
   MessageOutlined,
   MailOutlined,
   ApartmentOutlined,
-  DollarOutlined
+  DollarOutlined,
+  CalendarOutlined,
+  TagsOutlined
 } from '@ant-design/icons';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { logout } from '../../../services/auth';
@@ -46,6 +48,8 @@ const AdminDashboard = () => {
     const path = location.pathname;
     if (path.includes('/admin/overview')) return '1';
     if (path.includes('/admin/registrations')) return '2';
+    if (path.includes('/admin/events')) return '10';
+    if (path.includes('/admin/sources')) return '11';
     if (path.includes('/admin/staff-management')) return '3';
     if (path.includes('/admin/customers')) return '4';
     if (path.includes('/admin/interactions')) return '5';
@@ -81,6 +85,12 @@ const AdminDashboard = () => {
               icon: <FormOutlined />,
               label: '活動報名管理',
               onClick: () => navigate('/crm/admin/registrations')
+            },
+            {
+              key: '10',
+              icon: <CalendarOutlined />,
+              label: '活動管理',
+              onClick: () => navigate('/crm/admin/events')
             },
             {
               key: '3',
@@ -123,6 +133,12 @@ const AdminDashboard = () => {
               icon: <BarChartOutlined />,
               label: '銷售數據',
               onClick: () => navigate('/crm/admin/sales-data')
+            },
+            {
+              key: '11',
+              icon: <TagsOutlined />,
+              label: '客戶來源',
+              onClick: () => navigate('/crm/admin/sources')
             }
           ]}
         />

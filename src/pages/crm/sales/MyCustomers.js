@@ -21,6 +21,7 @@ const MyCustomers = () => {
   const [form] = Form.useForm();
   const [interactionForm] = Form.useForm();
   const [projects, setProjects] = useState([]);
+  const [customerSources, setCustomerSources] = useState([]);
   const [filterVisible, setFilterVisible] = useState(false);
   const [filterForm] = Form.useForm();
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -68,7 +69,8 @@ const MyCustomers = () => {
 
   useEffect(() => {
     fetchCustomers();
-    fetchProjects();
+    fetchCustomerSources();
+    fetchProjects(); // 聯絡紀錄的「相關建案（選填）」仍會用到
   }, []);
 
   useEffect(() => {
@@ -101,6 +103,16 @@ const MyCustomers = () => {
     }
   };
 
+  const fetchCustomerSources = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/customer-sources`);
+      const data = await response.json();
+      setCustomerSources(data.data || []);
+    } catch (error) {
+      console.error('Error fetching customer sources:', error);
+    }
+  };
+
   const fetchProjects = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/projects?pagination[pageSize]=1000`);
@@ -111,6 +123,12 @@ const MyCustomers = () => {
     }
   };
 
+  // 來源顯示名(優先新關聯,回退舊 enum)
+  const sourceName = (customer) =>
+    customer?.attributes?.customer_source?.data?.attributes?.name
+    || sourceMap[customer?.attributes?.source]
+    || '其他';
+
   const handleEdit = (record) => {
     setCurrentCustomer(record);
     form.setFieldsValue({
@@ -120,7 +138,6 @@ const MyCustomers = () => {
       address: record.attributes.address,
       notes: record.attributes.notes,
       status: record.attributes.status,
-      projects: record.attributes.projects?.data?.map(p => p.id) || [],
     });
     setEditModalVisible(true);
   };
@@ -133,11 +150,8 @@ const MyCustomers = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          data: {
-            ...values,
-            projects: values.projects ? values.projects.map(id => ({ id })) : []
-          }
+        body: JSON.stringify({
+          data: { ...values }
         }),
       });
 
@@ -291,11 +305,9 @@ const MyCustomers = () => {
           '地址': customer.attributes.address,
           '備註': customer.attributes.notes,
           '狀態': statusMap[customer.attributes.status]?.text,
-          '來源': sourceMap[customer.attributes.source],
+          '來源': sourceName(customer),
           '創建時間': new Date(customer.attributes.createdAt).toLocaleString(),
           '更新時間': new Date(customer.attributes.updatedAt).toLocaleString(),
-          
-          '相關建案': customer.attributes.projects?.data?.map(p => p.attributes.name || `建案 ${p.id}`).join(', ') || '',
         }));
 
         const ws = XLSX.utils.json_to_sheet(exportData);
@@ -357,14 +369,8 @@ const MyCustomers = () => {
         }
         
         if (formValues.source && formValues.source.length > 0) {
-          filtered = filtered.filter(customer => 
-            customer.attributes.source && formValues.source.includes(customer.attributes.source)
-          );
-        }
-        
-        if (formValues.project) {
-          filtered = filtered.filter(customer => 
-            customer.attributes.projects?.data?.some(p => p.id === formValues.project)
+          filtered = filtered.filter(customer =>
+            formValues.source.includes(customer.attributes.customer_source?.data?.id)
           );
         }
         
@@ -454,14 +460,9 @@ const MyCustomers = () => {
     },
 
     {
-      title: '相關建案',
-      key: 'projects',
-      render: (_, record) => {
-        const projects = record.attributes.projects?.data || [];
-        return projects.length > 0 
-          ? projects.map(p => p.attributes.name || `建案 ${p.id}`).join(', ')
-          : '無';
-      }
+      title: '來源',
+      key: 'source',
+      render: (_, record) => sourceName(record),
     },
     {
       title: '操作',
@@ -556,28 +557,9 @@ const MyCustomers = () => {
                 </Select>
               </Form.Item>
               <Form.Item name="source" label="客戶來源" style={{ minWidth: '200px' }}>
-                <Select mode="multiple" placeholder="選擇客戶來源" style={{ width: '200px' }}>
-                  {Object.entries(sourceMap).map(([value, text]) => (
-                    <Option key={value} value={value}>{text}</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              <Form.Item name="project" label="相關建案" style={{ minWidth: '200px' }}>
-                <Select 
-                  placeholder="選擇建案" 
-                  style={{ width: '200px' }}
-                  showSearch
-                  filterOption={(input, option) =>
-                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-                  }
-                  optionFilterProp="children"
-                >
-                  <Option value="">全部</Option>
-                  {projects.map(project => (
-                    <Option key={project.id} value={project.id}>
-                      {project.attributes.name || `建案 ${project.id}`}
-                    </Option>
+                <Select mode="multiple" placeholder="選擇客戶來源" style={{ width: '200px' }} optionFilterProp="children">
+                  {customerSources.map(s => (
+                    <Option key={s.id} value={s.id}>{s.attributes.name}</Option>
                   ))}
                 </Select>
               </Form.Item>
@@ -697,26 +679,6 @@ const MyCustomers = () => {
               {Object.entries(statusMap).map(([value, { text }]) => (
                 <Select.Option key={value} value={value}>
                   {text}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item
-            name="projects"
-            label="相關建案"
-          >
-            <Select 
-              mode="multiple" 
-              placeholder="請選擇相關建案"
-              showSearch
-              filterOption={(input, option) =>
-                (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-              }
-              optionFilterProp="children"
-            >
-              {projects.map(project => (
-                <Select.Option key={project.id} value={project.id}>
-                  {project.attributes.name || `建案 ${project.id}`}
                 </Select.Option>
               ))}
             </Select>

@@ -35,6 +35,7 @@ const SalesRegistrationManagement = () => {
   const [editForm] = Form.useForm();
   const [editingRegistration, setEditingRegistration] = useState(null);
   const [channelPeople, setChannelPeople] = useState([]);
+  const [customerSources, setCustomerSources] = useState([]);
 
   const statusMap = {
     pending: { text: '未處理', color: 'blue' },
@@ -152,7 +153,7 @@ const SalesRegistrationManagement = () => {
       const userId = user.id || user.attributes?.id;
       const all = await fetchAllStrapi(
         API_BASE_URL,
-        `/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&populate[channel_person]=*&filters[sales_staff][id][$eq]=${userId}&sort=createdAt:desc`
+        `/api/registrations?populate[event][populate][0]=session&populate[sales_staff]=*&populate[channel_person]=*&populate[customer_source]=*&filters[sales_staff][id][$eq]=${userId}&sort=createdAt:desc`
       );
       setRegistrations(all);
       setFilteredRegistrations(all);
@@ -173,6 +174,39 @@ const SalesRegistrationManagement = () => {
       if (response.ok) setChannelPeople(data.data || []);
     } catch (error) {
       console.error('獲取渠道人員資料錯誤:', error);
+    }
+  };
+
+  // 獲取客戶來源(報名可選)
+  const fetchCustomerSources = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/customer-sources`);
+      const data = await response.json();
+      if (response.ok) setCustomerSources(data.data || []);
+    } catch (error) {
+      console.error('獲取客戶來源資料錯誤:', error);
+    }
+  };
+
+  // 報名補登／變更客戶來源
+  const setRegistrationSource = async (record, sourceId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { customer_source: sourceId || null } }),
+      });
+      if (!response.ok) throw new Error(`更新失敗 (${response.status})`);
+      const src = customerSources.find(s => s.id === sourceId);
+      const patch = (list) => list.map(r => r.id === record.id
+        ? { ...r, attributes: { ...r.attributes, customer_source: { data: sourceId ? { id: sourceId, attributes: { name: src?.attributes?.name } } : null } } }
+        : r);
+      setRegistrations(prev => { const next = patch(prev); processRegistrations(next); return next; });
+      setFilteredRegistrations(prev => patch(prev));
+      message.success(sourceId ? '已標記來源' : '已移除來源');
+    } catch (error) {
+      console.error('更新報名來源失敗:', error);
+      message.error(`更新來源失敗：${error.message}`);
     }
   };
 
@@ -227,6 +261,7 @@ const SalesRegistrationManagement = () => {
     fetchRegistrations();
     fetchEvents();
     fetchChannelPeople();
+    fetchCustomerSources();
   }, []);
 
   useEffect(() => {
@@ -314,7 +349,13 @@ const SalesRegistrationManagement = () => {
           // 報名已標記渠道 → 轉客戶時自動帶入
           ...(record.attributes.channel_person?.data?.id && {
             channel_person: record.attributes.channel_person.data.id
-          })
+          }),
+          // 客戶來源:報名有選就帶入,否則預設「活動」
+          ...((() => {
+            const srcId = record.attributes.customer_source?.data?.id
+              || customerSources.find(s => s.attributes.code === 'event')?.id;
+            return srcId ? { customer_source: srcId } : {};
+          })())
         }
       };
 
@@ -780,6 +821,22 @@ const SalesRegistrationManagement = () => {
               value: p.id,
               label: p.attributes?.name + (p.attributes?.channel_company?.data?.attributes?.name ? `（${p.attributes.channel_company.data.attributes.name}）` : ''),
             }))}
+          />
+        ),
+      },
+      {
+        title: '來源',
+        key: 'customer_source',
+        width: 130,
+        render: (_, record) => (
+          <Select
+            size="small"
+            allowClear
+            style={{ width: 118 }}
+            placeholder="選來源"
+            value={record.attributes.customer_source?.data?.id || undefined}
+            onChange={(val) => setRegistrationSource(record, val)}
+            options={customerSources.map(s => ({ value: s.id, label: s.attributes.name }))}
           />
         ),
       },

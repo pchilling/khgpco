@@ -102,7 +102,7 @@ const SalesAnalytics = () => {
     setError(null);
     try {
       const [customers, registrations, interactions] = await Promise.all([
-        fetchAllStrapi(API_BASE_URL, '/api/customers?populate=sales_staff&sort=createdAt:desc'),
+        fetchAllStrapi(API_BASE_URL, '/api/customers?populate=sales_staff,customer_source&sort=createdAt:desc'),
         fetchAllStrapi(API_BASE_URL, '/api/registrations?populate=sales_staff&sort=createdAt:desc'),
         fetchAllStrapi(API_BASE_URL, '/api/deals?populate=sales_staff,customer&sort=createdAt:desc')
           .catch((err) => {
@@ -134,10 +134,12 @@ const SalesAnalytics = () => {
       if (salesPerson !== 'all' && 
           customer.attributes.sales_staff?.data?.id !== parseInt(salesPerson)) return;
       
-      const source = customer.attributes.source || '未知';
+      const enumMap = { event: '活動', website: '官網', referral: '渠道', other: '其他' };
+      const source = customer.attributes.customer_source?.data?.attributes?.name
+        || enumMap[customer.attributes.source] || '其他';
       sourceCount[source] = (sourceCount[source] || 0) + 1;
     });
-    
+
     return Object.keys(sourceCount).map(source => ({ name: source, value: sourceCount[source] }));
   };
 
