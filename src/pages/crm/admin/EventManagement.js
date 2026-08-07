@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   Card, Table, Button, Space, Tag, Modal, Form, Input, Select, InputNumber,
-  DatePicker, message, Popconfirm, Divider, Tooltip,
+  DatePicker, message, Popconfirm, Divider, Tooltip, Row, Col, Empty,
 } from 'antd';
 import {
-  PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, MinusCircleOutlined,
+  PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined,
+  EnvironmentOutlined, TeamOutlined, CalendarOutlined, ApartmentOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { API_BASE_URL } from '../../../utils/api';
@@ -89,7 +90,6 @@ const EventManagement = () => {
       startDateTime: s.startDateTime ? dayjs(s.startDateTime) : null,
       endDateTime: s.endDateTime ? dayjs(s.endDateTime) : null,
       maxParticipants: s.maxParticipants,
-      sessionCode: s.sessionCode,
     }));
     form.setFieldsValue({
       title: a.title,
@@ -112,7 +112,6 @@ const EventManagement = () => {
         startDateTime: s.startDateTime ? dayjs(s.startDateTime).toISOString() : null,
         endDateTime: s.endDateTime ? dayjs(s.endDateTime).toISOString() : null,
         maxParticipants: s.maxParticipants ?? null,
-        sessionCode: s.sessionCode || null,
       }));
       const payload = {
         data: {
@@ -208,7 +207,7 @@ const EventManagement = () => {
 
   return (
     <Card
-      title="活動管理"
+      title={<span><CalendarOutlined style={{ color: '#1668dc', marginRight: 8 }} />活動管理</span>}
       extra={
         <Space>
           <Button icon={<ReloadOutlined />} onClick={loadAll}>刷新</Button>
@@ -232,90 +231,126 @@ const EventManagement = () => {
         width={720}
         destroyOnClose
       >
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" requiredMark="optional">
           <Form.Item name="title" label="活動名稱" rules={[{ required: true, message: '請輸入活動名稱' }]}>
-            <Input placeholder="例：台中七期豪宅投資說明會" />
+            <Input size="large" placeholder="例：台中七期豪宅投資說明會" />
           </Form.Item>
           <Form.Item name="description" label="活動說明">
-            <TextArea rows={2} />
+            <TextArea rows={2} placeholder="活動簡介（選填）" />
           </Form.Item>
-          <Space style={{ display: 'flex' }} align="start" wrap>
-            <Form.Item name="status" label="狀態" style={{ minWidth: 140 }}>
-              <Select options={Object.entries(STATUS).map(([k, v]) => ({ value: k, label: v.text }))} />
-            </Form.Item>
-            <Form.Item name="related_project" label="關聯建案" style={{ minWidth: 280 }} extra="這場活動在推哪個建案">
-              <Select
-                allowClear showSearch optionFilterProp="label" placeholder="選擇或新增建案"
-                options={projects.map(p => ({ value: p.id, label: p.attributes.name }))}
-                dropdownRender={(menu) => (
-                  <>
-                    {menu}
-                    <Divider style={{ margin: '8px 0' }} />
-                    <Space style={{ padding: '0 8px 4px' }}>
-                      <Input
-                        placeholder="新建案名稱" value={newProjectName}
-                        onChange={(e) => setNewProjectName(e.target.value)}
-                        onKeyDown={(e) => e.stopPropagation()}
-                      />
-                      <Button type="text" icon={<PlusOutlined />} loading={addingProject} onClick={addProject}>新增</Button>
-                    </Space>
-                  </>
-                )}
-              />
-            </Form.Item>
-          </Space>
-          <Form.Item name="eventlink" label="活動連結(選填)">
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item name="status" label="狀態">
+                <Select options={Object.entries(STATUS).map(([k, v]) => ({ value: k, label: v.text }))} />
+              </Form.Item>
+            </Col>
+            <Col span={16}>
+              <Form.Item name="related_project" label={<span><ApartmentOutlined /> 關聯建案</span>} extra="這場活動在推哪個建案">
+                <Select
+                  allowClear showSearch optionFilterProp="label" placeholder="選擇或新增建案"
+                  options={projects.map(p => ({ value: p.id, label: p.attributes.name }))}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      <Divider style={{ margin: '8px 0' }} />
+                      <Space style={{ padding: '0 8px 4px' }}>
+                        <Input
+                          placeholder="新建案名稱" value={newProjectName}
+                          onChange={(e) => setNewProjectName(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        />
+                        <Button type="text" icon={<PlusOutlined />} loading={addingProject} onClick={addProject}>新增</Button>
+                      </Space>
+                    </>
+                  )}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="eventlink" label="活動連結（選填）">
             <Input placeholder="https://..." />
           </Form.Item>
 
-          <Divider orientation="left" style={{ margin: '4px 0 12px' }}>場次</Divider>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0 14px' }}>
+            <CalendarOutlined style={{ color: '#1668dc' }} />
+            <span style={{ fontWeight: 600, fontSize: 15, color: '#262626' }}>場次</span>
+            <Form.Item noStyle shouldUpdate={(p, c) => p.session !== c.session}>
+              {({ getFieldValue }) => {
+                const n = (getFieldValue('session') || []).length;
+                return <span style={{ color: '#8c8c8c', fontSize: 13 }}>共 {n} 場</span>;
+              }}
+            </Form.Item>
+            <div style={{ flex: 1, height: 1, background: '#f0f0f0' }} />
+          </div>
+
           <Form.List name="session">
             {(fields, { add, remove: removeField }) => (
               <>
                 {fields.map((field, idx) => {
                   const hasRegs = (sessionRegCounts[idx] || 0) > 0;
                   const isLast = idx === fields.length - 1;
+                  const canDelete = fields.length > 1 && !hasRegs && isLast;
                   return (
-                    <div key={field.key} style={{ border: '1px solid #f0f0f0', borderRadius: 8, padding: 12, marginBottom: 10, background: '#fafafa' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <span style={{ fontWeight: 600, color: '#555' }}>
-                          場次 {idx + 1}
-                          {hasRegs && <Tag color="orange" style={{ marginLeft: 8 }}>已有 {sessionRegCounts[idx]} 筆報名</Tag>}
-                        </span>
+                    <div
+                      key={field.key}
+                      style={{
+                        border: '1px solid #eef0f2', borderRadius: 12, padding: '14px 16px 2px',
+                        marginBottom: 12, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{
+                            width: 26, height: 26, borderRadius: '50%', background: '#1668dc', color: '#fff',
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700,
+                          }}>{idx + 1}</span>
+                          <span style={{ fontWeight: 600, color: '#262626' }}>場次 {idx + 1}</span>
+                          {hasRegs && <Tag color="orange" bordered={false}>已有 {sessionRegCounts[idx]} 筆報名</Tag>}
+                        </div>
                         {/* 防呆:只允許刪「最後一個且無報名」的場次,避免 sessionIndex 錯位 */}
-                        <Tooltip title={hasRegs ? '此場次已有報名,不可刪除' : (!isLast ? '只能從最後一個場次刪除' : '')}>
+                        <Tooltip title={hasRegs ? '此場次已有報名,不可刪除' : (!isLast ? '只能從最後一個場次刪除' : (fields.length <= 1 ? '至少保留一個場次' : '刪除此場次'))}>
                           <Button
-                            type="text" danger size="small" icon={<MinusCircleOutlined />}
-                            disabled={fields.length <= 1 || hasRegs || !isLast}
+                            type="text" danger shape="circle" size="small" icon={<DeleteOutlined />}
+                            disabled={!canDelete}
                             onClick={() => removeField(field.name)}
-                          >刪除場次</Button>
+                          />
                         </Tooltip>
                       </div>
-                      <Space wrap>
-                        <Form.Item {...field} key="loc" name={[field.name, 'location']} label="地點" style={{ marginBottom: 8, minWidth: 200 }}>
-                          <Input placeholder="例：台中市...展廳" />
-                        </Form.Item>
-                        <Form.Item {...field} key="max" name={[field.name, 'maxParticipants']} label="人數上限" style={{ marginBottom: 8 }}>
-                          <InputNumber min={0} placeholder="不限則留空" />
-                        </Form.Item>
-                        <Form.Item {...field} key="code" name={[field.name, 'sessionCode']} label="場次代碼" style={{ marginBottom: 8 }}>
-                          <Input placeholder="選填" />
-                        </Form.Item>
-                      </Space>
-                      <Space wrap>
-                        <Form.Item {...field} key="start" name={[field.name, 'startDateTime']} label="開始時間" style={{ marginBottom: 0 }}>
-                          <DatePicker showTime format="YYYY-MM-DD HH:mm" placeholder="開始" />
-                        </Form.Item>
-                        <Form.Item {...field} key="end" name={[field.name, 'endDateTime']} label="結束時間" style={{ marginBottom: 0 }}>
-                          <DatePicker showTime format="YYYY-MM-DD HH:mm" placeholder="結束" />
-                        </Form.Item>
-                      </Space>
+                      <Row gutter={12}>
+                        <Col span={16}>
+                          <Form.Item name={[field.name, 'location']} label="地點" style={{ marginBottom: 12 }}>
+                            <Input prefix={<EnvironmentOutlined style={{ color: '#c0c0c0' }} />} placeholder="例：台中市西屯區…展廳" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={8}>
+                          <Form.Item name={[field.name, 'maxParticipants']} label={<span><TeamOutlined /> 人數上限</span>} style={{ marginBottom: 12 }}>
+                            <InputNumber min={0} style={{ width: '100%' }} placeholder="不限" />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                      <Row gutter={12}>
+                        <Col span={12}>
+                          <Form.Item name={[field.name, 'startDateTime']} label="開始時間" style={{ marginBottom: 12 }}>
+                            <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} placeholder="開始" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                          <Form.Item name={[field.name, 'endDateTime']} label="結束時間" style={{ marginBottom: 12 }}>
+                            <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} placeholder="結束" />
+                          </Form.Item>
+                        </Col>
+                      </Row>
                     </div>
                   );
                 })}
-                <Button type="dashed" onClick={() => add({})} icon={<PlusOutlined />} block>新增場次</Button>
-                <div style={{ color: '#bbb', fontSize: 12, marginTop: 6 }}>
-                  已有報名的場次不可刪除(保護報名對應的場次順序);可自由修改場次內容或往後新增。
+                {fields.length === 0 && (
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="尚無場次" style={{ margin: '8px 0' }} />
+                )}
+                <Button type="dashed" onClick={() => add({})} icon={<PlusOutlined />} block style={{ height: 42, borderRadius: 10 }}>
+                  新增場次
+                </Button>
+                <div style={{ color: '#bbb', fontSize: 12, marginTop: 8 }}>
+                  已有報名的場次不可刪除（保護報名對應的場次順序）；可自由修改場次內容或往後新增。
                 </div>
               </>
             )}
