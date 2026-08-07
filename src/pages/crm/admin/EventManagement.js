@@ -21,7 +21,13 @@ const authHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
 });
 
-const STATUS = { upcoming: { text: '即將舉行', color: 'green' }, ended: { text: '已結束', color: 'default' } };
+const STATUS = {
+  open: { text: '報名中', color: 'blue' },
+  upcoming: { text: '即將舉行', color: 'green' },
+  ongoing: { text: '進行中', color: 'gold' },
+  ended: { text: '已結束', color: 'default' },
+  cancelled: { text: '已取消', color: 'red' },
+};
 
 const EventManagement = () => {
   const [events, setEvents] = useState([]);
@@ -78,7 +84,7 @@ const EventManagement = () => {
     setEditingId(null);
     setSessionRegCounts({});
     form.resetFields();
-    form.setFieldsValue({ status: 'upcoming', session: [{}] });
+    form.setFieldsValue({ status: 'open', session: [{}] });
     setModalOpen(true);
   };
 
