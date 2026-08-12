@@ -185,7 +185,7 @@ const ChannelManagement = () => {
       setCommissions(prev => prev.map(r => r.id === row.id
         ? { ...r, attributes: { ...r.attributes, commission_settle_status: 'settled', commission_settle_month: settleMonth } }
         : r));
-      message.success('已標記結算');
+      message.success('已撥款給渠道');
     } catch (e) {
       message.error(`結算失敗：${e.message}`);
     }
@@ -201,7 +201,7 @@ const ChannelManagement = () => {
       if (!res.ok) throw new Error(`沖回失敗 (${res.status})`);
       setCommissions(prev => prev.map(r => r.id === row.id
         ? { ...r, attributes: { ...r.attributes, commission_settle_status: 'reversed' } } : r));
-      message.success('已沖回此筆佣金（退訂）');
+      message.success('已退訂作廢此筆佣金');
     } catch (e) {
       message.error(`沖回失敗：${e.message}`);
     }
@@ -217,7 +217,7 @@ const ChannelManagement = () => {
       if (!res.ok) throw new Error(`復原失敗 (${res.status})`);
       setCommissions(prev => prev.map(r => r.id === row.id
         ? { ...r, attributes: { ...r.attributes, commission_settle_status: 'unsettled', commission_settle_month: null } } : r));
-      message.success('已復原為未結算');
+      message.success('已取消作廢');
     } catch (e) {
       message.error(`復原失敗：${e.message}`);
     }
@@ -514,14 +514,20 @@ const ChannelManagement = () => {
                   const payable = active.filter(r => r.attributes?.payment_status === 'paid' && r.attributes?.commission_settle_status !== 'settled');
                   return (
                     <>
+                      <div style={{ background: '#f6f8fa', border: '1px solid #eef0f2', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#555', lineHeight: 1.9 }}>
+                        <b style={{ color: '#333' }}>名詞說明：</b>
+                        <span style={{ color: '#389e0d' }}>客戶付款</span>＝收到客戶的錢　·
+                        <span style={{ color: '#1668dc' }}>撥款</span>＝把佣金付給渠道（<b>要先「客戶付款」才能撥款</b>）　·
+                        <span style={{ color: '#cf1322' }}>退訂作廢</span>＝客戶退訂，佣金不用付
+                      </div>
                       <Space style={{ marginBottom: 16 }} wrap>
-                        <span>結算月份：</span>
+                        <span>月份：</span>
                         <Select value={commMonth} style={{ width: 160 }} onChange={setCommMonth}
                           options={[{ value: 'all', label: '全部' }, ...months.map(m => ({ value: m, label: m }))]} />
                         <Tag color="blue" style={{ padding: '4px 12px', fontSize: 14 }}>佣金合計 {fmtAmount(sum(active))}</Tag>
-                        <Tag color="orange" style={{ padding: '4px 12px', fontSize: 14 }}>可結算(已入帳未結) {fmtAmount(sum(payable))}</Tag>
+                        <Tag color="orange" style={{ padding: '4px 12px', fontSize: 14 }}>可撥款(客戶已付、未撥) {fmtAmount(sum(payable))}</Tag>
                         {reversedRows.length > 0 && (
-                          <Tag color="red" style={{ padding: '4px 12px', fontSize: 14 }}>已沖回 {reversedRows.length} 筆 {fmtAmount(sum(reversedRows))}</Tag>
+                          <Tag color="red" style={{ padding: '4px 12px', fontSize: 14 }}>已作廢 {reversedRows.length} 筆 {fmtAmount(sum(reversedRows))}</Tag>
                         )}
                         <Button size="small" loading={commLoading} onClick={() => loadCommissions(true)}>重新整理</Button>
                       </Space>
@@ -529,7 +535,7 @@ const ChannelManagement = () => {
                         rowKey="id" size="small" loading={commLoading}
                         pagination={{ pageSize: 20, showSizeChanger: true }}
                         dataSource={rows}
-                        scroll={{ x: 1080 }}
+                        scroll={{ x: 1120 }}
                         columns={[
                           { title: '成交日期', key: 'date', width: 110, render: (_, r) => r.attributes?.deal_date || r.attributes?.date || '—' },
                           { title: '渠道人員', dataIndex: ['attributes', 'commission_channel_person_name'], key: 'cp', width: 120 },
@@ -544,29 +550,29 @@ const ChannelManagement = () => {
                             },
                           },
                           {
-                            title: '入帳', key: 'pay', width: 90, align: 'center',
+                            title: '客戶付款', key: 'pay', width: 100, align: 'center',
                             render: (_, r) => r.attributes?.payment_status === 'paid'
-                              ? <Tag color="green">已入帳</Tag> : <Tag color="orange">未入帳</Tag>,
+                              ? <Tag color="green">已付款</Tag> : <Tag color="orange">未付款</Tag>,
                           },
                           {
-                            title: '結算狀態', key: 'settle', width: 110, align: 'center',
+                            title: '撥款狀態', key: 'settle', width: 110, align: 'center',
                             render: (_, r) => {
                               const st = r.attributes?.commission_settle_status;
-                              if (st === 'reversed') return <Tag color="red">已沖回</Tag>;
-                              if (st === 'settled') return <Tag color="green">已結算<br />{r.attributes?.commission_settle_month}</Tag>;
-                              return <Tag color="orange">尚未結算</Tag>;
+                              if (st === 'reversed') return <Tag color="red">已作廢</Tag>;
+                              if (st === 'settled') return <Tag color="green">已撥款<br />{r.attributes?.commission_settle_month}</Tag>;
+                              return <Tag color="orange">未撥款</Tag>;
                             },
                           },
                           {
-                            title: '操作', key: 'action', width: 190,
+                            title: '操作', key: 'action', width: 210,
                             render: (_, r) => {
                               const a = r.attributes;
                               const st = a.commission_settle_status;
-                              // 已沖回 → 只給「復原」
+                              // 已作廢 → 只給「取消作廢」
                               if (st === 'reversed') {
                                 return (
-                                  <Popconfirm title="復原此筆佣金？" description="將沖回狀態還原為未結算" onConfirm={() => restoreCommission(r)} okText="復原" cancelText="取消">
-                                    <Button size="small">復原</Button>
+                                  <Popconfirm title="取消作廢？" description="還原為「未撥款」" onConfirm={() => restoreCommission(r)} okText="確認" cancelText="取消">
+                                    <Button size="small">取消作廢</Button>
                                   </Popconfirm>
                                 );
                               }
@@ -576,23 +582,23 @@ const ChannelManagement = () => {
                                 : (paid
                                     ? (
                                       <Popconfirm
-                                        title="確認結算這筆佣金？"
-                                        description={`將「${a.commission_channel_person_name}」的 ${fmtAmount(a.commission_amount)} 標記為已結算（已撥款）`}
+                                        title="確認把佣金撥款給渠道？"
+                                        description={`將「${a.commission_channel_person_name}」的 ${fmtAmount(a.commission_amount)} 標記為已撥款`}
                                         onConfirm={() => markSettled(r)} okText="確認" cancelText="取消"
                                       >
-                                        <Button size="small" type="primary">確認結算</Button>
+                                        <Button size="small" type="primary">撥款</Button>
                                       </Popconfirm>
                                     )
                                     : (
-                                      <Tooltip title="客戶款項入帳後才可結算佣金">
-                                        <Button size="small" disabled>確認結算</Button>
+                                      <Tooltip title="客戶付款後才可撥款給渠道">
+                                        <Button size="small" disabled>撥款</Button>
                                       </Tooltip>
                                     ));
                               return (
                                 <Space>
                                   {settleBtn}
-                                  <Popconfirm title="沖回此筆佣金？" description="退訂／取消時使用，佣金將不列入應付" onConfirm={() => markReversed(r)} okText="沖回" cancelText="取消">
-                                    <Button size="small" danger>沖回</Button>
+                                  <Popconfirm title="退訂作廢這筆佣金？" description="客戶退訂／取消時使用，佣金將不列入應付" onConfirm={() => markReversed(r)} okText="確認" cancelText="取消">
+                                    <Button size="small" danger>退訂作廢</Button>
                                   </Popconfirm>
                                 </Space>
                               );

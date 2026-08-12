@@ -159,24 +159,25 @@ const DealManagement = () => {
     { title: '渠道', key: 'channel', width: 110, render: (_, d) => d.attributes?.commission_channel_person_name || <span style={{ color: '#c0c0c0' }}>—</span> },
     { title: '佣金', key: 'commission', width: 120, align: 'right', render: (_, d) => d.attributes?.commission_amount ? fmtAmount(d.attributes.commission_amount) : <span style={{ color: '#c0c0c0' }}>未記</span> },
     {
-      title: '入帳', key: 'pay', width: 110, align: 'center',
+      title: '客戶付款', key: 'pay', width: 120, align: 'center',
       render: (_, d) => d.attributes?.payment_status === 'paid'
-        ? <Tag color="green">已入帳</Tag>
-        : <Popconfirm title="標記為已入帳？" onConfirm={() => quickUpdate(d.id, { payment_status: 'paid', payment_date: new Date().toISOString().slice(0, 10) }, '已標記入帳')} okText="確認" cancelText="取消">
-            <Button size="small">標記入帳</Button>
+        ? <Tag color="green">已付款</Tag>
+        : <Popconfirm title="標記為客戶已付款？" onConfirm={() => quickUpdate(d.id, { payment_status: 'paid', payment_date: new Date().toISOString().slice(0, 10) }, '已標記客戶付款')} okText="確認" cancelText="取消">
+            <Button size="small">客戶已付款</Button>
           </Popconfirm>,
     },
     {
-      title: '結算', key: 'settle', width: 110, align: 'center',
+      title: '撥款給渠道', key: 'settle', width: 120, align: 'center',
       render: (_, d) => {
         const a = d.attributes;
-        if (a.commission_settle_status === 'settled') return <Tag color="green">已結算</Tag>;
+        if (a.commission_settle_status === 'reversed') return <Tag color="red">已作廢</Tag>;
+        if (a.commission_settle_status === 'settled') return <Tag color="green">已撥款</Tag>;
         if (!a.commission_amount) return <span style={{ color: '#c0c0c0' }}>—</span>;
         const paid = a.payment_status === 'paid';
         return (
-          <Tooltip title={paid ? '' : '入帳後才可結算'}>
-            <Popconfirm disabled={!paid} title="確認結算這筆佣金？" onConfirm={() => quickUpdate(d.id, { commission_settle_status: 'settled', commission_settle_month: monthOf(d) }, '已結算')} okText="確認" cancelText="取消">
-              <Button size="small" type="primary" disabled={!paid}>結算</Button>
+          <Tooltip title={paid ? '' : '客戶付款後才可撥款給渠道'}>
+            <Popconfirm disabled={!paid} title="確認把佣金撥款給渠道？" onConfirm={() => quickUpdate(d.id, { commission_settle_status: 'settled', commission_settle_month: monthOf(d) }, '已撥款給渠道')} okText="確認" cancelText="取消">
+              <Button size="small" type="primary" disabled={!paid}>撥款</Button>
             </Popconfirm>
           </Tooltip>
         );
@@ -187,12 +188,18 @@ const DealManagement = () => {
 
   return (
     <Card title="成交管理" style={{ margin: 8 }}>
+      <div style={{ background: '#f6f8fa', border: '1px solid #eef0f2', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#555', lineHeight: 1.9 }}>
+        <b style={{ color: '#333' }}>名詞說明：</b>
+        <span style={{ color: '#389e0d' }}>客戶付款</span>＝收到客戶的錢　·
+        <span style={{ color: '#1668dc' }}>撥款</span>＝把佣金付給渠道（<b>要先「客戶付款」才能撥款</b>，避免還沒收錢就先付出去）　·
+        <span style={{ color: '#cf1322' }}>退訂作廢</span>＝客戶退訂，這筆佣金作廢不用付
+      </div>
       <Space style={{ marginBottom: 16 }} wrap>
         <Input.Search placeholder="搜尋客戶 / 建案" allowClear style={{ width: 220 }} onChange={e => setSearch(e.target.value)} />
         <Select value={monthFilter} style={{ width: 140 }} onChange={setMonthFilter}
           options={[{ value: 'all', label: '全部月份' }, ...months.map(m => ({ value: m, label: m }))]} />
         <Select value={payFilter} style={{ width: 130 }} onChange={setPayFilter}
-          options={[{ value: 'all', label: '入帳:全部' }, { value: 'paid', label: '已入帳' }, { value: 'unpaid', label: '未入帳' }]} />
+          options={[{ value: 'all', label: '付款:全部' }, { value: 'paid', label: '已付款' }, { value: 'unpaid', label: '未付款' }]} />
         <Tag color="blue" style={{ padding: '4px 12px', fontSize: 14 }}>成交金額 {fmtAmount(totalAmount)}</Tag>
         <Tag color="purple" style={{ padding: '4px 12px', fontSize: 14 }}>佣金合計 {fmtAmount(totalCommission)}</Tag>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>新增成交</Button>
@@ -219,10 +226,10 @@ const DealManagement = () => {
             <Form.Item name="deal_date" label="成交日期"><Input type="date" /></Form.Item>
           </Space>
           <Space style={{ display: 'flex' }} align="start">
-            <Form.Item name="payment_status" label="入帳狀態">
-              <Select style={{ width: 130 }} options={[{ value: 'unpaid', label: '未入帳' }, { value: 'paid', label: '已入帳' }]} />
+            <Form.Item name="payment_status" label="客戶付款">
+              <Select style={{ width: 130 }} options={[{ value: 'unpaid', label: '未付款' }, { value: 'paid', label: '已付款' }]} />
             </Form.Item>
-            <Form.Item name="payment_date" label="入帳日期"><Input type="date" /></Form.Item>
+            <Form.Item name="payment_date" label="付款日期"><Input type="date" /></Form.Item>
             <Form.Item name="sales_staff" label="成交業務">
               <Select allowClear showSearch optionFilterProp="children" style={{ width: 150 }} placeholder="選擇業務">
                 {salesStaff.map(s => <Option key={s.id} value={s.id}>{staffName(s)}</Option>)}
@@ -257,8 +264,8 @@ const DealManagement = () => {
           </Form.Item>
           <Form.Item name="notes" label="備註"><TextArea rows={2} /></Form.Item>
           {editingId && (
-            <Form.Item name="commission_settle_status" label="結算狀態">
-              <Select options={[{ value: 'unsettled', label: '尚未結算' }, { value: 'settled', label: '已結算' }]} />
+            <Form.Item name="commission_settle_status" label="撥款狀態">
+              <Select options={[{ value: 'unsettled', label: '未撥款' }, { value: 'settled', label: '已撥款' }, { value: 'reversed', label: '退訂作廢' }]} />
             </Form.Item>
           )}
         </Form>
