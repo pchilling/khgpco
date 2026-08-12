@@ -235,7 +235,7 @@ const SalesRegistrationManagement = () => {
   // 獲取活動資料
   const fetchEvents = async () => {
     try {
-      const all = await fetchAllStrapi(API_BASE_URL, '/api/events?populate[session]=*&fields[0]=title');
+      const all = await fetchAllStrapi(API_BASE_URL, '/api/events?locale=zh-Hant-TW&populate[session]=*&fields[0]=title&sort=createdAt:desc');
       
       const eventsMap = {};
       (all || []).forEach(event => {

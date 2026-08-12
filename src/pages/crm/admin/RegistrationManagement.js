@@ -205,7 +205,7 @@ const RegistrationManagement = () => {
   // 獲取活動資料
   const fetchEvents = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/events?populate=*&pagination[pageSize]=1000`);
+      const response = await fetch(`${API_BASE_URL}/api/events?populate=*&locale=zh-Hant-TW&pagination[pageSize]=1000&sort=createdAt:desc`);
       const data = await response.json();
       
       
@@ -1582,11 +1582,13 @@ const RegistrationManagement = () => {
               }}
               value={selectedEventForImport}
             >
-              {Object.entries(events).map(([id, event]) => (
-                <Option key={id} value={id}>
-                  {event.title}
-                </Option>
-              ))}
+              {Object.entries(events)
+                .sort((a, b) => new Date(b[1].createdAt || 0) - new Date(a[1].createdAt || 0))
+                .map(([id, event]) => (
+                  <Option key={id} value={id}>
+                    {event.title}
+                  </Option>
+                ))}
             </Select>
           </Form.Item>
 
@@ -1744,14 +1746,18 @@ const RegistrationManagement = () => {
                 rules={[{ required: true, message: '請選擇活動' }]}
               >
                 <Select
-                  placeholder="請選擇活動"
+                  placeholder="請選擇活動（最新的在最上面）"
                   onChange={handleEventChange}
+                  showSearch
+                  optionFilterProp="children"
                 >
-                  {Object.entries(events).map(([id, event]) => (
-                    <Option key={id} value={id}>
-                      {event.title}
-                    </Option>
-                  ))}
+                  {Object.entries(events)
+                    .sort((a, b) => new Date(b[1].createdAt || 0) - new Date(a[1].createdAt || 0))
+                    .map(([id, event]) => (
+                      <Option key={id} value={id}>
+                        {event.title}
+                      </Option>
+                    ))}
                 </Select>
               </Form.Item>
             </Col>

@@ -81,16 +81,16 @@ const AdminDashboard = () => {
               onClick: () => navigate('/crm/admin/overview')
             },
             {
-              key: '2',
-              icon: <FormOutlined />,
-              label: '活動報名管理',
-              onClick: () => navigate('/crm/admin/registrations')
-            },
-            {
               key: '10',
               icon: <CalendarOutlined />,
               label: '活動管理',
               onClick: () => navigate('/crm/admin/events')
+            },
+            {
+              key: '2',
+              icon: <FormOutlined />,
+              label: '活動報名管理',
+              onClick: () => navigate('/crm/admin/registrations')
             },
             {
               key: '3',
