@@ -198,7 +198,13 @@ const SalesOverview = () => {
         return `${name}<br/>${count} 人（${percentage}%）`;
       }
     },
-    legend: { orient: 'vertical', right: 0, top: 'middle' },
+    legend: {
+      orient: 'vertical', right: 0, top: 'middle', type: 'scroll',
+      formatter: (name) => {
+        const rec = sourceData.find((d) => d.source === name) || {};
+        return `${name}  ${rec.count ?? 0}人`;
+      },
+    },
     series: [
       {
         name: '來源',
@@ -209,7 +215,7 @@ const SalesOverview = () => {
         label: {
           show: true,
           position: 'inner',
-          formatter: (p) => `${p?.name || '未知'}\n${p?.value ?? 0} 人`,
+          formatter: (p) => (p?.percent >= 5 ? `${p?.name}\n${p?.value} 人` : ''),
           fontSize: 12
         },
         labelLine: { show: false },

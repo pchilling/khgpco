@@ -322,7 +322,14 @@ const Overview = () => {
         return `${name}<br/>${count} 人（${percentage}%）`;
     }
     },
-    legend: { orient: 'vertical', right: 0, top: 'middle' },
+    legend: {
+      orient: 'vertical', right: 0, top: 'middle', type: 'scroll',
+      // 圖例直接標出每個來源的人數,即使圓餅上細到看不見也能看到(例如 test 1人)
+      formatter: (name) => {
+        const rec = sourceData.find((d) => d.source === name) || {};
+        return `${name}  ${rec.count ?? 0}人`;
+      },
+    },
     series: [
       {
         name: '來源',
@@ -330,10 +337,11 @@ const Overview = () => {
         radius: ['50%', '76%'],
         center: ['38%', '50%'],
         avoidLabelOverlap: false,
-      label: {
+        // 只在佔比夠大的塊上顯示標籤,避免一堆小塊標籤疊在一起看不清
+        label: {
           show: true,
           position: 'inner',
-          formatter: (p) => `${p?.name || '未知'}\n${p?.value ?? 0} 人`,
+          formatter: (p) => (p?.percent >= 5 ? `${p?.name}\n${p?.value} 人` : ''),
           fontSize: 12
         },
         labelLine: { show: false },
