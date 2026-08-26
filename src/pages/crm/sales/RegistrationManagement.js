@@ -807,38 +807,48 @@ const SalesRegistrationManagement = () => {
         title: '渠道',
         key: 'channel_person',
         width: 160,
-        render: (_, record) => (
-          <Select
-            size="small"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            style={{ width: 148 }}
-            placeholder="補登渠道"
-            value={record.attributes.channel_person?.data?.id || undefined}
-            onChange={(val) => setRegistrationChannel(record, val)}
-            options={channelPeople.map(p => ({
-              value: p.id,
-              label: p.attributes?.name + (p.attributes?.channel_company?.data?.attributes?.name ? `（${p.attributes.channel_company.data.attributes.name}）` : ''),
-            }))}
-          />
-        ),
+        render: (_, record) => {
+          const converted = record.attributes.status === 'confirmed';
+          const sel = (
+            <Select
+              size="small"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              style={{ width: 148 }}
+              placeholder="補登渠道"
+              disabled={converted}
+              value={record.attributes.channel_person?.data?.id || undefined}
+              onChange={(val) => setRegistrationChannel(record, val)}
+              options={channelPeople.map(p => ({
+                value: p.id,
+                label: p.attributes?.name + (p.attributes?.channel_company?.data?.attributes?.name ? `（${p.attributes.channel_company.data.attributes.name}）` : ''),
+              }))}
+            />
+          );
+          return converted ? <Tooltip title="已轉客戶,渠道請至客戶那邊調整">{sel}</Tooltip> : sel;
+        },
       },
       {
         title: '來源',
         key: 'customer_source',
         width: 130,
-        render: (_, record) => (
-          <Select
-            size="small"
-            allowClear
-            style={{ width: 118 }}
-            placeholder="選來源"
-            value={record.attributes.customer_source?.data?.id || undefined}
-            onChange={(val) => setRegistrationSource(record, val)}
-            options={customerSources.map(s => ({ value: s.id, label: s.attributes.name }))}
-          />
-        ),
+        render: (_, record) => {
+          const converted = record.attributes.status === 'confirmed';
+          const sel = (
+            <Select
+              size="small"
+              allowClear
+              style={{ width: 118 }}
+              placeholder="選來源"
+              disabled={converted}
+              value={record.attributes.customer_source?.data?.id || undefined}
+              onChange={(val) => setRegistrationSource(record, val)}
+              options={customerSources.map(s => ({ value: s.id, label: s.attributes.name }))}
+            />
+          );
+          return converted ? <Tooltip title="已轉客戶,來源請至客戶那邊調整">{sel}</Tooltip> : sel;
+        },
       },
       {
         title: '狀態',
