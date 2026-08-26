@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, Tooltip, Checkbox, Row, Col, DatePicker, Tabs, Switch, Upload, Typography, Popconfirm, Alert, Timeline, Empty, Spin, InputNumber, Radio } from 'antd';
+import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, Tooltip, Checkbox, Row, Col, DatePicker, Tabs, Switch, Upload, Typography, Popconfirm, Alert, Timeline, Empty, Spin, InputNumber, Radio, Divider } from 'antd';
 import { EditOutlined, DeleteOutlined, ExportOutlined, UserSwitchOutlined, FileAddOutlined, FilterOutlined, SearchOutlined, ReloadOutlined, FileTextOutlined, RollbackOutlined, FileExcelOutlined, CloudUploadOutlined, DownloadOutlined, UploadOutlined, PlusOutlined } from '@ant-design/icons';
 import { SmileTwoTone, MehTwoTone, FrownTwoTone, QuestionCircleTwoTone } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
@@ -99,6 +99,8 @@ const CustomerManagement = () => {
   const [partSessionIdx, setPartSessionIdx] = useState(null);
   const [partSaving, setPartSaving] = useState(false);
   const partLoadSeq = useRef(0); // 參加活動載入序號:防止慢的背景全量載入蓋掉剛新增的
+  const [newSourceName, setNewSourceName] = useState(''); // 來源下拉即時新增
+  const [addingSource, setAddingSource] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const isMobile = useIsMobile();
@@ -456,6 +458,28 @@ const CustomerManagement = () => {
     } catch (error) {
       console.error('Error fetching customer sources:', error);
     }
+  };
+  // 來源下拉即時新增:建立新來源並選取
+  const addCustomerSource = async () => {
+    const name = newSourceName.trim();
+    if (!name) return;
+    setAddingSource(true);
+    try {
+      const maxSort = customerSources.filter(s => !s.attributes.is_other).reduce((m, s) => Math.max(m, s.attributes.sort_order || 0), 0);
+      const res = await fetch(`${API_BASE_URL}/api/customer-sources`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { name, sort_order: maxSort + 1 } }),
+      });
+      if (!res.ok) throw new Error(`新增失敗 (${res.status})`);
+      const body = await res.json();
+      const id = body?.data?.id;
+      setCustomerSources(prev => [...prev, { id, attributes: { name } }]);
+      form.setFieldsValue({ customer_source: id }); // 建立後直接選取
+      setNewSourceName('');
+      message.success(`已新增來源「${name}」`);
+    } catch (e) {
+      message.error(`新增來源失敗：${e.message}`);
+    } finally { setAddingSource(false); }
   };
 
   // 參加活動(報名驅動):撈所有報名,解析活動/場次/時間/建案,依客戶分組
@@ -2391,7 +2415,21 @@ const CustomerManagement = () => {
             label="來源"
             rules={[{ required: true, message: '請選擇來源' }]}
           >
-            <Select placeholder="選擇來源" showSearch optionFilterProp="children">
+            <Select placeholder="選擇或新增來源" showSearch optionFilterProp="children"
+              dropdownRender={(menu) => (
+                <>
+                  {menu}
+                  <Divider style={{ margin: '8px 0' }} />
+                  <Space style={{ padding: '0 8px 4px' }}>
+                    <Input placeholder="新來源名稱" value={newSourceName}
+                      onChange={(e) => setNewSourceName(e.target.value)}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      onPressEnter={addCustomerSource} />
+                    <Button type="text" icon={<PlusOutlined />} loading={addingSource} onClick={addCustomerSource}>新增</Button>
+                  </Space>
+                </>
+              )}
+            >
               {customerSources.map(s => (
                 <Select.Option key={s.id} value={s.id}>{s.attributes.name}</Select.Option>
               ))}
@@ -2671,7 +2709,21 @@ const CustomerManagement = () => {
                 label="來源"
                 rules={[{ required: true, message: '請選擇來源' }]}
               >
-                <Select placeholder="選擇來源" showSearch optionFilterProp="children">
+                <Select placeholder="選擇或新增來源" showSearch optionFilterProp="children"
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      <Divider style={{ margin: '8px 0' }} />
+                      <Space style={{ padding: '0 8px 4px' }}>
+                        <Input placeholder="新來源名稱" value={newSourceName}
+                          onChange={(e) => setNewSourceName(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onPressEnter={addCustomerSource} />
+                        <Button type="text" icon={<PlusOutlined />} loading={addingSource} onClick={addCustomerSource}>新增</Button>
+                      </Space>
+                    </>
+                  )}
+                >
                   {customerSources.map(s => (
                     <Select.Option key={s.id} value={s.id}>{s.attributes.name}</Select.Option>
                   ))}
