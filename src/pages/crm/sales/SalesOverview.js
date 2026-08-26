@@ -187,52 +187,33 @@ const SalesOverview = () => {
 
   const totalCustomersForSource = sourceData.reduce((a, b) => a + (b.count || 0), 0);
 
+  // 來源分布改用橫向長條(資料常一面倒,圓餅看不出小來源)
+  const sourceBarData = [...sourceData].sort((a, b) => b.count - a.count);
+  const sourceColors = ['#1668dc', '#52c41a', '#faad14', '#eb2f96', '#13c2c2', '#722ed1', '#fa8c16', '#2f54eb'];
   const sourceDonutOption = {
     tooltip: {
-      trigger: 'item',
-      formatter: (p) => {
-        const name = p?.name || '未知';
-        const count = p?.value ?? 0;
-        const rec = sourceData.find(d => d.source === name) || {};
-        const percentage = rec.percentage || '0.0';
-        return `${name}<br/>${count} 人（${percentage}%）`;
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (params) => {
+        const rec = sourceBarData[params?.[0]?.dataIndex] || {};
+        return `${rec.source || '—'}<br/>${rec.count ?? 0} 人（${rec.percentage || '0.0'}%）`;
       }
     },
-    legend: {
-      orient: 'vertical', right: 0, top: 'middle', type: 'scroll',
-      formatter: (name) => {
-        const rec = sourceData.find((d) => d.source === name) || {};
-        return `${name}  ${rec.count ?? 0}人`;
-      },
-    },
+    grid: { left: 8, right: 90, top: 8, bottom: 8, containLabel: true },
+    xAxis: { type: 'value', boundaryGap: [0, 0.02], axisLabel: { show: false }, splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false } },
+    yAxis: { type: 'category', data: sourceBarData.map(d => d.source), axisTick: { show: false }, axisLine: { show: false } },
     series: [
       {
-        name: '來源',
-        type: 'pie',
-        radius: ['50%', '76%'],
-        center: ['38%', '50%'],
-        avoidLabelOverlap: false,
+        type: 'bar',
+        data: sourceBarData.map(d => d.count),
+        barMaxWidth: 22,
+        itemStyle: { color: (p) => sourceColors[p.dataIndex % sourceColors.length], borderRadius: [0, 4, 4, 0] },
         label: {
-          show: true,
-          position: 'inner',
-          formatter: (p) => (p?.percent >= 5 ? `${p?.name}\n${p?.value} 人` : ''),
-          fontSize: 12
-        },
-        labelLine: { show: false },
-        data: sourceData.map(d => ({ name: d.source, value: d.count }))
+          show: true, position: 'right',
+          formatter: (p) => { const rec = sourceBarData[p.dataIndex] || {}; return `${rec.count || 0} 人（${rec.percentage || '0.0'}%）`; }
+        }
       }
-    ],
-    graphic: [{
-      type: 'text',
-      left: '38%',
-      top: 'middle',
-      style: {
-        text: `總客戶數\n${totalCustomersForSource}`,
-        textAlign: 'center',
-        fill: '#595959',
-        fontSize: 14
-      }
-    }]
+    ]
   };
 
   if (loading) {
