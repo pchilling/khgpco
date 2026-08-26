@@ -101,7 +101,7 @@ const AdminDashboard = () => {
             {
               key: '4',
               icon: <UserOutlined />,
-              label: '客戶資料庫',
+              label: '客戶管理',
               onClick: () => navigate('/crm/admin/customers')
             },
             {
@@ -131,13 +131,13 @@ const AdminDashboard = () => {
             {
               key: '7',
               icon: <BarChartOutlined />,
-              label: '銷售數據',
+              label: '銷售數據分析',
               onClick: () => navigate('/crm/admin/sales-data')
             },
             {
               key: '11',
               icon: <TagsOutlined />,
-              label: '客戶來源',
+              label: '客戶來源管理',
               onClick: () => navigate('/crm/admin/sources')
             }
           ]}

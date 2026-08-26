@@ -12,6 +12,23 @@ const { TextArea } = Input;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
+// 客戶列表只需這些關聯欄位;避免 populate=* 把用不到的 deals/projects/registrations/contact_message 全撈回來(1400+ 筆時很慢)
+const CUSTOMER_LIST_POPULATE = [
+  'populate[sales_staff][fields][0]=name',
+  'populate[sales_staff][fields][1]=username',
+  'populate[customer_source][fields][0]=name',
+  'populate[channel_person][fields][0]=name',
+  'populate[channel_person][populate][channel_company][fields][0]=name',
+  'populate[events][fields][0]=title',
+  'populate[interactions][fields][0]=date',
+  'populate[interactions][fields][1]=createdAt',
+  'populate[interactions][fields][2]=is_deal',
+  'populate[interactions][fields][3]=deal_amount',
+  'populate[interactions][fields][4]=notes',
+  'populate[interactions][fields][5]=outcome',
+  'populate[interactions][fields][6]=type',
+].join('&');
+
 // 自定義狀態顯示組件
 const StatusIndicator = ({ color, text }) => (
   <div className={styles.statusIndicator}>
@@ -364,7 +381,7 @@ const CustomerManagement = () => {
       setLoading(true);
       
       // 並行抓取所有客戶數據
-      const allCustomers = await fetchAllStrapi(API_BASE_URL, '/api/customers?populate=*&sort=updatedAt:desc,id:desc');
+      const allCustomers = await fetchAllStrapi(API_BASE_URL, `/api/customers?${CUSTOMER_LIST_POPULATE}&sort=updatedAt:desc,id:desc`);
       
       
       // 檢查數據來源統計
@@ -506,20 +523,30 @@ const CustomerManagement = () => {
   const loadParticipations = async () => {
     const seq = ++partLoadSeq.current;
     try {
-      const regs = await fetchAllStrapi(
-        API_BASE_URL,
-        '/api/registrations?populate[event][populate][0]=session&populate[event][populate][1]=related_project&populate[customer][fields][0]=name&sort=createdAt:desc'
-      );
+      // 活動只有十幾筆:先抓成 map(含場次/建案);報名只抓輕量欄位(event id + sessionIndex + 客戶),
+      // 再用 JS join。避免 1000+ 筆報名每筆都重複帶回整包 event/session,payload 大幅縮小。
+      const [evs, regs] = await Promise.all([
+        fetchAllStrapi(
+          API_BASE_URL,
+          '/api/events?locale=zh-Hant-TW&fields[0]=title&populate[session]=*&populate[related_project][fields][0]=name'
+        ),
+        fetchAllStrapi(
+          API_BASE_URL,
+          '/api/registrations?fields[0]=sessionIndex&populate[event][fields][0]=id&populate[customer][fields][0]=name&sort=createdAt:desc'
+        ),
+      ]);
       // 這期間若有新增/移除(序號被墊高),放棄本次(過期)結果,避免蓋掉
       if (seq !== partLoadSeq.current) return;
+      const evMap = {};
+      evs.forEach(e => { evMap[e.id] = e.attributes || {}; });
       const map = {};
       regs.forEach(r => {
         const custId = r.attributes?.customer?.data?.id;
         if (!custId) return;
-        const ev = r.attributes?.event?.data;
-        const title = ev?.attributes?.title || '未知活動';
-        const building = ev?.attributes?.related_project?.data?.attributes?.name || null;
-        const sessions = ev?.attributes?.session || [];
+        const ea = evMap[r.attributes?.event?.data?.id] || {};
+        const title = ea.title || '未知活動';
+        const building = ea.related_project?.data?.attributes?.name || null;
+        const sessions = ea.session || [];
         const idx = r.attributes?.sessionIndex;
         const s = (idx !== null && idx !== undefined) ? sessions[idx] : null;
         const sessionText = s?.location || (idx !== null && idx !== undefined ? `場次 ${idx + 1}` : '');
@@ -770,7 +797,7 @@ const CustomerManagement = () => {
       await fetchCustomers();
       
       // 檢查是否還有待分配客戶
-      const updatedCustomers = await fetch(`${API_BASE_URL}/api/customers?populate=*`).then(res => res.json());
+      const updatedCustomers = await fetch(`${API_BASE_URL}/api/customers?${CUSTOMER_LIST_POPULATE}`).then(res => res.json());
       const remainingPending = updatedCustomers.data.filter(customer => 
         !customer.attributes.sales_staff?.data
       );
