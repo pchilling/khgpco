@@ -233,34 +233,30 @@ const CustomerManagement = () => {
     {
       title: '參加活動',
       key: 'events',
-      width: 240,
+      width: 220,
       render: (_, record) => {
         const parts = participations[record.id] || [];
-        let summary;
         if (!parts.length) {
           const evs = record.attributes?.events?.data || [];
-          if (!evs.length) {
-            summary = <span style={{ color: '#c0c0c0' }}>無</span>;
-          } else {
-            const names = evs.map(e => e.attributes?.title || `活動 ${e.id}`);
-            summary = <Tooltip title={names.join('、')}><span>{names[0]}{names.length > 1 ? ` +${names.length - 1}` : ''}</span></Tooltip>;
-          }
-        } else {
-          const detail = parts.map(p =>
-            `${p.title}${p.sessionText ? `｜${p.sessionText}` : ''}${p.timeText ? `｜${p.timeText}` : ''}${p.building ? `｜${p.building}` : ''}`
-          ).join('\n');
-          const first = parts[0];
-          summary = (
-            <Tooltip title={<div style={{ whiteSpace: 'pre-line' }}>{detail}</div>}>
-              <span>{first.title}{first.building ? `（${first.building}）` : ''}{parts.length > 1 ? ` +${parts.length - 1}` : ''}</span>
+          if (!evs.length) return <span style={{ color: '#c0c0c0' }}>無</span>;
+          const names = evs.map(e => e.attributes?.title || `活動 ${e.id}`);
+          return (
+            <Tooltip title={names.join('、')}>
+              <span>{names[0]}{names.length > 1 ? ` +${names.length - 1}` : ''}</span>
             </Tooltip>
           );
         }
+        const detail = parts.map(p =>
+          `${p.title}${p.sessionText ? `｜${p.sessionText}` : ''}${p.timeText ? `｜${p.timeText}` : ''}${p.building ? `｜${p.building}` : ''}`
+        ).join('\n');
+        const first = parts[0];
         return (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{summary}</span>
-            <Button type="link" size="small" style={{ padding: 0, flexShrink: 0 }} onClick={() => openPart(record)}>補登</Button>
-          </div>
+          <Tooltip title={<div style={{ whiteSpace: 'pre-line' }}>{detail}</div>}>
+            <span>
+              {first.title}{first.building ? `（${first.building}）` : ''}
+              {parts.length > 1 ? ` +${parts.length - 1}` : ''}
+            </span>
+          </Tooltip>
         );
       },
     },
@@ -529,11 +525,6 @@ const CustomerManagement = () => {
     || '其他';
 
   // ---------- 參加活動補登 ----------
-  const openPart = (customer) => {
-    setPartCustomer(customer); setPartBatchRows([]);
-    setPartEventId(null); setPartSessionIdx(null);
-    setPartModalOpen(true);
-  };
   const openPartBatch = () => {
     if (!selectedRows.length) { message.warning('請先勾選客戶'); return; }
     setPartCustomer(null); setPartBatchRows(selectedRows);
@@ -555,16 +546,15 @@ const CustomerManagement = () => {
     });
     if (!res.ok) throw new Error(`補登失敗 (${res.status})`);
   };
-  const addPart = async () => {
+  const doAddParticipation = async (targets) => {
+    if (!targets || !targets.length) return;
     if (!partEventId || partSessionIdx === null || partSessionIdx === undefined) { message.warning('請選擇活動與場次'); return; }
     setPartSaving(true);
     try {
-      const targets = partCustomer ? [partCustomer] : partBatchRows;
       for (const c of targets) { await createParticipation(c, partEventId, partSessionIdx); }
       message.success(`已補登 ${targets.length} 位客戶的參加活動`);
       setPartEventId(null); setPartSessionIdx(null);
       await loadParticipations();
-      if (!partCustomer) setPartModalOpen(false); // 批次做完直接關
     } catch (e) {
       message.error(e.message);
     } finally { setPartSaving(false); }
@@ -597,6 +587,7 @@ const CustomerManagement = () => {
       contractInfo: record.attributes.contractInfo || '',
       contractDate: record.attributes.contractDate || '',
     });
+    setPartEventId(null); setPartSessionIdx(null); // 參加活動補登:每次開啟重置選擇
     setEditModalVisible(true);
   };
 
@@ -2464,9 +2455,33 @@ const CustomerManagement = () => {
             </Tabs.TabPane>
 
             <Tabs.TabPane tab="參加活動" key="events">
-              <div style={{ color: '#8c8c8c', lineHeight: 1.7 }}>
-                參加活動由「活動報名」自動帶入——只要在「活動報名管理」為此客戶新增報名,
-                客戶列表的「參加活動」欄就會顯示所報名的活動、場次、時間與建案,不需在此手動選擇。
+              <div style={{ color: '#8c8c8c', marginBottom: 8 }}>目前參加的活動</div>
+              {(participations[currentCustomer?.id] || []).length === 0
+                ? <div style={{ color: '#c0c0c0', marginBottom: 12 }}>尚無(從活動報名轉來的會自動出現;以前的可在下方手動補登)</div>
+                : (participations[currentCustomer?.id] || []).map(p => (
+                    <div key={p.regId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', border: '1px solid #f0f0f0', borderRadius: 6, marginBottom: 6 }}>
+                      <span>{p.title}{p.sessionText ? `｜${p.sessionText}` : ''}{p.timeText ? `｜${p.timeText}` : ''}</span>
+                      <Popconfirm title="移除這筆參加活動？" onConfirm={() => removePart(p.regId)} okText="移除" cancelText="取消">
+                        <Button type="text" danger size="small">移除</Button>
+                      </Popconfirm>
+                    </div>
+                  ))}
+              <div style={{ borderTop: '1px dashed #eee', paddingTop: 12, marginTop: 8 }}>
+                <div style={{ color: '#8c8c8c', marginBottom: 8 }}>補登參加活動(選活動與場次)</div>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Select style={{ width: '100%' }} placeholder="選擇活動（最新在最上面）" showSearch optionFilterProp="children"
+                    value={partEventId} onChange={(v) => { setPartEventId(v); setPartSessionIdx(null); }}>
+                    {eventsNewest.map(e => <Option key={e.id} value={e.id}>{e.attributes?.title || `活動 ${e.id}`}</Option>)}
+                  </Select>
+                  <Select style={{ width: '100%' }} placeholder="選擇場次" disabled={!partEventId} value={partSessionIdx} onChange={(v) => setPartSessionIdx(v)}>
+                    {sessionsOfEvent(partEventId).map((s, idx) => (
+                      <Option key={idx} value={idx}>
+                        {s.location || `場次 ${idx + 1}`}{s.startDateTime ? `（${new Date(s.startDateTime).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}）` : ''}
+                      </Option>
+                    ))}
+                  </Select>
+                  <Button type="primary" loading={partSaving} onClick={() => doAddParticipation([currentCustomer])} block>新增</Button>
+                </Space>
               </div>
             </Tabs.TabPane>
           </Tabs>
@@ -2579,8 +2594,8 @@ const CustomerManagement = () => {
                 </Option>
               ))}
             </Select>
-            <Button type="primary" loading={partSaving} onClick={addPart} block>
-              {partCustomer ? '新增' : `套用到 ${partBatchRows.length} 位客戶`}
+            <Button type="primary" loading={partSaving} onClick={async () => { await doAddParticipation(partBatchRows); setPartModalOpen(false); }} block>
+              套用到 {partBatchRows.length} 位客戶
             </Button>
           </Space>
         </div>
@@ -2721,8 +2736,7 @@ const CustomerManagement = () => {
 
             <Tabs.TabPane tab="參加活動" key="events">
               <div style={{ color: '#8c8c8c', lineHeight: 1.7 }}>
-                參加活動由「活動報名」自動帶入——只要在「活動報名管理」為此客戶新增報名,
-                客戶列表的「參加活動」欄就會顯示所報名的活動、場次、時間與建案,不需在此手動選擇。
+                新客戶請先「新增」存檔,之後在客戶清單點該客戶編輯,到「參加活動」分頁即可補登參加的活動與場次。
               </div>
             </Tabs.TabPane>
           </Tabs>
