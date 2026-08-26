@@ -39,6 +39,8 @@ const EventManagement = () => {
   const [form] = Form.useForm();
   // 編輯時:各場次(依 index)已有多少報名 → 防呆(有報名的場次不給刪,避免 sessionIndex 錯位)
   const [sessionRegCounts, setSessionRegCounts] = useState({});
+  // 讀取場次報名數是否失敗;失敗時保守鎖定(禁止刪任何場次),避免誤刪有報名的場次造成 sessionIndex 錯位
+  const [sessionCountsFailed, setSessionCountsFailed] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // 建案下拉即時新增用
@@ -74,15 +76,19 @@ const EventManagement = () => {
         if (idx !== null && idx !== undefined) counts[idx] = (counts[idx] || 0) + 1;
       });
       setSessionRegCounts(counts);
+      setSessionCountsFailed(false);
     } catch (e) {
       console.error('讀取場次報名數失敗', e);
+      // 保守鎖定:載入失敗無法確認哪些場次有報名,一律禁止刪除,避免誤刪有報名的場次
       setSessionRegCounts({});
+      setSessionCountsFailed(true);
     }
   };
 
   const openAdd = () => {
     setEditingId(null);
     setSessionRegCounts({});
+    setSessionCountsFailed(false);
     form.resetFields();
     form.setFieldsValue({ status: 'open', session: [{}] });
     setModalOpen(true);
@@ -306,7 +312,7 @@ const EventManagement = () => {
                 {fields.map((field, idx) => {
                   const hasRegs = (sessionRegCounts[idx] || 0) > 0;
                   const isLast = idx === fields.length - 1;
-                  const canDelete = fields.length > 1 && !hasRegs && isLast;
+                  const canDelete = fields.length > 1 && !hasRegs && isLast && !sessionCountsFailed;
                   return (
                     <div
                       key={field.key}
@@ -325,7 +331,7 @@ const EventManagement = () => {
                           {hasRegs && <Tag color="orange" bordered={false}>已有 {sessionRegCounts[idx]} 筆報名</Tag>}
                         </div>
                         {/* 防呆:只允許刪「最後一個且無報名」的場次,避免 sessionIndex 錯位 */}
-                        <Tooltip title={hasRegs ? '此場次已有報名,不可刪除' : (!isLast ? '只能從最後一個場次刪除' : (fields.length <= 1 ? '至少保留一個場次' : '刪除此場次'))}>
+                        <Tooltip title={sessionCountsFailed ? '無法確認報名數(載入失敗),暫時禁止刪除以免誤刪' : (hasRegs ? '此場次已有報名,不可刪除' : (!isLast ? '只能從最後一個場次刪除' : (fields.length <= 1 ? '至少保留一個場次' : '刪除此場次')))}>
                           <Button
                             type="text" danger shape="circle" size="small" icon={<DeleteOutlined />}
                             disabled={!canDelete}

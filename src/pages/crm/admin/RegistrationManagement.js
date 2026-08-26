@@ -385,9 +385,16 @@ const RegistrationManagement = () => {
         });
 
 
-        // 轉換數據格式 - 跳過第一行標題行
-        const previewData = jsonData.slice(1).map((row, index) => {
-          
+        // 濾掉空白列與範本示範列(姓名為空或為「(必填)」);不再 slice(1),避免自備(無示範列)的檔被吃掉第一筆真實資料。
+        const dataRows = jsonData.filter(row => {
+          const n = String(row['姓名'] || '').trim();
+          return n && n !== '(必填)';
+        });
+
+        const previewData = dataRows.map((row, index) => {
+          const errors = [];
+          const warnings = [];
+
           // 基本資料處理
           const name = String(row['姓名'] || '').trim();
           
@@ -425,25 +432,13 @@ const RegistrationManagement = () => {
             email = '';
           }
           
-          // 驗證必填欄位
-          const missingFields = [];
-          if (!name) missingFields.push('姓名');
-          if (!phone) missingFields.push('電話號碼');
-          // 電子郵件改為非必填
-          
-          if (missingFields.length > 0) {
-            throw new Error(`第 ${index + 2} 行缺少必填欄位: ${missingFields.join(', ')}`);
-      }
-
-          // 驗證電子郵件格式（只有當email不為空時才驗證）
+          // 逐列驗證:壞列只標記(_errors)不 throw,好列照樣可匯入(姓名已由上方 filter 保證非空)
+          if (!phone || phone.length !== 10 || !phone.startsWith('0')) {
+            errors.push(`電話格式錯誤(${phoneValue || '空'})`);
+          }
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           if (email && !emailRegex.test(email)) {
-            throw new Error(`第 ${index + 2} 行的電子郵件格式無效: ${email}`);
-          }
-
-          // 驗證電話格式
-          if (phone.length !== 10 || !phone.startsWith('0')) {
-            throw new Error(`第 ${index + 2} 行的電話格式無效（應為10位數字且以0開頭）: ${phoneValue}`);
+            warnings.push(`Email 格式可疑(${email})`);
           }
 
           // 處理選填欄位
@@ -496,14 +491,13 @@ const RegistrationManagement = () => {
             if (foundStaff) {
               sales_staff = foundStaff.id;
             } else {
+              warnings.push(`查無業務「${salesStaffName}」→ 將留空`);
             }
           }
 
-          // 檢查備註欄位的原始值
-          
           const notes = String(row['備註'] || '').trim();
 
-          const result = {
+          return {
             name,
             phone,
             email: email || undefined, // 空字串時省略此欄位
@@ -512,12 +506,11 @@ const RegistrationManagement = () => {
             budget_range: budgetRange,
             overseas_investment_notes: String(row['投資說明'] || '').trim(),
             attendanceCount,
-            notes: notes
+            notes: notes,
+            _seq: index + 1,
+            _errors: errors,
+            _warnings: warnings,
           };
-          
-          // 打印備註欄位的值
-
-          return result;
         });
 
         setPreviewData(previewData);
@@ -531,145 +524,108 @@ const RegistrationManagement = () => {
     return false;
   };
 
-  // 轉換為客戶
-  const convertToCustomer = async (record) => {
-      try {
-      
-      // 準備詳細的客戶備註資訊
-      const eventInfo = record.attributes.event?.data?.attributes;
-      const eventTitle = eventInfo?.title || '未知活動';
-      const sessionName = getSessionName(record.attributes.event?.data?.id, record.attributes.sessionIndex);
-      
-      // 組織備註內容
-      const notesContent = [
-        `活動報名資訊：`,
-        `• 活動名稱：${eventTitle}`,
-        `• 參與場次：${sessionName}`,
-        record.attributes.attendanceCount && `• 出席人數：${record.attributes.attendanceCount}`,
-        (record.attributes.notes || record.attributes.message) && `• 原始備註：${record.attributes.notes || record.attributes.message}`,
-        `• 報名時間：${new Date(record.attributes.createdAt).toLocaleString()}`
-      ].filter(Boolean).join('\n');
+  // 依報名建立或更新客戶(核心 upsert,單筆與批量共用)
+  // 同電話已有客戶 → 更新既有:append 活動、只補空白欄位(渠道/來源/業務)、備註用追加,不覆蓋既有已填資料。
+  // 查不到 → 建立新客戶(帶入活動/業務/渠道/來源)。回傳 { id, updated }。
+  // token 由全域 fetchInterceptor 自動附掛(/api/customers 為受保護路徑),不需手動帶。
+  const upsertCustomerForRegistration = async (record) => {
+    const a = record.attributes;
+    const eventId = a.event?.data?.id || null;
+    const eventTitle = a.event?.data?.attributes?.title || '未知活動';
+    const sessionName = getSessionName(eventId, a.sessionIndex);
+    const notesContent = [
+      `活動報名資訊：`,
+      `• 活動名稱：${eventTitle}`,
+      `• 參與場次：${sessionName}`,
+      a.attendanceCount && `• 出席人數：${a.attendanceCount}`,
+      (a.notes || a.message) && `• 原始備註：${a.notes || a.message}`,
+      `• 報名時間：${new Date(a.createdAt).toLocaleString()}`,
+    ].filter(Boolean).join('\n');
 
-      // 準備客戶資料 - 移除不存在的 source_detail 欄位
-      const customerData = {
-            data: {
-          name: record.attributes.name,
-          phone: record.attributes.phone,
-          email: record.attributes.email,
-          has_overseas_investment: record.attributes.has_overseas_investment || false,
-          budget_range: record.attributes.budget_range || 'budget_unknown',
-          overseas_investment_notes: record.attributes.overseas_investment_notes || '',
-          notes: notesContent,
-          source: 'event',
-          status: 'potential',
-          publishedAt: new Date().toISOString(), // 添加發布狀態以符合 draftAndPublish: true
-          // 自動綁定來源活動（多對多），讓「參加活動」成為結構化欄位而非只在備註
-          ...(record.attributes.event?.data?.id && {
-            events: [record.attributes.event.data.id]
-          }),
-          // 如果報名已有指派業務，同時指派給客戶
-          ...(record.attributes.sales_staff?.data?.id && {
-            sales_staff: record.attributes.sales_staff.data.id
-          }),
-          // 報名已標記渠道 → 轉客戶時自動帶入(合約:報名轉客戶渠道自動帶入)
-          ...(record.attributes.channel_person?.data?.id && {
-            channel_person: record.attributes.channel_person.data.id
-          }),
-          // 客戶來源:報名有選就帶入,否則預設「活動」(他從活動報名來的)
-          ...((() => {
-            const srcId = record.attributes.customer_source?.data?.id
-              || customerSources.find(s => s.attributes.code === 'event')?.id;
-            return srcId ? { customer_source: srcId } : {};
-          })())
-        }
-      };
+    const channelId = a.channel_person?.data?.id || null;
+    const sourceId = a.customer_source?.data?.id
+      || customerSources.find(s => s.attributes?.code === 'event')?.id || null;
+    const staffId = a.sales_staff?.data?.id || null;
 
-
-      // 檢查認證 token
-      const token = localStorage.getItem('token');
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      
-      
-      if (!token) {
-        throw new Error('未找到認證 Token，請重新登入');
-      }
-
-      // 創建客戶 - 嘗試多種認證方式
-      const headers = {
-        'Content-Type': 'application/json'
-      };
-      
-      // 如果有 token，添加認證
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-
-      let customerResponse = await fetch(`${API_BASE_URL}/api/customers`, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(customerData)
-      });
-
-      // 如果第一次請求失敗 (401)，嘗試不帶認證的請求
-      if (customerResponse.status === 401) {
-        customerResponse = await fetch(`${API_BASE_URL}/api/customers`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(customerData)
-      });
-      }
-
-      const customerResult = await customerResponse.json();
-      
-      // 特別檢查常見錯誤
-      if (customerResponse.status === 401) {
-        console.error('❌ 401 認證錯誤 - 需要登入或 Token 無效');
-      } else if (customerResponse.status === 403) {
-        console.error('❌ 403 權限錯誤 - 沒有創建客戶的權限');
-      } else if (customerResponse.status === 400) {
-        console.error('❌ 400 請求錯誤 - 資料格式問題');
-        console.error('錯誤詳情:', customerResult);
-      } else if (customerResponse.status === 500) {
-        console.error('❌ 500 伺服器錯誤 - Strapi 內部錯誤');
-      }
-
-
-      if (!customerResponse.ok) {
-        console.error('創建客戶失敗:', customerResult);
-        throw new Error(`創建客戶失敗: ${customerResult.error?.message || '未知錯誤'}`);
+    // 先用電話查既有客戶,避免重複建立
+    let existing = null;
+    if (a.phone) {
+      const q = `/api/customers?filters[phone][$eq]=${encodeURIComponent(a.phone)}`
+        + '&populate[events][fields][0]=id'
+        + '&populate[channel_person][fields][0]=id'
+        + '&populate[customer_source][fields][0]=id'
+        + '&populate[sales_staff][fields][0]=id'
+        + '&pagination[pageSize]=1';
+      const r = await fetch(`${API_BASE_URL}${q}`);
+      if (r.ok) { const j = await r.json(); existing = j.data?.[0] || null; }
     }
 
+    if (existing) {
+      // 更新既有:append 活動、補空欄位(不覆蓋已填)、備註追加
+      const ea = existing.attributes;
+      const existingEventIds = (ea.events?.data || []).map(e => e.id);
+      const mergedEvents = (eventId && !existingEventIds.includes(eventId))
+        ? [...existingEventIds, eventId] : existingEventIds;
+      const patch = { events: mergedEvents };
+      if (!ea.channel_person?.data && channelId) patch.channel_person = channelId;
+      if (!ea.customer_source?.data && sourceId) patch.customer_source = sourceId;
+      if (!ea.sales_staff?.data && staffId) patch.sales_staff = staffId;
+      patch.notes = ea.notes ? `${ea.notes}\n\n${notesContent}` : notesContent;
+      const resp = await fetch(`${API_BASE_URL}/api/customers/${existing.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: patch }),
+      });
+      const jr = await resp.json();
+      if (!resp.ok) throw new Error(`更新既有客戶失敗: ${jr.error?.message || resp.status}`);
+      return { id: existing.id, updated: true };
+    }
 
-      // 更新報名狀態並關聯到新創建的客戶
-      const updateData = {
-        data: {
-          status: 'confirmed',
-          customer: customerResult.data.id // 關聯到新創建的客戶
-        }
-      };
+    // 查不到 → 建立新客戶
+    const createData = {
+      data: {
+        name: a.name,
+        phone: a.phone,
+        email: a.email,
+        has_overseas_investment: a.has_overseas_investment || false,
+        budget_range: a.budget_range || 'budget_unknown',
+        overseas_investment_notes: a.overseas_investment_notes || '',
+        notes: notesContent,
+        source: 'event',
+        status: 'potential',
+        publishedAt: new Date().toISOString(),
+        ...(eventId && { events: [eventId] }),
+        ...(staffId && { sales_staff: staffId }),
+        ...(channelId && { channel_person: channelId }),
+        ...(sourceId && { customer_source: sourceId }),
+      },
+    };
+    const resp = await fetch(`${API_BASE_URL}/api/customers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(createData),
+    });
+    const jr = await resp.json();
+    if (!resp.ok) throw new Error(`創建客戶 ${a.name} 失敗: ${jr.error?.message || resp.status}`);
+    return { id: jr.data.id, updated: false };
+  };
 
-
+  // 轉換為客戶(單筆)
+  const convertToCustomer = async (record) => {
+    try {
+      const { id: customerId, updated } = await upsertCustomerForRegistration(record);
+      // 標記報名為已轉換並連到客戶
       const updateResponse = await fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updateData)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { status: 'confirmed', customer: customerId } }),
       });
-
       const updateResult = await updateResponse.json();
-
       if (!updateResponse.ok) {
-        console.error('更新報名狀態失敗:', updateResult);
         throw new Error(`更新報名狀態失敗: ${updateResult.error?.message || '未知錯誤'}`);
       }
-
-      
-      message.success(`成功轉換 ${record.attributes.name} 為客戶！客戶ID: ${customerResult.data?.id}`);
-      fetchRegistrations(); // 重新載入報名資料
+      message.success(`${record.attributes.name} 已${updated ? '併入既有客戶' : '轉為新客戶'}（客戶ID: ${customerId}）`);
+      fetchRegistrations();
     } catch (error) {
       console.error('轉換客戶失敗:', error);
       message.error(`轉換失敗: ${error.message}`);
@@ -804,89 +760,27 @@ const RegistrationManagement = () => {
     }
 
 
-      // 批量轉換
-      const results = await Promise.allSettled(
-        unconfirmedRegistrations.map(async (record) => {
-          
-          // 準備詳細的客戶備註資訊
-          const eventInfo = record.attributes.event?.data?.attributes;
-          const eventTitle = eventInfo?.title || '未知活動';
-          const sessionName = getSessionName(record.attributes.event?.data?.id, record.attributes.sessionIndex);
-          
-          // 組織備註內容
-          const notesContent = [
-            `活動報名資訊：`,
-            `• 活動名稱：${eventTitle}`,
-            `• 參與場次：${sessionName}`,
-            record.attributes.attendanceCount && `• 出席人數：${record.attributes.attendanceCount}`,
-            (record.attributes.notes || record.attributes.message) && `• 原始備註：${record.attributes.notes || record.attributes.message}`,
-            `• 報名時間：${new Date(record.attributes.createdAt).toLocaleString()}`
-          ].filter(Boolean).join('\n');
-          
-        const customerData = {
-          data: {
-            name: record.attributes.name,
-            phone: record.attributes.phone,
-            email: record.attributes.email,
-              has_overseas_investment: record.attributes.has_overseas_investment || false,
-              budget_range: record.attributes.budget_range || 'budget_unknown',
-              overseas_investment_notes: record.attributes.overseas_investment_notes || '',
-              notes: notesContent,
-            source: 'event',
-              status: 'potential',
-              publishedAt: new Date().toISOString(), // 添加發布狀態以符合 draftAndPublish: true
-              // 自動綁定來源活動（多對多）
-              ...(record.attributes.event?.data?.id && {
-                events: [record.attributes.event.data.id]
-              }),
-              // 如果報名已有指派業務，同時指派給客戶
-              ...(record.attributes.sales_staff?.data?.id && {
-                sales_staff: record.attributes.sales_staff.data.id
-              })
-          }
-        };
-
-          // 創建客戶
-          const customerResponse = await fetch(`${API_BASE_URL}/api/customers`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(customerData)
-        });
-
-          const customerResult = await customerResponse.json();
-          
-          if (!customerResponse.ok) {
-            console.error(`創建客戶 ${record.attributes.name} 失敗:`, customerResult);
-            throw new Error(`創建客戶 ${record.attributes.name} 失敗: ${customerResult.error?.message || '未知錯誤'}`);
-          }
-
-          // 更新報名狀態並關聯到客戶
-          const updateData = {
-            data: {
-              status: 'confirmed',
-              customer: customerResult.data.id
-            }
-          };
-
+      // 逐筆循序處理:避免同電話併發時各自查不到既有客戶而重複建立;
+      // 用共用 upsert(查重更新)並補回渠道/來源。
+      const results = [];
+      for (const record of unconfirmedRegistrations) {
+        try {
+          const { id: customerId } = await upsertCustomerForRegistration(record);
           const updateResponse = await fetch(`${API_BASE_URL}/api/registrations/${record.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-            body: JSON.stringify(updateData)
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: { status: 'confirmed', customer: customerId } }),
           });
-
           if (!updateResponse.ok) {
-            const updateResult = await updateResponse.json();
-            console.error(`更新報名 ${record.attributes.name} 失敗:`, updateResult);
-            throw new Error(`更新報名 ${record.attributes.name} 失敗`);
+            const j = await updateResponse.json();
+            throw new Error(`更新報名 ${record.attributes.name} 失敗: ${j.error?.message || updateResponse.status}`);
           }
-
-          return { success: true, name: record.attributes.name };
-        })
-      );
+          results.push({ status: 'fulfilled', name: record.attributes.name });
+        } catch (err) {
+          console.error(`轉換 ${record.attributes.name} 失敗:`, err);
+          results.push({ status: 'rejected', name: record.attributes.name, reason: err.message });
+        }
+      }
 
       // 統計成功和失敗的數量
       const successful = results.filter(result => result.status === 'fulfilled');
@@ -1069,15 +963,13 @@ const RegistrationManagement = () => {
     setIsImporting(true);
     importingRef.current = true;
     try {
-      // 批量創建報名資料
-
+      // 批量創建報名資料(分批送出、逐列 try/catch、成功/失敗統計;壞列略過不中斷)
       const batchKey = fileDigestHex ? `${fileDigestHex}:${selectedEventForImport}:${selectedSessionForImport}` : undefined;
+      const validRows = previewData.filter(r => !(r._errors && r._errors.length));
+      const invalidCount = previewData.length - validRows.length;
+      if (!validRows.length) { message.warning('沒有可匯入的有效資料(請先修正紅字錯誤列)'); return; }
 
-      const results = await Promise.all(previewData.map(async data => {
-        // 打印每筆資料的詳細資訊
-        
-        // 打印每筆資料的備註
-        
+      const importOne = async (data) => {
         const payload = {
           data: {
             name: data.name,
@@ -1094,29 +986,32 @@ const RegistrationManagement = () => {
             publishedAt: new Date().toISOString(),
             ...(selectedSourceForImport ? { customer_source: selectedSourceForImport } : {}),
             ...(data.sales_staff ? { sales_staff: data.sales_staff } : {}),
-            ...(batchKey ? { _batchKey: batchKey } : {})
-          }
+            ...(batchKey ? { _batchKey: batchKey } : {}),
+          },
         };
-        if (data.email) payload.data.email = data.email;
-
         const response = await fetch(`${API_BASE_URL}/api/registrations`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
+        if (!response.ok) { const e = await response.json().catch(() => ({})); throw new Error(e?.error?.message || `HTTP ${response.status}`); }
+        return response.json();
+      };
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error('匯入失敗:', errorData);
-          throw new Error(`匯入失敗: ${response.status} ${errorData?.error?.message || '未知錯誤'}`);
+      let added = 0, failed = 0;
+      const failMsgs = [];
+      const BATCH = 20;
+      for (let i = 0; i < validRows.length; i += BATCH) {
+        const chunk = validRows.slice(i, i + BATCH);
+        const settled = await Promise.allSettled(chunk.map(importOne));
+        for (let k = 0; k < settled.length; k++) {
+          const s = settled[k];
+          if (s.status === 'fulfilled') added++;
+          else { failed++; failMsgs.push(`${chunk[k].name}(${chunk[k].phone}): ${s.reason?.message || s.reason}`); }
         }
-
-        return await response.json();
-      }));
-
-      message.success(`成功匯入 ${results.length} 筆報名資料`);
+      }
+      message.success(`匯入完成 — 成功 ${added}、失敗 ${failed}${invalidCount ? `、略過錯誤列 ${invalidCount}` : ''}`);
+      if (failed) { console.error('匯入失敗明細:', failMsgs); message.warning(`${failed} 筆寫入失敗,詳見主控台`); }
       setImportModalVisible(false);
       setPreviewData([]);
       setSelectedEventForImport(null);
@@ -1634,7 +1529,7 @@ const RegistrationManagement = () => {
           </Form.Item>
 
           <div style={{ marginBottom: 16 }}>
-            預覽資料（共 {previewData.length} 筆）：
+            預覽資料（共 {previewData.length} 筆;可匯入 {previewData.filter(r => !(r._errors && r._errors.length)).length} 筆,紅字錯誤列將自動略過）：
           </div>
 
           <Table
@@ -1669,6 +1564,21 @@ const RegistrationManagement = () => {
                 title: '備註',
                 dataIndex: 'notes',
                 key: 'notes',
+              },
+              {
+                title: '檢查',
+                key: '_check',
+                render: (_, r) => {
+                  const errs = r._errors || [];
+                  const warns = r._warnings || [];
+                  if (!errs.length && !warns.length) return <Tag color="green">OK</Tag>;
+                  return (
+                    <div style={{ fontSize: 12 }}>
+                      {errs.map((e, i) => <div key={`e${i}`} style={{ color: '#cf1322' }}>✖ {e}</div>)}
+                      {warns.map((w, i) => <div key={`w${i}`} style={{ color: '#d46b08' }}>⚠ {w}</div>)}
+                    </div>
+                  );
+                },
               }
             ]}
             size="small"

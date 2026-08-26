@@ -1081,8 +1081,15 @@ const CustomerManagement = () => {
         });
 
 
-        // 轉換數據格式 - 跳過第一行標題行
-        const previewData = jsonData.slice(1).map((row, index) => {
+        // 濾掉空白列與範本示範列(姓名為空或為「(必填)」);不再 slice(1),避免自備(無示範列)的檔被吃掉第一筆真實資料。
+        const dataRows = jsonData.filter(row => {
+          const n = String(row['姓名'] || '').trim();
+          return n && n !== '(必填)';
+        });
+
+        const previewData = dataRows.map((row, index) => {
+          const errors = [];
+          const warnings = [];
           
           // 基本資料處理
           const name = String(row['姓名'] || '').trim();
@@ -1119,25 +1126,13 @@ const CustomerManagement = () => {
 
           const address = String(row['地址'] || '').trim();
           
-          // 驗證必填欄位
-          const missingFields = [];
-          if (!name) missingFields.push('姓名');
-          if (!phone) missingFields.push('電話');
-          // 電子郵件改為非必填
-          
-          if (missingFields.length > 0) {
-            throw new Error(`第 ${index + 2} 行缺少必填欄位: ${missingFields.join(', ')}`);
+          // 逐列驗證:壞列只標記(_errors)不 throw,好列照樣可匯入(姓名已由上方 filter 保證非空)
+          if (!phone || phone.length !== 10 || !phone.startsWith('0')) {
+            errors.push(`電話格式錯誤(${phoneValue || '空'})`);
           }
-
-          // 驗證電子郵件格式（只有當email不為空時才驗證）
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           if (email && !emailRegex.test(email)) {
-            throw new Error(`第 ${index + 2} 行的電子郵件格式無效: ${email}`);
-          }
-
-          // 驗證電話格式
-          if (phone.length !== 10 || !phone.startsWith('0')) {
-            throw new Error(`第 ${index + 2} 行的電話格式無效: ${phoneValue}`);
+            warnings.push(`Email 格式可疑(${email})`);
           }
 
           // 處理狀態
@@ -1156,19 +1151,8 @@ const CustomerManagement = () => {
           };
           const status = statusMap[statusValue] || 'potential';
 
-          // 處理來源
-          const sourceValue = String(row['來源'] || 'event').trim();
-          const sourceMapLocal = {
-            'website': 'website',
-            '網站': 'website',
-            'event': 'event',
-            '活動': 'event', 
-            'referral': 'referral',
-            '推薦': 'referral',
-            'other': 'other',
-            '其他': 'other'
-          };
-          const source = sourceMapLocal[sourceValue] || 'event';
+          // 來源:保留原字串,寫入時再對應動態 customer_source(見 resolveImportSource)
+          const sourceText = String(row['來源'] || '').trim();
 
           // 保留：負責業務（姓名或帳號對應 ID）
           const salesStaffName = String(row['負責業務'] || '').trim();
@@ -1181,24 +1165,25 @@ const CustomerManagement = () => {
             if (foundStaff) {
               sales_staff = foundStaff.id;
             } else {
+              warnings.push(`查無業務「${salesStaffName}」→ 將留空`);
             }
           }
 
           const notes = String(row['備註'] || '').trim();
 
-          // 僅保留對應編輯頁面可見的欄位
-          const result = {
+          return {
             name,
             phone,
             email: (email && email.length > 0) ? email : null,
             address,
             status,
-            source,
+            sourceText,
             sales_staff,
-            notes
+            notes,
+            _seq: index + 1,
+            _errors: errors,
+            _warnings: warnings,
           };
-
-          return result;
         });
 
         setPreviewData(previewData);
@@ -1212,42 +1197,92 @@ const CustomerManagement = () => {
     return false;
   };
 
-  // 批量匯入客戶資料
+  // 匯入來源字串 → 動態 customer_source id + 舊 source enum
+  const SOURCE_ENUM_TO_NAME = { website: '官網', event: '活動', referral: '渠道', other: '其他' };
+  const resolveImportSource = (sourceText) => {
+    const other = customerSources.find(s => s.attributes?.is_other);
+    const t = String(sourceText || '').trim();
+    let found = t ? customerSources.find(s => s.attributes?.name === t) : null;
+    if (!found && SOURCE_ENUM_TO_NAME[t.toLowerCase()]) {
+      const zh = SOURCE_ENUM_TO_NAME[t.toLowerCase()];
+      found = customerSources.find(s => s.attributes?.name === zh);
+    }
+    const nameToEnum = { '官網': 'website', '活動': 'event', '渠道': 'referral', '其他': 'other' };
+    const sourceEnum = nameToEnum[found?.attributes?.name]
+      || nameToEnum[t]
+      || (SOURCE_ENUM_TO_NAME[t.toLowerCase()] ? t.toLowerCase() : 'event');
+    return { customerSourceId: (found || other)?.id || null, sourceEnum };
+  };
+
+  // 匯入單列:同電話已有客戶 → 更新既有(只補空欄位、備註追加,不覆蓋已填);否則新增。
+  const importOneCustomer = async (row) => {
+    const { customerSourceId, sourceEnum } = resolveImportSource(row.sourceText);
+    // 先用電話查既有客戶,避免重複建立
+    let existing = null;
+    if (row.phone) {
+      const q = `/api/customers?filters[phone][$eq]=${encodeURIComponent(row.phone)}`
+        + '&populate[customer_source][fields][0]=id'
+        + '&populate[sales_staff][fields][0]=id'
+        + '&pagination[pageSize]=1';
+      const r = await fetch(`${API_BASE_URL}${q}`);
+      if (r.ok) { const j = await r.json(); existing = j.data?.[0] || null; }
+    }
+    if (existing) {
+      const ea = existing.attributes;
+      const patch = {};
+      if (!ea.email && row.email) patch.email = row.email;
+      if (!ea.address && row.address) patch.address = row.address;
+      if (!ea.sales_staff?.data && row.sales_staff) patch.sales_staff = row.sales_staff;
+      if (!ea.customer_source?.data && customerSourceId) patch.customer_source = customerSourceId;
+      if (row.notes) patch.notes = ea.notes ? `${ea.notes}\n\n${row.notes}` : row.notes;
+      if (Object.keys(patch).length === 0) return { updated: true };
+      const resp = await fetch(`${API_BASE_URL}/api/customers/${existing.id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: patch }),
+      });
+      if (!resp.ok) { const j = await resp.json().catch(() => ({})); throw new Error(j.error?.message || `更新失敗(${resp.status})`); }
+      return { updated: true };
+    }
+    const resp = await fetch(`${API_BASE_URL}/api/customers`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: {
+        name: row.name, phone: row.phone, email: row.email, address: row.address,
+        status: row.status, source: sourceEnum, sales_staff: row.sales_staff, notes: row.notes,
+        ...(customerSourceId && { customer_source: customerSourceId }),
+        publishedAt: new Date().toISOString(),
+      } }),
+    });
+    if (!resp.ok) { const j = await resp.json().catch(() => ({})); throw new Error(j.error?.message || `新增失敗(${resp.status})`); }
+    return { updated: false };
+  };
+
+  // 批量匯入(分批送出、逐列 try/catch、成功/更新/失敗統計;壞列略過不中斷)
   const handleBatchImport = async () => {
+    const validRows = previewData.filter(r => !(r._errors && r._errors.length));
+    const invalidCount = previewData.length - validRows.length;
+    if (!validRows.length) { message.warning('沒有可匯入的有效資料(請先修正紅字錯誤列)'); return; }
     setLoading(true);
+    let added = 0, updated = 0, failed = 0;
+    const failMsgs = [];
+    const BATCH = 20;
     try {
-      
-      const results = await Promise.all(previewData.map(async data => {
-        
-        const response = await fetch(`${API_BASE_URL}/api/customers`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            data: {
-              ...data,
-              publishedAt: new Date().toISOString() // 確保立即發布
-            }
-          })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error('匯入失敗:', errorData);
-          throw new Error(`匯入客戶 ${data.name} 失敗: ${response.status} ${errorData?.error?.message || '未知錯誤'}`);
+      for (let i = 0; i < validRows.length; i += BATCH) {
+        const chunk = validRows.slice(i, i + BATCH);
+        const settled = await Promise.allSettled(chunk.map(row => importOneCustomer(row)));
+        for (let k = 0; k < settled.length; k++) {
+          const s = settled[k];
+          if (s.status === 'fulfilled') { s.value.updated ? updated++ : added++; }
+          else { failed++; failMsgs.push(`${chunk[k].name}(${chunk[k].phone}): ${s.reason?.message || s.reason}`); }
         }
-
-        return await response.json();
-      }));
-
-      message.success(`成功匯入 ${results.length} 筆客戶資料`);
+      }
+      message.success(`匯入完成 — 新增 ${added}、更新既有 ${updated}、失敗 ${failed}${invalidCount ? `、略過錯誤列 ${invalidCount}` : ''}`);
+      if (failed) { console.error('匯入失敗明細:', failMsgs); message.warning(`${failed} 筆寫入失敗,詳見主控台`); }
       setExcelImportModalVisible(false);
       setPreviewData([]);
       await fetchCustomers();
     } catch (error) {
       console.error('批量匯入失敗:', error);
-      message.error(error.message || '批量匯入失敗，請檢查資料格式是否正確');
+      message.error(error.message || '批量匯入失敗');
     } finally {
       setLoading(false);
     }
@@ -3547,7 +3582,7 @@ const CustomerManagement = () => {
         <div style={{ marginBottom: 16 }}>
           <Alert
             message="Excel匯入預覽"
-            description={`共找到 ${previewData.length} 筆客戶資料，請向下捲動檢視全部，確認無誤後點擊「確認匯入」。`}
+            description={`共 ${previewData.length} 筆;可匯入 ${previewData.filter(r => !(r._errors && r._errors.length)).length} 筆${previewData.filter(r => r._errors && r._errors.length).length ? `，${previewData.filter(r => r._errors && r._errors.length).length} 筆有錯誤(紅字)將自動略過` : ''}。同電話的既有客戶會「更新」而非重複新增。確認後點「確認匯入」。`}
             type="info"
             showIcon
           />
@@ -3596,10 +3631,10 @@ const CustomerManagement = () => {
             },
             {
               title: '來源',
-              dataIndex: 'source',
-              key: 'source',
-              width: 100,
-              render: (source) => sourceMap[source],
+              dataIndex: 'sourceText',
+              key: 'sourceText',
+              width: 110,
+              render: (t) => t || <span style={{ color: '#ccc' }}>未指定→其他</span>,
             },
             {
               title: '負責業務',
@@ -3619,12 +3654,29 @@ const CustomerManagement = () => {
               width: 150,
               ellipsis: true,
               render: (notes) => notes || <span style={{ color: '#ccc' }}>無</span>
+            },
+            {
+              title: '檢查',
+              key: '_check',
+              width: 200,
+              fixed: 'right',
+              render: (_, r) => {
+                const errs = r._errors || [];
+                const warns = r._warnings || [];
+                if (!errs.length && !warns.length) return <Tag color="green">OK</Tag>;
+                return (
+                  <div style={{ fontSize: 12 }}>
+                    {errs.map((e, i) => <div key={`e${i}`} style={{ color: '#cf1322' }}>✖ {e}</div>)}
+                    {warns.map((w, i) => <div key={`w${i}`} style={{ color: '#d46b08' }}>⚠ {w}</div>)}
+                  </div>
+                );
+              },
             }
           ]}
           rowKey={(record, index) => index}
           size="small"
-          pagination={false}
-          scroll={{ x: 1100, y: 420 }}
+          pagination={{ pageSize: 10, showSizeChanger: false }}
+          scroll={{ x: 1300, y: 420 }}
           sticky
         />
       </Modal>

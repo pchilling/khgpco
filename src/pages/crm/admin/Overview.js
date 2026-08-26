@@ -119,13 +119,15 @@ const Overview = () => {
         return id === selectedStaffId;
       };
       
-      // 統一口徑與客戶資料庫一致：總客戶數只看 customers（全量，不受日期限制）
-      const filteredCustomers = customers.filter(c => byStaff(c) && (!hasRange || inRange(c?.attributes?.createdAt)));
+      // 業務篩選後的客戶(全時間,不受日期限制)— 選了業務時各統計都以此為基準
+      const staffCustomers = customers.filter(byStaff);
+      // 再套日期範圍(給階段/來源分布與期間新增客戶用)
+      const filteredCustomers = staffCustomers.filter(c => (!hasRange || inRange(c?.attributes?.createdAt)));
 
-      // 交易資料：改讀 deals 表(每筆皆為成交,僅過濾金額 > 0)
+      // 交易資料：改讀 deals 表(每筆皆為成交,過濾金額 > 0 並尊重業務篩選)
       const dealItems = deals.filter(i => (
         (parseFloat(i?.attributes?.deal_amount) || 0) > 0
-      ));
+      ) && byStaff(i));
 
       // 總成交金額：全部 is_deal 合計（不受日期限制）
       const totalDealAmount = dealItems.reduce((sum, deal) => sum + (parseFloat(deal?.attributes?.deal_amount) || 0), 0);
@@ -151,7 +153,7 @@ const Overview = () => {
       // 新增客戶數（期間或本月）
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const newCustomers = (hasRange ? filteredCustomers : customers).filter(c =>
+      const newCustomers = (hasRange ? filteredCustomers : staffCustomers).filter(c =>
         hasRange ? inRange(c?.attributes?.createdAt) : (new Date(c?.attributes?.createdAt) >= monthStart)
       ).length;
 
@@ -164,7 +166,7 @@ const Overview = () => {
       // 階段分布（針對客戶）
       const stages = {};
       Object.keys(ALL_STAGES).forEach(stage => { stages[stage] = 0; });
-      const baseCustomers = hasRange ? filteredCustomers : customers;
+      const baseCustomers = filteredCustomers;
       baseCustomers.forEach(customer => {
         const status = customer?.attributes?.status;
         if (status && stages.hasOwnProperty(status)) stages[status]++;
@@ -205,7 +207,7 @@ const Overview = () => {
         .sort((a, b) => a.month.localeCompare(b.month));
 
       setStats({
-        totalCustomers: customers.length, // 總客戶數：只看 customers，全量
+        totalCustomers: staffCustomers.length, // 總客戶數：尊重業務篩選(未選則為全量)
         newCustomers,
         totalDealAmount,
         monthlyDealAmount: periodDealAmount,
