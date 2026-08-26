@@ -101,7 +101,6 @@ const CustomerManagement = () => {
   const partLoadSeq = useRef(0); // 參加活動載入序號:防止慢的背景全量載入蓋掉剛新增的
   const [filterVisible, setFilterVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [displayColumns, setDisplayColumns] = useState([]);
   const isMobile = useIsMobile();
   const [contactForm] = Form.useForm();
   // Excel匯入相關狀態
@@ -337,46 +336,16 @@ const CustomerManagement = () => {
   }, [customers, searchKeyword]);
 
   // 根據設備顯示不同的列
-  useEffect(() => {
-    if (isMobile) {
-      // 在iPad上隱藏部分列以改善顯示效果
-      const updatedColumns = baseColumns.filter(col => 
-        !['email'].includes(col.key)
-      );
-      
-      
-      // 在iPad上調整操作欄位的寬度
-      updatedColumns.forEach(col => {
-        if (col.key === 'action') {
-          col.width = 70;
-        }
-        
-        // 縮小名字欄寬度
-        if (col.key === 'name') {
-          col.width = 90;
-        }
-        
-        // 縮小電話欄寬度
-        if (col.key === 'phone') {
-          col.width = 90;
-        }
-        
-        // 縮小備註欄寬度
-        if (col.key === 'notes') {
-          col.width = 80;
-        }
-        
-        // 縮小業務欄寬度
-        if (col.key === 'sales_staff') {
-          col.width = 80;
-        }
-      });
-      
-      setDisplayColumns(updatedColumns);
-    } else {
-      setDisplayColumns(baseColumns);
-    }
-  }, [isMobile]);
+  // 每次渲染即時算欄位(不用 state 快取)——用 state 會把欄位 render 的
+  // participations/來源等閉包鎖在舊值,造成補登後欄位不更新。手機版只調整寬度。
+  const displayColumns = isMobile
+    ? baseColumns
+        .filter(col => !['email'].includes(col.key))
+        .map(col => {
+          const w = { action: 70, name: 90, phone: 90, notes: 80, sales_staff: 80 }[col.key];
+          return w ? { ...col, width: w } : col;
+        })
+    : baseColumns;
 
   const fetchSalesStaff = async () => {
     try {
