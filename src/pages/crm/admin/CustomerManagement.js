@@ -459,7 +459,7 @@ const CustomerManagement = () => {
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/events?locale=zh-Hant-TW&populate[session]=*&pagination[pageSize]=1000&sort=createdAt:desc`);
+      const response = await fetch(`${API_BASE_URL}/api/events?locale=zh-Hant-TW&populate[session]=*&populate[related_project][fields][0]=name&pagination[pageSize]=1000&sort=createdAt:desc`);
       const data = await response.json();
       setEvents(data.data || []);
     } catch (error) {
@@ -531,7 +531,21 @@ const CustomerManagement = () => {
     setPartEventId(null); setPartSessionIdx(null);
     setPartModalOpen(true);
   };
-  // 補登=幫該客戶建一筆已確認的報名(綁活動+場次)
+  // 由 events 現況組出一筆參加活動顯示(本地即時更新用,免整包重抓)
+  const buildPartEntry = (regId, eventId, sessionIdx) => {
+    const a = events.find(e => e.id === eventId)?.attributes || {};
+    const s = (a.session || [])[sessionIdx];
+    return {
+      regId,
+      title: a.title || '未知活動',
+      building: a.related_project?.data?.attributes?.name || null,
+      sessionText: s?.location || (sessionIdx !== null && sessionIdx !== undefined ? `場次 ${sessionIdx + 1}` : ''),
+      timeText: s?.startDateTime
+        ? new Date(s.startDateTime).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+        : '',
+    };
+  };
+  // 補登=幫該客戶建一筆已確認的報名(綁活動+場次),回傳新報名 id
   const createParticipation = async (customer, eventId, sessionIdx) => {
     const payload = { data: {
       name: customer.attributes?.name,
@@ -545,16 +559,28 @@ const CustomerManagement = () => {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error(`補登失敗 (${res.status})`);
+    const body = await res.json().catch(() => ({}));
+    return body?.data?.id;
   };
   const doAddParticipation = async (targets) => {
     if (!targets || !targets.length) return;
     if (!partEventId || partSessionIdx === null || partSessionIdx === undefined) { message.warning('請選擇活動與場次'); return; }
     setPartSaving(true);
     try {
-      for (const c of targets) { await createParticipation(c, partEventId, partSessionIdx); }
+      const newEntries = {}; // custId -> [entry]
+      for (const c of targets) {
+        const rid = await createParticipation(c, partEventId, partSessionIdx);
+        if (!newEntries[c.id]) newEntries[c.id] = [];
+        newEntries[c.id].push(buildPartEntry(rid, partEventId, partSessionIdx));
+      }
+      // 本地即時更新,不整包重抓(快)
+      setParticipations(prev => {
+        const next = { ...prev };
+        for (const [cid, arr] of Object.entries(newEntries)) next[cid] = [...(next[cid] || []), ...arr];
+        return next;
+      });
       message.success(`已補登 ${targets.length} 位客戶的參加活動`);
       setPartEventId(null); setPartSessionIdx(null);
-      await loadParticipations();
     } catch (e) {
       message.error(e.message);
     } finally { setPartSaving(false); }
@@ -563,8 +589,13 @@ const CustomerManagement = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/registrations/${regId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`移除失敗 (${res.status})`);
+      // 本地即時移除(免重抓)
+      setParticipations(prev => {
+        const next = {};
+        for (const [cid, arr] of Object.entries(prev)) next[cid] = arr.filter(p => p.regId !== regId);
+        return next;
+      });
       message.success('已移除該筆參加活動');
-      await loadParticipations();
     } catch (e) { message.error(e.message); }
   };
   // 活動(新到舊)與場次
