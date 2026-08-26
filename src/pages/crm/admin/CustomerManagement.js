@@ -98,6 +98,7 @@ const CustomerManagement = () => {
   const [partEventId, setPartEventId] = useState(null);
   const [partSessionIdx, setPartSessionIdx] = useState(null);
   const [partSaving, setPartSaving] = useState(false);
+  const partLoadSeq = useRef(0); // 參加活動載入序號:防止慢的背景全量載入蓋掉剛新增的
   const [filterVisible, setFilterVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [displayColumns, setDisplayColumns] = useState([]);
@@ -490,11 +491,14 @@ const CustomerManagement = () => {
 
   // 參加活動(報名驅動):撈所有報名,解析活動/場次/時間/建案,依客戶分組
   const loadParticipations = async () => {
+    const seq = ++partLoadSeq.current;
     try {
       const regs = await fetchAllStrapi(
         API_BASE_URL,
         '/api/registrations?populate[event][populate][0]=session&populate[event][populate][1]=related_project&populate[customer][fields][0]=name&sort=createdAt:desc'
       );
+      // 這期間若有新增/移除(序號被墊高),放棄本次(過期)結果,避免蓋掉
+      if (seq !== partLoadSeq.current) return;
       const map = {};
       regs.forEach(r => {
         const custId = r.attributes?.customer?.data?.id;
@@ -573,7 +577,8 @@ const CustomerManagement = () => {
         if (!newEntries[c.id]) newEntries[c.id] = [];
         newEntries[c.id].push(buildPartEntry(rid, partEventId, partSessionIdx));
       }
-      // 本地即時更新,不整包重抓(快)
+      // 本地即時更新,不整包重抓(快);墊高序號讓過期的背景載入作廢,不蓋掉此更新
+      partLoadSeq.current++;
       setParticipations(prev => {
         const next = { ...prev };
         for (const [cid, arr] of Object.entries(newEntries)) next[cid] = [...(next[cid] || []), ...arr];
@@ -581,6 +586,7 @@ const CustomerManagement = () => {
       });
       message.success(`已補登 ${targets.length} 位客戶的參加活動`);
       setPartEventId(null); setPartSessionIdx(null);
+      loadParticipations(); // 背景以伺服器最新資料校正(不 await,不擋操作;序號保證此次為準)
     } catch (e) {
       message.error(e.message);
     } finally { setPartSaving(false); }
@@ -589,13 +595,15 @@ const CustomerManagement = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/registrations/${regId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`移除失敗 (${res.status})`);
-      // 本地即時移除(免重抓)
+      // 本地即時移除(免重抓);墊高序號讓過期的背景載入作廢
+      partLoadSeq.current++;
       setParticipations(prev => {
         const next = {};
         for (const [cid, arr] of Object.entries(prev)) next[cid] = arr.filter(p => p.regId !== regId);
         return next;
       });
       message.success('已移除該筆參加活動');
+      loadParticipations(); // 背景校正
     } catch (e) { message.error(e.message); }
   };
   // 活動(新到舊)與場次
