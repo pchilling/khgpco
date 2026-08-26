@@ -90,7 +90,14 @@ const CustomerManagement = () => {
   const [events, setEvents] = useState([]);
   const [channelPeople, setChannelPeople] = useState([]);
   const [customerSources, setCustomerSources] = useState([]);
-  const [participations, setParticipations] = useState({}); // customerId -> [{title, sessionText, timeText, building}]
+  const [participations, setParticipations] = useState({}); // customerId -> [{regId, title, sessionText, timeText, building}]
+  // 參加活動補登(單一/批次)
+  const [partModalOpen, setPartModalOpen] = useState(false);
+  const [partCustomer, setPartCustomer] = useState(null); // 單一模式;null=批次
+  const [partBatchRows, setPartBatchRows] = useState([]);
+  const [partEventId, setPartEventId] = useState(null);
+  const [partSessionIdx, setPartSessionIdx] = useState(null);
+  const [partSaving, setPartSaving] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [displayColumns, setDisplayColumns] = useState([]);
@@ -226,31 +233,34 @@ const CustomerManagement = () => {
     {
       title: '參加活動',
       key: 'events',
-      width: 220,
+      width: 240,
       render: (_, record) => {
         const parts = participations[record.id] || [];
+        let summary;
         if (!parts.length) {
-          // 無報名者:回退顯示手動綁的活動(多對多,無場次/時間)
           const evs = record.attributes?.events?.data || [];
-          if (!evs.length) return <span style={{ color: '#c0c0c0' }}>無</span>;
-          const names = evs.map(e => e.attributes?.title || `活動 ${e.id}`);
-          return (
-            <Tooltip title={names.join('、')}>
-              <span>{names[0]}{names.length > 1 ? ` +${names.length - 1}` : ''}</span>
+          if (!evs.length) {
+            summary = <span style={{ color: '#c0c0c0' }}>無</span>;
+          } else {
+            const names = evs.map(e => e.attributes?.title || `活動 ${e.id}`);
+            summary = <Tooltip title={names.join('、')}><span>{names[0]}{names.length > 1 ? ` +${names.length - 1}` : ''}</span></Tooltip>;
+          }
+        } else {
+          const detail = parts.map(p =>
+            `${p.title}${p.sessionText ? `｜${p.sessionText}` : ''}${p.timeText ? `｜${p.timeText}` : ''}${p.building ? `｜${p.building}` : ''}`
+          ).join('\n');
+          const first = parts[0];
+          summary = (
+            <Tooltip title={<div style={{ whiteSpace: 'pre-line' }}>{detail}</div>}>
+              <span>{first.title}{first.building ? `（${first.building}）` : ''}{parts.length > 1 ? ` +${parts.length - 1}` : ''}</span>
             </Tooltip>
           );
         }
-        const detail = parts.map(p =>
-          `${p.title}${p.sessionText ? `｜${p.sessionText}` : ''}${p.timeText ? `｜${p.timeText}` : ''}${p.building ? `｜${p.building}` : ''}`
-        ).join('\n');
-        const first = parts[0];
         return (
-          <Tooltip title={<div style={{ whiteSpace: 'pre-line' }}>{detail}</div>}>
-            <span>
-              {first.title}{first.building ? `（${first.building}）` : ''}
-              {parts.length > 1 ? ` +${parts.length - 1}` : ''}
-            </span>
-          </Tooltip>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{summary}</span>
+            <Button type="link" size="small" style={{ padding: 0, flexShrink: 0 }} onClick={() => openPart(record)}>補登</Button>
+          </div>
         );
       },
     },
@@ -453,7 +463,7 @@ const CustomerManagement = () => {
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/events?pagination[pageSize]=1000&sort=createdAt:desc`);
+      const response = await fetch(`${API_BASE_URL}/api/events?locale=zh-Hant-TW&populate[session]=*&pagination[pageSize]=1000&sort=createdAt:desc`);
       const data = await response.json();
       setEvents(data.data || []);
     } catch (error) {
@@ -504,7 +514,7 @@ const CustomerManagement = () => {
           ? new Date(s.startDateTime).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
           : '';
         if (!map[custId]) map[custId] = [];
-        map[custId].push({ title, building, sessionText, timeText });
+        map[custId].push({ regId: r.id, title, building, sessionText, timeText });
       });
       setParticipations(map);
     } catch (error) {
@@ -517,6 +527,59 @@ const CustomerManagement = () => {
     record?.attributes?.customer_source?.data?.attributes?.name
     || sourceMap[record?.attributes?.source]
     || '其他';
+
+  // ---------- 參加活動補登 ----------
+  const openPart = (customer) => {
+    setPartCustomer(customer); setPartBatchRows([]);
+    setPartEventId(null); setPartSessionIdx(null);
+    setPartModalOpen(true);
+  };
+  const openPartBatch = () => {
+    if (!selectedRows.length) { message.warning('請先勾選客戶'); return; }
+    setPartCustomer(null); setPartBatchRows(selectedRows);
+    setPartEventId(null); setPartSessionIdx(null);
+    setPartModalOpen(true);
+  };
+  // 補登=幫該客戶建一筆已確認的報名(綁活動+場次)
+  const createParticipation = async (customer, eventId, sessionIdx) => {
+    const payload = { data: {
+      name: customer.attributes?.name,
+      phone: customer.attributes?.phone ? String(customer.attributes.phone) : null,
+      event: Number(eventId), sessionIndex: Number(sessionIdx), status: 'confirmed',
+      customer: customer.id,
+      ...(customer.attributes?.sales_staff?.data?.id ? { sales_staff: customer.attributes.sales_staff.data.id } : {}),
+      publishedAt: new Date().toISOString(),
+    } };
+    const res = await fetch(`${API_BASE_URL}/api/registrations`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(`補登失敗 (${res.status})`);
+  };
+  const addPart = async () => {
+    if (!partEventId || partSessionIdx === null || partSessionIdx === undefined) { message.warning('請選擇活動與場次'); return; }
+    setPartSaving(true);
+    try {
+      const targets = partCustomer ? [partCustomer] : partBatchRows;
+      for (const c of targets) { await createParticipation(c, partEventId, partSessionIdx); }
+      message.success(`已補登 ${targets.length} 位客戶的參加活動`);
+      setPartEventId(null); setPartSessionIdx(null);
+      await loadParticipations();
+      if (!partCustomer) setPartModalOpen(false); // 批次做完直接關
+    } catch (e) {
+      message.error(e.message);
+    } finally { setPartSaving(false); }
+  };
+  const removePart = async (regId) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/registrations/${regId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`移除失敗 (${res.status})`);
+      message.success('已移除該筆參加活動');
+      await loadParticipations();
+    } catch (e) { message.error(e.message); }
+  };
+  // 活動(新到舊)與場次
+  const eventsNewest = [...events].sort((a, b) => new Date(b.attributes?.createdAt || 0) - new Date(a.attributes?.createdAt || 0));
+  const sessionsOfEvent = (eid) => events.find(e => e.id === eid)?.attributes?.session || [];
 
   const handleEdit = (record) => {
     setCurrentCustomer(record);
@@ -2062,6 +2125,11 @@ const CustomerManagement = () => {
                   批量指派 ({selectedRows.length})
             </Button>
                 <Button
+                  onClick={openPartBatch}
+                >
+                  批次補登參加活動 ({selectedRows.length})
+                </Button>
+                <Button
                   danger
                   icon={<RollbackOutlined />}
                   onClick={handleBatchUnassign}
@@ -2459,6 +2527,63 @@ const CustomerManagement = () => {
             </Option>
           ))}
         </Select>
+      </Modal>
+
+      {/* 參加活動補登(單一 / 批次) */}
+      <Modal
+        title={partCustomer
+          ? `${partCustomer.attributes?.name || '客戶'} 的參加活動`
+          : `批次補登參加活動（${partBatchRows.length} 位客戶）`}
+        open={partModalOpen}
+        onCancel={() => setPartModalOpen(false)}
+        footer={[<Button key="close" onClick={() => setPartModalOpen(false)}>關閉</Button>]}
+        zIndex={2000}
+        width={560}
+        destroyOnClose
+      >
+        {partCustomer && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ color: '#8c8c8c', marginBottom: 6 }}>目前參加的活動</div>
+            {(participations[partCustomer.id] || []).length === 0
+              ? <div style={{ color: '#c0c0c0' }}>尚無</div>
+              : (participations[partCustomer.id] || []).map(p => (
+                  <div key={p.regId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', border: '1px solid #f0f0f0', borderRadius: 6, marginBottom: 6 }}>
+                    <span>{p.title}{p.sessionText ? `｜${p.sessionText}` : ''}{p.timeText ? `｜${p.timeText}` : ''}</span>
+                    <Popconfirm title="移除這筆參加活動？" onConfirm={() => removePart(p.regId)} okText="移除" cancelText="取消">
+                      <Button type="text" danger size="small">移除</Button>
+                    </Popconfirm>
+                  </div>
+                ))}
+          </div>
+        )}
+        <div style={{ borderTop: '1px dashed #eee', paddingTop: 12 }}>
+          <div style={{ color: '#8c8c8c', marginBottom: 8 }}>{partCustomer ? '新增一筆參加活動' : '為勾選的客戶補登同一場活動'}</div>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Select
+              style={{ width: '100%' }} placeholder="選擇活動（最新在最上面）"
+              showSearch optionFilterProp="children"
+              value={partEventId} onChange={(v) => { setPartEventId(v); setPartSessionIdx(null); }}
+            >
+              {eventsNewest.map(e => (
+                <Option key={e.id} value={e.id}>{e.attributes?.title || `活動 ${e.id}`}</Option>
+              ))}
+            </Select>
+            <Select
+              style={{ width: '100%' }} placeholder="選擇場次"
+              disabled={!partEventId} value={partSessionIdx}
+              onChange={(v) => setPartSessionIdx(v)}
+            >
+              {sessionsOfEvent(partEventId).map((s, idx) => (
+                <Option key={idx} value={idx}>
+                  {s.location || `場次 ${idx + 1}`}{s.startDateTime ? `（${new Date(s.startDateTime).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}）` : ''}
+                </Option>
+              ))}
+            </Select>
+            <Button type="primary" loading={partSaving} onClick={addPart} block>
+              {partCustomer ? '新增' : `套用到 ${partBatchRows.length} 位客戶`}
+            </Button>
+          </Space>
+        </div>
       </Modal>
 
       {/* 新增客戶模態框 */}
