@@ -481,6 +481,26 @@ const CustomerManagement = () => {
       message.error(`新增來源失敗：${e.message}`);
     } finally { setAddingSource(false); }
   };
+  // 來源下拉刪除(僅管理者;後端也會擋)。刪除時後端把用它的客戶/報名歸回「其他」。
+  const deleteCustomerSource = (s) => {
+    Modal.confirm({
+      title: `刪除來源「${s.attributes.name}」？`,
+      content: '使用此來源的客戶／報名會自動歸回「其他」,不會遺失資料。',
+      okText: '刪除', cancelText: '取消', okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/customer-sources/${s.id}`, { method: 'DELETE' });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err?.error?.message || `刪除失敗 (${res.status})`);
+          }
+          setCustomerSources(prev => prev.filter(x => x.id !== s.id));
+          if (form.getFieldValue('customer_source') === s.id) form.setFieldsValue({ customer_source: undefined });
+          message.success('來源已刪除,原本使用的已歸回「其他」');
+        } catch (e) { message.error(`刪除失敗：${e.message}`); }
+      },
+    });
+  };
 
   // 參加活動(報名驅動):撈所有報名,解析活動/場次/時間/建案,依客戶分組
   const loadParticipations = async () => {
@@ -2415,7 +2435,7 @@ const CustomerManagement = () => {
             label="來源"
             rules={[{ required: true, message: '請選擇來源' }]}
           >
-            <Select placeholder="選擇或新增來源" showSearch optionFilterProp="children"
+            <Select placeholder="選擇或新增來源" showSearch optionFilterProp="label" optionLabelProp="label"
               dropdownRender={(menu) => (
                 <>
                   {menu}
@@ -2431,7 +2451,17 @@ const CustomerManagement = () => {
               )}
             >
               {customerSources.map(s => (
-                <Select.Option key={s.id} value={s.id}>{s.attributes.name}</Select.Option>
+                <Select.Option key={s.id} value={s.id} label={s.attributes.name}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{s.attributes.name}</span>
+                    {!s.attributes.is_other && (
+                      <DeleteOutlined
+                        style={{ color: '#ff7875', marginLeft: 8 }}
+                        onClick={(e) => { e.stopPropagation(); deleteCustomerSource(s); }}
+                      />
+                    )}
+                  </div>
+                </Select.Option>
               ))}
             </Select>
           </Form.Item>
@@ -2709,7 +2739,7 @@ const CustomerManagement = () => {
                 label="來源"
                 rules={[{ required: true, message: '請選擇來源' }]}
               >
-                <Select placeholder="選擇或新增來源" showSearch optionFilterProp="children"
+                <Select placeholder="選擇或新增來源" showSearch optionFilterProp="label" optionLabelProp="label"
                   dropdownRender={(menu) => (
                     <>
                       {menu}
@@ -2725,7 +2755,17 @@ const CustomerManagement = () => {
                   )}
                 >
                   {customerSources.map(s => (
-                    <Select.Option key={s.id} value={s.id}>{s.attributes.name}</Select.Option>
+                    <Select.Option key={s.id} value={s.id} label={s.attributes.name}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{s.attributes.name}</span>
+                    {!s.attributes.is_other && (
+                      <DeleteOutlined
+                        style={{ color: '#ff7875', marginLeft: 8 }}
+                        onClick={(e) => { e.stopPropagation(); deleteCustomerSource(s); }}
+                      />
+                    )}
+                  </div>
+                </Select.Option>
                   ))}
                 </Select>
               </Form.Item>
