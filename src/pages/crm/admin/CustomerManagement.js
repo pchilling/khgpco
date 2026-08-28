@@ -100,6 +100,10 @@ const CustomerManagement = () => {
   const [duplicatePrimary, setDuplicatePrimary] = useState({});
   // 合併確認框：{ group, groupIndex }，null 為關閉
   const [mergeConfirm, setMergeConfirm] = useState(null);
+  // 查找重複的方式:phone(依電話) / email(依電子郵件) / name(依姓名),由使用者自選
+  const [dupMethod, setDupMethod] = useState('phone');
+  // 合併確認框內可最終修改的主記錄姓名
+  const [mergeName, setMergeName] = useState('');
   const [merging, setMerging] = useState(false);
   const [form] = Form.useForm();
   const [filterForm] = Form.useForm();
@@ -1834,15 +1838,15 @@ const CustomerManagement = () => {
     message.info(`共有 ${pending.length} 位待分配客戶`);
   };
 
-  // 查找重複客戶
-  const handleFindDuplicates = () => {
+  // 查找重複客戶(method: phone/email/name;預設沿用目前選定的方式)
+  const handleFindDuplicates = (method = dupMethod) => {
+    setDupMethod(method);
+    setDuplicateCustomersVisible(true);
     setDuplicateLoading(true);
-    
     try {
-      const duplicates = findDuplicateCustomers(customers);
+      const duplicates = findDuplicateCustomers(customers, method);
       setDuplicateCustomers(duplicates);
-      setDuplicateCustomersVisible(true);
-      
+
       if (duplicates.length === 0) {
         message.success('沒有發現重複的客戶資料');
       } else {
@@ -1856,88 +1860,47 @@ const CustomerManagement = () => {
     }
   };
 
-  // 查找重複客戶的邏輯
-  const findDuplicateCustomers = (customerList) => {
+  // 查找重複客戶的邏輯(依使用者選定的方式分組:phone/email/name)
+  const findDuplicateCustomers = (customerList, method = 'phone') => {
+    // 各方式的分組鍵與顯示標籤
+    const keyOf = {
+      phone: (c) => { const p = c.attributes.phone?.toString().replace(/\D/g, ''); return (p && p.length >= 8) ? p : null; },
+      email: (c) => c.attributes.email?.trim().toLowerCase() || null,
+      name:  (c) => c.attributes.name?.trim() || null,
+    }[method] || (() => null);
+    const typeLabel = { phone: '電話重複', email: '電子郵件重複', name: '姓名重複' }[method] || '重複';
+
+    // 依鍵分組
+    const groups = {};
+    customerList.forEach((c) => {
+      const k = keyOf(c);
+      if (!k) return;
+      (groups[k] = groups[k] || []).push(c);
+    });
+
+    // 只留下同鍵超過一筆的組
     const duplicates = [];
-    const processed = new Set();
-
-    // 只以「電話」與「電子郵件」判定重複——兩者皆能唯一識別一個人。
-    // 刻意不比對姓名:1500+ 筆客戶同名（陳先生、王小姐…）極多，純姓名比對
-    // 會產生大量假重複、淹沒真正的重複，讓功能失去意義。
-
-    // 按電話分組
-    const phoneGroups = {};
-    customerList.forEach(customer => {
-      const phone = customer.attributes.phone?.toString().replace(/\D/g, '');
-      if (phone && phone.length >= 8) {
-        if (!phoneGroups[phone]) {
-          phoneGroups[phone] = [];
-        }
-        phoneGroups[phone].push(customer);
-      }
-    });
-    
-    // 按電子郵件分組
-    const emailGroups = {};
-    customerList.forEach(customer => {
-      const email = customer.attributes.email?.trim().toLowerCase();
-      if (email) {
-        if (!emailGroups[email]) {
-          emailGroups[email] = [];
-        }
-        emailGroups[email].push(customer);
-      }
-    });
-    
-    // 註:不再以「純姓名」判定重複。1500+ 筆客戶裡同名（陳先生、王小姐…）
-    // 極多，純姓名比對會產生大量假重複、淹沒真正的重複。改以電話為主鍵、
-    // Email 為輔（皆能唯一識別一個人）；姓名僅在下方作為輔助條件。
-
-    // 找出重複的電話組
-    Object.entries(phoneGroups).forEach(([phone, group]) => {
+    Object.entries(groups).forEach(([value, group]) => {
       if (group.length > 1) {
-        const key = `phone_${phone}`;
-        if (!processed.has(key)) {
-          duplicates.push({
-            type: '電話重複',
-            field: 'phone',
-            value: phone,
-            customers: group,
-            count: group.length
-          });
-          processed.add(key);
-        }
+        duplicates.push({ type: typeLabel, field: method, value, customers: group, count: group.length });
       }
     });
-    
-    // 找出重複的電子郵件組
-    Object.entries(emailGroups).forEach(([email, group]) => {
-      if (group.length > 1) {
-        const key = `email_${email}`;
-        if (!processed.has(key)) {
-          duplicates.push({
-            type: '電子郵件重複',
-            field: 'email',
-            value: email,
-            customers: group,
-            count: group.length
-          });
-          processed.add(key);
-        }
-      }
-    });
-    
     return duplicates;
   };
 
-  // 預覽與合併資料計算（保留主記錄電話/Email，其他值追加到備註）
-  const getMergedPreview = (duplicateGroup, selectedStaffId, primaryId) => {
+  // 預覽與合併資料計算（保留主記錄電話/Email;曾用名與其他值追加到備註）
+  // finalName:合併確認框可最終修改的姓名(空則沿用主記錄姓名)
+  const getMergedPreview = (duplicateGroup, selectedStaffId, primaryId, finalName) => {
     const all = duplicateGroup.customers;
     const chosen = all.find(c => c.id === primaryId) || all[0];
     // 把選定的主記錄排到第一位,其餘維持原順序;以下邏輯即以「第一筆為主」運作
     const customersToMerge = [chosen, ...all.filter(c => c.id !== chosen.id)];
     const primaryCustomer = customersToMerge[0];
     const merged = { ...primaryCustomer.attributes };
+
+    // 最終姓名:優先用使用者在確認框改過的名字
+    if (finalName != null && String(finalName).trim()) merged.name = String(finalName).trim();
+    const usedName = merged.name;
 
     const notesPartsSet = new Set();
     const otherPhones = [];
@@ -1959,7 +1922,14 @@ const CustomerManagement = () => {
       if (attrs.status && attrs.status !== 'potential') merged.status = attrs.status;
     });
 
+    // 曾用名:所有參與合併的客戶姓名,去重、排除最終保留的姓名。
+    // (黑名單常用不同名字報名;合併後仍能看出此人以前用過哪些名字)
+    const aliasNames = Array.from(new Set(
+      customersToMerge.map(c => c.attributes.name?.trim()).filter(Boolean)
+    )).filter(n => n !== usedName);
+
     const notesParts = Array.from(notesPartsSet);
+    if (aliasNames.length > 0) notesParts.push(`曾用名: ${aliasNames.join('、')}`);
     if (otherPhones.length > 0) notesParts.push(`其他電話: ${otherPhones.join('、')}`);
     if (otherEmails.length > 0) notesParts.push(`其他Email: ${otherEmails.join('、')}`);
 
@@ -1974,7 +1944,7 @@ const CustomerManagement = () => {
   };
 
   // 合併重複客戶
-  const handleMergeDuplicates = async (duplicateGroup, groupIndex) => {
+  const handleMergeDuplicates = async (duplicateGroup, groupIndex, finalName) => {
     try {
       const all = duplicateGroup.customers;
       const primaryId = duplicatePrimary[groupIndex] ?? all[0]?.id;
@@ -1982,7 +1952,7 @@ const CustomerManagement = () => {
       const customersToDelete = all.filter(c => c.id !== primaryCustomer.id);
 
       const selectedStaffId = duplicateAssignStaff[groupIndex] ?? primaryCustomer.attributes.sales_staff?.data?.id ?? null;
-      const mergedData = getMergedPreview(duplicateGroup, selectedStaffId, primaryId);
+      const mergedData = getMergedPreview(duplicateGroup, selectedStaffId, primaryId, finalName);
 
       // 1. 更新主客戶為合併後的資料
       await fetch(`${API_BASE_URL}/api/customers/${primaryCustomer.id}`, {
@@ -3267,20 +3237,36 @@ const CustomerManagement = () => {
           </Button>
         ]}
       >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          <span style={{ color: '#555' }}>查找方式：</span>
+          <Select
+            value={dupMethod}
+            style={{ width: 180 }}
+            onChange={(v) => handleFindDuplicates(v)}
+            options={[
+              { value: 'phone', label: '依電話' },
+              { value: 'email', label: '依電子郵件' },
+              { value: 'name', label: '依姓名' },
+            ]}
+          />
+          {dupMethod === 'name' && (
+            <span style={{ color: '#d48806', fontSize: 13 }}>同名客戶多,可能有誤判,請人工確認</span>
+          )}
+        </div>
         {duplicateLoading ? (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <Spin tip="查找重複客戶中..." />
           </div>
         ) : duplicateCustomers.length === 0 ? (
-          <Empty description="沒有發現重複的客戶資料" />
+          <Empty description={`目前依「${dupMethod === 'phone' ? '電話' : dupMethod === 'email' ? '電子郵件' : '姓名'}」沒有發現重複的客戶資料`} />
         ) : (
           <div>
-            <Alert 
-              message={`發現 ${duplicateCustomers.length} 組重複客戶資料`} 
-              type="warning" 
-              showIcon 
+            <Alert
+              message={`依「${dupMethod === 'phone' ? '電話' : dupMethod === 'email' ? '電子郵件' : '姓名'}」發現 ${duplicateCustomers.length} 組重複客戶資料`}
+              type="warning"
+              showIcon
               style={{ marginBottom: 16 }}
-              description="系統會根據姓名、電話或電子郵件來識別重複客戶。您可以選擇合併或刪除重複的客戶資料。"
+              description="可切換上方「查找方式」重新查找;選定主記錄後,合併會把其餘資料併入主記錄(曾用名一併寫入備註),或直接刪除重複。"
             />
             
             {duplicateCustomers.map((group, index) => (
@@ -3300,7 +3286,12 @@ const CustomerManagement = () => {
                       <Button
                         type="primary"
                         size="small"
-                        onClick={() => setMergeConfirm({ group, groupIndex: index })}
+                        onClick={() => {
+                          const pid = duplicatePrimary[index] ?? group.customers[0]?.id;
+                          const p = group.customers.find(c => c.id === pid) || group.customers[0];
+                          setMergeName(p?.attributes?.name || '');
+                          setMergeConfirm({ group, groupIndex: index });
+                        }}
                         style={{ marginRight: 8 }}
                       >
                         合併 ({group.count - 1} 個)
@@ -3511,7 +3502,7 @@ const CustomerManagement = () => {
         onOk={async () => {
           if (!mergeConfirm) return;
           setMerging(true);
-          await handleMergeDuplicates(mergeConfirm.group, mergeConfirm.groupIndex);
+          await handleMergeDuplicates(mergeConfirm.group, mergeConfirm.groupIndex, mergeName);
           setMerging(false);
           setMergeConfirm(null);
         }}
@@ -3526,6 +3517,9 @@ const CustomerManagement = () => {
           const pa = primary.attributes;
           const extraPhones = others.map(c => c.attributes.phone).filter(p => p && p !== pa.phone);
           const extraEmails = others.map(c => c.attributes.email).filter(e => e && e !== pa.email);
+          const finalNm = (mergeName || pa.name || '').trim();
+          // 曾用名:所有參與合併的姓名,去重、排除最終保留的姓名 → 會寫進主記錄備註
+          const aliasNames = Array.from(new Set(all.map(c => c.attributes.name?.trim()).filter(Boolean))).filter(n => n !== finalNm);
           const countRel = (rel) => all.filter(c => c.id !== primary.id)
             .reduce((sum, c) => sum + (c.attributes?.[rel]?.data?.length || 0), 0);
           const movedInteractions = countRel('interactions');
@@ -3542,11 +3536,20 @@ const CustomerManagement = () => {
                 type="info"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message={<span>以 <b>{pa.name || '(無名)'}</b> 這筆為主記錄,其餘 {others.length} 筆的資料併入後刪除。</span>}
+                message={<span>以 <b>{finalNm || '(無名)'}</b> 為主記錄姓名,其餘 {others.length} 筆的資料併入後刪除。</span>}
               />
-              {row('保留姓名', pa.name || '—')}
+              {row('最終姓名', (
+                <Input
+                  size="small"
+                  value={mergeName}
+                  onChange={(e) => setMergeName(e.target.value)}
+                  style={{ maxWidth: 220 }}
+                  placeholder="合併後保留的姓名"
+                />
+              ))}
               {row('保留電話', pa.phone || '—')}
               {row('保留 Email', pa.email || '—')}
+              {aliasNames.length > 0 && row('曾用名', <span style={{ color: '#d48806' }}>{aliasNames.join('、')} → 併入備註</span>)}
               {extraPhones.length > 0 && row('其他電話', <span style={{ color: '#d48806' }}>{extraPhones.join('、')} → 併入備註</span>)}
               {extraEmails.length > 0 && row('其他 Email', <span style={{ color: '#d48806' }}>{extraEmails.join('、')} → 併入備註</span>)}
               <div style={{ borderTop: '1px dashed #e5e5e5', margin: '12px 0' }} />
