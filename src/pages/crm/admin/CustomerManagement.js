@@ -1042,26 +1042,38 @@ const CustomerManagement = () => {
     setSearchKeyword(e.target.value);
   };
 
-  // 下載客戶資料範本
+  // 下載客戶資料範本(第 2 列為規則說明,匯入時會自動略過;規則全部中文可填)
   const handleTemplateDownload = () => {
     const template = [{
       '姓名': '(必填)',
-      '電話': '(必填，請直接輸入數字，例如：0912345678)',
+      '電話': '(必填。直接輸入數字,例:0912345678。欄位請設「文字」格式,避免變成 9E+08)',
       '電子郵件': '(選填)',
-      '地址': '',
-      '狀態': 'potential/contacted/negotiating/closed/lost',
-      '來源': 'website/event/referral/other',
-      '負責業務': '(選填，請填寫業務人員姓名)',
-      '備註': ''
+      '地址': '(選填)',
+      '參加活動': '(選填。填活動名稱,系統對得到就自動綁定參加活動;對不到會保留在備註)',
+      '來源': '(選填。填來源名稱,例:fb、ig、官網、活動;對不到自動歸「其他」)',
+      '負責業務': '(選填。填業務姓名,查無此人會提醒)',
+      '狀態': '(選填。填中文:潛在客戶/已聯繫/洽談中/已成交/已流失/黑名單;沒填=潛在客戶)',
+      '投資預算': '(選填:未知/一千萬以下/一千萬到兩千萬/兩千萬到三千萬/三千萬以上)',
+      '海外投資經驗': '(選填:有/無)',
+      '備註': '(選填)'
     }];
 
     const ws = XLSX.utils.json_to_sheet(template);
-    
+
     // 設定欄位寬度
-    if (!ws['!cols']) ws['!cols'] = [];
-    ws['!cols'][1] = { wch: 20, t: 's' }; // 電話
-    ws['!cols'][2] = { wch: 25, t: 's' }; // 電子郵件
-    ws['!cols'][3] = { wch: 30, t: 's' }; // 地址
+    ws['!cols'] = [
+      { wch: 12 }, // 姓名
+      { wch: 30, t: 's' }, // 電話
+      { wch: 25, t: 's' }, // 電子郵件
+      { wch: 20 }, // 地址
+      { wch: 30 }, // 參加活動
+      { wch: 22 }, // 來源
+      { wch: 16 }, // 負責業務
+      { wch: 30 }, // 狀態
+      { wch: 26 }, // 投資預算
+      { wch: 14 }, // 海外投資經驗
+      { wch: 30 }, // 備註
+    ];
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "範本");
@@ -1139,21 +1151,60 @@ const CustomerManagement = () => {
             warnings.push(`Email 格式可疑(${email})`);
           }
 
-          // 處理狀態
+          // 處理狀態(中文優先,含黑名單;沒填或對不到 → 潛在客戶)
           const statusValue = String(row['狀態'] || 'potential').trim();
           const statusMap = {
             'potential': 'potential',
             '潛在客戶': 'potential',
-            'contacted': 'contacted', 
+            'contacted': 'contacted',
             '已聯繫': 'contacted',
             'negotiating': 'negotiating',
             '洽談中': 'negotiating',
             'closed': 'closed',
             '已成交': 'closed',
             'lost': 'lost',
-            '已流失': 'lost'
+            '已流失': 'lost',
+            'blacklist': 'blacklist',
+            '黑名單': 'blacklist'
           };
           const status = statusMap[statusValue] || 'potential';
+          if (statusValue && statusValue !== 'potential' && !statusMap[statusValue]) {
+            warnings.push(`狀態「${statusValue}」看不懂 → 設為潛在客戶`);
+          }
+
+          // 參加活動:文字對得到系統活動就綁定(建已確認報名,與補登同機制),對不到 → 原文進備註
+          const eventText = String(row['參加活動'] || '').trim();
+          let matchedEventId = null;
+          let matchedEventTitle = null;
+          if (eventText && !eventText.startsWith('(')) {
+            const norm = (s) => String(s || '').replace(/[\s【】　]/g, '');
+            const et = norm(eventText);
+            const hit = events.find(ev => {
+              const t = norm(ev.attributes?.title);
+              return t && (et.includes(t) || t.includes(et));
+            });
+            if (hit) {
+              matchedEventId = hit.id;
+              matchedEventTitle = hit.attributes?.title || '';
+            } else {
+              warnings.push(`活動「${eventText}」對不到系統活動 → 進備註`);
+            }
+          }
+
+          // 投資預算(中文 → enum;沒填 → 未知)
+          const budgetText = String(row['投資預算'] || '').trim();
+          const budgetMap = {
+            '未知': 'budget_unknown',
+            '一千萬以下': 'budget_under_ten',
+            '一千萬到兩千萬': 'budget_ten_to_twenty',
+            '兩千萬到三千萬': 'budget_twenty_to_thirty',
+            '三千萬以上': 'budget_above_thirty'
+          };
+          const budget_range = budgetMap[budgetText] || 'budget_unknown';
+
+          // 海外投資經驗(含「有」→ true)
+          const overseasText = String(row['海外投資經驗'] || '').trim();
+          const has_overseas_investment = overseasText.includes('有');
 
           // 來源:保留原字串,寫入時再對應動態 customer_source(見 resolveImportSource)
           const sourceText = String(row['來源'] || '').trim();
@@ -1184,6 +1235,12 @@ const CustomerManagement = () => {
             sourceText,
             sales_staff,
             notes,
+            budget_range,
+            budgetText,
+            has_overseas_investment,
+            eventText,
+            _eventId: matchedEventId,
+            _eventTitle: matchedEventTitle,
             _seq: index + 1,
             _errors: errors,
             _warnings: warnings,
@@ -1218,9 +1275,39 @@ const CustomerManagement = () => {
     return { customerSourceId: (found || other)?.id || null, sourceEnum };
   };
 
+  // 匯入時綁參加活動:幫客戶建一筆已確認報名(與補登同機制)。
+  // 已有同活動報名就跳過,重複匯入不會長出重複的參加活動。場次未知 → 不填 sessionIndex。
+  const ensureImportParticipation = async (customerId, row) => {
+    if (!row._eventId || !customerId) return;
+    const chk = await fetch(
+      `${API_BASE_URL}/api/registrations?filters[customer][id][$eq]=${customerId}&filters[event][id][$eq]=${row._eventId}&pagination[pageSize]=1`
+    );
+    if (chk.ok) { const j = await chk.json(); if ((j.data || []).length > 0) return; }
+    const resp = await fetch(`${API_BASE_URL}/api/registrations`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: {
+        name: row.name,
+        phone: row.phone || null,
+        event: Number(row._eventId),
+        status: 'confirmed',
+        customer: customerId,
+        ...(row.sales_staff ? { sales_staff: row.sales_staff } : {}),
+        publishedAt: new Date().toISOString(),
+      } }),
+    });
+    if (!resp.ok) throw new Error(`綁定參加活動失敗(${resp.status})`);
+  };
+
   // 匯入單列:同電話已有客戶 → 更新既有(只補空欄位、備註追加,不覆蓋已填);否則新增。
+  // 參加活動對到系統活動 → 建已確認報名;對不到 → 原文併進備註。
   const importOneCustomer = async (row) => {
     const { customerSourceId, sourceEnum } = resolveImportSource(row.sourceText);
+    // 備註組合:原備註 + 對不到的參加活動原文(不遺失)
+    const notesParts = [];
+    if (row.notes) notesParts.push(row.notes);
+    if (row.eventText && !row._eventId) notesParts.push(`參加活動(原文): ${row.eventText}`);
+    const rowNotes = notesParts.join('\n');
+
     // 先用電話查既有客戶,避免重複建立
     let existing = null;
     if (row.phone) {
@@ -1238,25 +1325,33 @@ const CustomerManagement = () => {
       if (!ea.address && row.address) patch.address = row.address;
       if (!ea.sales_staff?.data && row.sales_staff) patch.sales_staff = row.sales_staff;
       if (!ea.customer_source?.data && customerSourceId) patch.customer_source = customerSourceId;
-      if (row.notes) patch.notes = ea.notes ? `${ea.notes}\n\n${row.notes}` : row.notes;
-      if (Object.keys(patch).length === 0) return { updated: true };
-      const resp = await fetch(`${API_BASE_URL}/api/customers/${existing.id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: patch }),
-      });
-      if (!resp.ok) { const j = await resp.json().catch(() => ({})); throw new Error(j.error?.message || `更新失敗(${resp.status})`); }
+      if ((!ea.budget_range || ea.budget_range === 'budget_unknown') && row.budget_range !== 'budget_unknown') patch.budget_range = row.budget_range;
+      if (!ea.has_overseas_investment && row.has_overseas_investment) patch.has_overseas_investment = true;
+      if (rowNotes) patch.notes = ea.notes ? `${ea.notes}\n\n${rowNotes}` : rowNotes;
+      if (Object.keys(patch).length > 0) {
+        const resp = await fetch(`${API_BASE_URL}/api/customers/${existing.id}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: patch }),
+        });
+        if (!resp.ok) { const j = await resp.json().catch(() => ({})); throw new Error(j.error?.message || `更新失敗(${resp.status})`); }
+      }
+      await ensureImportParticipation(existing.id, row);
       return { updated: true };
     }
     const resp = await fetch(`${API_BASE_URL}/api/customers`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data: {
         name: row.name, phone: row.phone, email: row.email, address: row.address,
-        status: row.status, source: sourceEnum, sales_staff: row.sales_staff, notes: row.notes,
+        status: row.status, source: sourceEnum, sales_staff: row.sales_staff, notes: rowNotes,
+        budget_range: row.budget_range,
+        has_overseas_investment: row.has_overseas_investment,
         ...(customerSourceId && { customer_source: customerSourceId }),
         publishedAt: new Date().toISOString(),
       } }),
     });
     if (!resp.ok) { const j = await resp.json().catch(() => ({})); throw new Error(j.error?.message || `新增失敗(${resp.status})`); }
+    const created = await resp.json().catch(() => ({}));
+    await ensureImportParticipation(created?.data?.id, row);
     return { updated: false };
   };
 
@@ -3589,6 +3684,20 @@ const CustomerManagement = () => {
             type="info"
             showIcon
           />
+          <Alert
+            style={{ marginTop: 8 }}
+            type="warning"
+            message="填寫規則(欄位都可填中文)"
+            description={
+              <div style={{ fontSize: 13, lineHeight: 1.9 }}>
+                <div>・<b>電話</b>:必填,10 碼 0 開頭;Excel 欄位請設「文字」格式,避免變成 9E+08</div>
+                <div>・<b>狀態</b>:潛在客戶/已聯繫/洽談中/已成交/已流失/黑名單(沒填=潛在客戶)</div>
+                <div>・<b>來源</b>:填來源名稱(例:fb、ig、官網、活動);對不到自動歸「其他」</div>
+                <div>・<b>參加活動</b>:文字需包含系統裡的活動名稱才會自動綁定(下方預覽綠色=已綁定);對不到會保留在備註</div>
+                <div>・<b>投資預算</b>:未知/一千萬以下/一千萬到兩千萬/兩千萬到三千萬/三千萬以上;<b>海外投資經驗</b>:有/無</div>
+              </div>
+            }
+          />
         </div>
         
         <Table
@@ -3622,6 +3731,19 @@ const CustomerManagement = () => {
               render: (address) => address || <span style={{ color: '#ccc' }}>未填寫</span>
             },
             {
+              title: '參加活動',
+              dataIndex: 'eventText',
+              key: 'eventText',
+              width: 170,
+              ellipsis: true,
+              render: (t, r) => {
+                if (!t) return <span style={{ color: '#ccc' }}>無</span>;
+                return r._eventId
+                  ? <Tag color="green">綁定:{r._eventTitle}</Tag>
+                  : <Tooltip title={t}><span style={{ color: '#d48806' }}>{t} → 備註</span></Tooltip>;
+              },
+            },
+            {
               title: '狀態',
               dataIndex: 'status',
               key: 'status',
@@ -3649,6 +3771,20 @@ const CustomerManagement = () => {
                 const staff = salesStaff.find(s => s.id === sales_staff_id);
                 return staff ? (staff.attributes.name || staff.attributes.username) : '未找到';
               },
+            },
+            {
+              title: '投資預算',
+              dataIndex: 'budgetText',
+              key: 'budgetText',
+              width: 110,
+              render: (t) => t || <span style={{ color: '#ccc' }}>未知</span>,
+            },
+            {
+              title: '海外投資',
+              dataIndex: 'has_overseas_investment',
+              key: 'has_overseas_investment',
+              width: 80,
+              render: (v) => (v ? <Tag color="blue">有</Tag> : <span style={{ color: '#ccc' }}>無</span>),
             },
             {
               title: '備註',
@@ -3679,7 +3815,7 @@ const CustomerManagement = () => {
           rowKey={(record, index) => index}
           size="small"
           pagination={{ pageSize: 10, showSizeChanger: false }}
-          scroll={{ x: 1300, y: 420 }}
+          scroll={{ x: 1650, y: 420 }}
           sticky
         />
       </Modal>
