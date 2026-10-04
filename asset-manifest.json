@@ -1,9 +1,9 @@
 {
   "files": {
     "main.css": "https://humbleskh.com/static/css/main.943c086e.css",
-    "main.js": "https://humbleskh.com/static/js/main.f2bba349.js",
-    "static/css/783.27ac8571.chunk.css": "https://humbleskh.com/static/css/783.27ac8571.chunk.css",
-    "static/js/783.28fcc418.chunk.js": "https://humbleskh.com/static/js/783.28fcc418.chunk.js",
+    "main.js": "https://humbleskh.com/static/js/main.c02f2a4b.js",
+    "static/css/438.bda7b817.chunk.css": "https://humbleskh.com/static/css/438.bda7b817.chunk.css",
+    "static/js/438.686a933e.chunk.js": "https://humbleskh.com/static/js/438.686a933e.chunk.js",
     "static/css/379.99b8d618.chunk.css": "https://humbleskh.com/static/css/379.99b8d618.chunk.css",
     "static/js/379.796ecf03.chunk.js": "https://humbleskh.com/static/js/379.796ecf03.chunk.js",
     "static/css/131.94022838.chunk.css": "https://humbleskh.com/static/css/131.94022838.chunk.css",
@@ -51,6 +51,7 @@
     "static/media/landingcity.jpg": "https://humbleskh.com/static/media/landingcity.19cb6e8c4214ad3b4975.jpg",
     "static/media/placeholder.jpg": "https://humbleskh.com/static/media/placeholder.0e19f5422b84c11769b0.jpg",
     "static/media/instagram.png": "https://humbleskh.com/static/media/instagram.6f676173b2c88dfb635a.png",
+    "static/media/gryphon-storefront.webp": "https://humbleskh.com/static/media/gryphon-storefront.1a621fbb3023f4885ea2.webp",
     "static/media/mrlee.png": "https://humbleskh.com/static/media/mrlee.ff97123cd767f5935f62.png",
     "static/media/fa-solid-900.ttf": "https://humbleskh.com/static/media/fa-solid-900.2582b0e4bcf85eceead0.ttf",
     "static/media/about-bg.jpg": "https://humbleskh.com/static/media/about-bg.10d2f8682a8c6d2d912f.jpg",
@@ -78,9 +79,9 @@
     "static/media/fa-v4compatibility.woff2": "https://humbleskh.com/static/media/fa-v4compatibility.ea8f94e1d22e0d35ccd4.woff2",
     "index.html": "https://humbleskh.com/index.html",
     "main.943c086e.css.map": "https://humbleskh.com/static/css/main.943c086e.css.map",
-    "main.f2bba349.js.map": "https://humbleskh.com/static/js/main.f2bba349.js.map",
-    "783.27ac8571.chunk.css.map": "https://humbleskh.com/static/css/783.27ac8571.chunk.css.map",
-    "783.28fcc418.chunk.js.map": "https://humbleskh.com/static/js/783.28fcc418.chunk.js.map",
+    "main.c02f2a4b.js.map": "https://humbleskh.com/static/js/main.c02f2a4b.js.map",
+    "438.bda7b817.chunk.css.map": "https://humbleskh.com/static/css/438.bda7b817.chunk.css.map",
+    "438.686a933e.chunk.js.map": "https://humbleskh.com/static/js/438.686a933e.chunk.js.map",
     "379.99b8d618.chunk.css.map": "https://humbleskh.com/static/css/379.99b8d618.chunk.css.map",
     "379.796ecf03.chunk.js.map": "https://humbleskh.com/static/js/379.796ecf03.chunk.js.map",
     "131.94022838.chunk.css.map": "https://humbleskh.com/static/css/131.94022838.chunk.css.map",
@@ -127,6 +128,6 @@
   },
   "entrypoints": [
     "static/css/main.943c086e.css",
-    "static/js/main.f2bba349.js"
+    "static/js/main.c02f2a4b.js"
   ]
 }
