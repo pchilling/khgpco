@@ -1,67 +1,183 @@
+/* 登入頁:左圖右表單分割版面。主色取自閣睿 logo 深海軍藍 #1F2A52 */
+
 .loginContainer {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background-color: #f5f5f5;
+  height: 100vh; /* 鎖定一個視窗高,進來即滿版、不產生捲動 */
+  background: #fff;
 }
 
-.loginBox {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+/* ---------- 左側品牌形象圖 ---------- */
+.imageSide {
+  flex: 1 1 55%;
+  position: relative;
+  overflow: hidden;
+  display: none; /* 手機隱藏,≥768px 顯示 */
+  background: #121830;
+}
+
+.imageBg {
+  position: absolute; /* 絕對定位填滿左欄,不以原圖高度撐開頁面 */
+  inset: 0;
   width: 100%;
-  max-width: 400px;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  /* Ken Burns:30 秒緩慢推進,來回交替,像電影鏡頭 */
+  animation: kenburns 30s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
-.loginBox h2 {
-  text-align: center;
-  margin-bottom: 2rem;
+@keyframes kenburns {
+  from { transform: scale(1) translate(0, 0); }
+  to   { transform: scale(1.08) translate(-1.5%, -1%); }
+}
+
+/* 底部深色漸層,讓白 logo 清楚可讀 */
+.imageOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(18, 24, 48, 0.78) 0%,
+    rgba(18, 24, 48, 0.25) 40%,
+    rgba(18, 24, 48, 0) 65%
+  );
+  pointer-events: none;
+}
+
+.imageBrand {
+  position: absolute;
+  left: 48px;
+  right: 48px;
+  bottom: 44px;
+}
+
+.brandLogo {
+  width: min(300px, 55%);
+  display: block;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.35));
+}
+
+/* ---------- 右側表單 ---------- */
+.formSide {
+  flex: 1 1 45%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  background: #fff;
+  overflow-y: auto; /* 視窗極矮時表單區自己捲,不影響整頁滿版 */
+}
+
+.form {
+  width: 100%;
+  max-width: 384px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.formLogo {
+  width: 230px;
+  max-width: 72%;
+  display: block;
+  margin-bottom: 30px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 600;
+  color: #1f2a52;
+  margin: 0 0 6px;
+  letter-spacing: 0.02em;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #8a90a3;
+  margin: 0 0 34px;
+}
+
+/* 圓角膠囊輸入框(icon + input) */
+.inputWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 48px;
+  border: 1px solid #d9dde6;
+  border-radius: 999px;
+  padding: 0 22px;
+  margin-bottom: 16px;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.inputWrap:focus-within {
+  border-color: #1f2a52;
+  box-shadow: 0 0 0 3px rgba(31, 42, 82, 0.12);
+}
+
+.inputWrap svg {
+  flex-shrink: 0;
+}
+
+.inputWrap input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  height: 100%;
+  font-size: 14px;
   color: #333;
 }
 
-.formGroup {
-  margin-bottom: 1.5rem;
-}
-
-.formGroup label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #666;
-}
-
-.formGroup input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-.formGroup input:focus {
-  outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+.inputWrap input::placeholder {
+  color: #9aa0b0;
 }
 
 .submitButton {
   width: 100%;
-  padding: 0.75rem;
-  background-color: #4a90e2;
-  color: white;
+  height: 46px;
+  margin-top: 18px;
   border: none;
-  border-radius: 4px;
-  font-size: 1rem;
+  border-radius: 999px;
+  background: #1f2a52;
+  color: #fff;
+  font-size: 15px;
+  letter-spacing: 0.12em;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background 0.2s, transform 0.1s;
 }
 
 .submitButton:hover {
-  background-color: #357abd;
+  background: #2a3a6e;
+}
+
+.submitButton:active {
+  transform: translateY(1px);
+}
+
+.submitButton:focus-visible {
+  outline: 2px solid #1f2a52;
+  outline-offset: 3px;
 }
 
 .submitButton:disabled {
-  background-color: #ccc;
+  background: #aab1c4;
   cursor: not-allowed;
-} 
+}
+
+/* ---------- 響應式 ---------- */
+@media (min-width: 768px) {
+  .imageSide {
+    display: block;
+  }
+}
+
+/* 系統設定「減少動態效果」時停住 Ken Burns */
+@media (prefers-reduced-motion: reduce) {
+  .imageBg {
+    animation: none;
+  }
+}
